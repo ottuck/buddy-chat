@@ -133,7 +133,27 @@ server → client
 7. **S7 배포**: Container Apps, DocumentDB, Terraform
 8. **S8 Push**: FCM / APNs
 
-## 정해야 할 것
+## Room·초대 규칙 (S2에서 확정)
 
-- 이미 solo room이 있는 사용자가 친구 초대를 수락하면? → 제안: 자기 room에 다른 멤버가 없을 때만 허용하고,
-  기존 solo room(Buddy 포함)은 사라진다는 확인을 받는다.
+- 초대 코드: 8자리(헷갈리는 0/O, 1/I/L 제외), 24시간 유효, 한 번만 사용. 대소문자 구분 없음.
+- 이미 solo room이 있는 사람이 초대를 수락하면 `LEAVE_CONFIRMATION_REQUIRED`를 받는다. 앱이 "지금 Buddy는 사라져요"를
+  확인받고 `leaveCurrentRoom: true`로 다시 요청하면 참가하고, 기존 solo room과 Buddy는 삭제된다.
+- 다른 멤버가 있는 room에 있는 사람은 다른 room에 참가할 수 없다(`ALREADY_IN_ROOM`). 나가기는 MVP 밖.
+- 동시성: 초대 사용은 `usedAt: null` 조건부 update, 참가는 `memberCount < 2` 조건부 update로 보장한다.
+  같은 room의 서로 다른 코드가 동시에 수락되어 자리가 없으면, 진 쪽의 초대는 사용 처리를 되돌린다.
+- 트랜잭션이 없으므로 참가 → 사용자 roomId 변경 → 기존 room 삭제 순서로 처리한다. 중간에 실패하면
+  주인 없는 solo room이 남을 수 있지만 사용자에게는 보이지 않는다.
+
+에러 코드(응답 본문 `{ "code": "..." }`, 문구는 앱이 정한다):
+
+| code | HTTP | 상황 |
+| --- | --- | --- |
+| `INVALID_REQUEST` | 400 | 요청 값 검증 실패(Buddy 이름 비었거나 12자 초과 등) |
+| `ROOM_NOT_FOUND` | 404 | 아직 room이 없음 |
+| `ROOM_ALREADY_EXISTS` | 409 | 이미 room이 있는데 만들려고 함 |
+| `ROOM_FULL` | 409 | 2명이 찬 room에 초대·참가 |
+| `INVITATION_NOT_FOUND` | 404 | 없는 코드 |
+| `INVITATION_EXPIRED` / `INVITATION_USED` | 410 | 만료 / 이미 사용 |
+| `ALREADY_MEMBER` | 409 | 자기 room의 초대를 수락 |
+| `ALREADY_IN_ROOM` | 409 | 2명 room의 멤버가 다른 room에 참가 |
+| `LEAVE_CONFIRMATION_REQUIRED` | 409 | solo room을 두고 참가하려면 확인 필요 |

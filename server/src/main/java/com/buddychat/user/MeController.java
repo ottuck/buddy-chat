@@ -18,10 +18,7 @@ class MeController {
 
     @GetMapping("/api/me")
     Mono<MeResponse> me(@AuthenticationPrincipal Jwt jwt) {
-        // "name" is present for Google/Apple sign-in and absent for anonymous users.
-        return userService
-                .getOrCreate(jwt.getSubject(), jwt.getClaimAsString("name"))
-                .map(MeResponse::from);
+        return userService.current(jwt).map(MeResponse::from);
     }
 
     record MeResponse(
