@@ -13,6 +13,8 @@ const light = {
   bubbleTheirs: '#FFFFFF',
   bubbleTheirsText: '#2B2622',
   online: '#3CC37A',
+  fullness: '#F5B642',
+  cleanliness: '#58B7E8',
 };
 
 export type Colors = typeof light;
@@ -30,6 +32,8 @@ const dark: Colors = {
   bubbleTheirs: '#26262C',
   bubbleTheirsText: '#EDEAE6',
   online: '#3CC37A',
+  fullness: '#F5B642',
+  cleanliness: '#58B7E8',
 };
 
 export function useColors(): Colors {

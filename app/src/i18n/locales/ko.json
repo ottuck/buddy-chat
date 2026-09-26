@@ -1,4 +1,7 @@
 {
+  "common": {
+    "close": "닫기"
+  },
   "chat": {
     "composerPlaceholder": "메시지",
     "send": "보내기",
@@ -6,7 +9,24 @@
     "offline": "오프라인"
   },
   "buddy": {
-    "level": "Lv.{{level}}"
+    "level": "Lv.{{level}}",
+    "open": "{{buddy}} 보기",
+    "stage": {
+      "EGG": "알",
+      "BABY": "아기",
+      "CHILD": "어린이",
+      "ADULT": "어른"
+    },
+    "exp": "경험치",
+    "fullness": "배부름",
+    "hungry": "배고파요",
+    "full": "배불러요",
+    "cleanliness": "청결",
+    "dirty": "더러워요",
+    "clean": "깨끗해요",
+    "feed": "밥주기",
+    "cleanUp": "청소하기",
+    "growthHint": "대화하고 돌봐줄수록 Buddy가 성장해요."
   },
   "buddyEvent": {
     "HUNGRY": "{{buddy}}가 배고파졌어요 🍚",

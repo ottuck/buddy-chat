@@ -1,4 +1,7 @@
 {
+  "common": {
+    "close": "閉じる"
+  },
   "chat": {
     "composerPlaceholder": "メッセージ",
     "send": "送信",
@@ -6,7 +9,24 @@
     "offline": "オフライン"
   },
   "buddy": {
-    "level": "Lv.{{level}}"
+    "level": "Lv.{{level}}",
+    "open": "{{buddy}}を見る",
+    "stage": {
+      "EGG": "たまご",
+      "BABY": "ベビー",
+      "CHILD": "こども",
+      "ADULT": "おとな"
+    },
+    "exp": "けいけんち",
+    "fullness": "おなか",
+    "hungry": "はらぺこ",
+    "full": "まんぷく",
+    "cleanliness": "きれいさ",
+    "dirty": "よごれてる",
+    "clean": "きれい",
+    "feed": "ごはん",
+    "cleanUp": "おそうじ",
+    "growthHint": "おしゃべりしたりお世話したりするほど、大きくなります。"
   },
   "buddyEvent": {
     "HUNGRY": "{{buddy}}がおなかをすかせています 🍚",

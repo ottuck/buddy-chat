@@ -1,17 +1,29 @@
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { ProgressBar } from '@/components/progress-bar';
+import { BuddyAvatar } from '@/features/buddy/components/buddy-avatar';
+import {
+  type Buddy,
+  canClean,
+  canFeed,
+  levelOf,
+  levelProgress,
+  stageOf,
+} from '@/features/buddy/rules';
 import { useColors } from '@/theme';
 
 type Props = {
   partnerName: string;
   online: boolean;
-  buddy: { name: string; level: number; expProgress: number };
+  buddy: Buddy;
+  onPressBuddy: () => void;
 };
 
-export function ChatHeader({ partnerName, online, buddy }: Props) {
+export function ChatHeader({ partnerName, online, buddy, onPressBuddy }: Props) {
   const colors = useColors();
   const { t } = useTranslation();
+  const level = levelOf(buddy.exp);
 
   return (
     <View style={[styles.container, { borderColor: colors.border }]}>
@@ -25,24 +37,27 @@ export function ChatHeader({ partnerName, online, buddy }: Props) {
         />
       </View>
 
-      {/* Compact buddy status; opens the buddy detail later (docs/project-plan.md §32). */}
-      <View style={[styles.buddyRow, { backgroundColor: colors.surface }]}>
-        <Text style={styles.buddyAvatar}>🥚</Text>
+      {/* Compact buddy status; tapping opens the buddy detail (docs/project-plan.md §32). */}
+      <Pressable
+        onPress={onPressBuddy}
+        accessibilityRole="button"
+        accessibilityLabel={t('buddy.open', { buddy: buddy.name })}
+        style={({ pressed }) => [
+          styles.buddyRow,
+          { backgroundColor: colors.surface, opacity: pressed ? 0.7 : 1 },
+        ]}
+      >
+        <BuddyAvatar stage={stageOf(level)} size={18} />
         <Text style={[styles.buddyName, { color: colors.text }]} numberOfLines={1}>
           {buddy.name}
         </Text>
         <Text style={[styles.buddyLevel, { color: colors.textMuted }]}>
-          {t('buddy.level', { level: buddy.level })}
+          {t('buddy.level', { level })}
         </Text>
-        <View style={[styles.expTrack, { backgroundColor: colors.border }]}>
-          <View
-            style={[
-              styles.expFill,
-              { backgroundColor: colors.accent, width: `${buddy.expProgress * 100}%` },
-            ]}
-          />
-        </View>
-      </View>
+        <ProgressBar progress={levelProgress(buddy.exp)} />
+        {canFeed(buddy) ? <Text style={styles.status}>🍚</Text> : null}
+        {canClean(buddy) ? <Text style={styles.status}>💩</Text> : null}
+      </Pressable>
     </View>
   );
 }
@@ -78,9 +93,6 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 14,
   },
-  buddyAvatar: {
-    fontSize: 18,
-  },
   buddyName: {
     fontSize: 14,
     fontWeight: '600',
@@ -89,14 +101,7 @@ const styles = StyleSheet.create({
   buddyLevel: {
     fontSize: 12,
   },
-  expTrack: {
-    flex: 1,
-    height: 6,
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  expFill: {
-    height: '100%',
-    borderRadius: 3,
+  status: {
+    fontSize: 14,
   },
 });

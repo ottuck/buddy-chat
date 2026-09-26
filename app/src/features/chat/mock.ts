@@ -4,7 +4,6 @@ import type { BuddyEvent, Member, Message } from './types';
 
 export const ME: Member = { id: 'me', displayName: 'Henry' };
 export const PARTNER: Member = { id: 'partner', displayName: 'Yuki' };
-export const BUDDY = { name: 'Mugi', level: 3, expProgress: 0.4 };
 
 let seq = 0;
 const base = (minutesAgo: number) => {

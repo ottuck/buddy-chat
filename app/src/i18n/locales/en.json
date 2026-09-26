@@ -1,4 +1,7 @@
 {
+  "common": {
+    "close": "Close"
+  },
   "chat": {
     "composerPlaceholder": "Message",
     "send": "Send",
@@ -6,7 +9,24 @@
     "offline": "Offline"
   },
   "buddy": {
-    "level": "Lv.{{level}}"
+    "level": "Lv.{{level}}",
+    "open": "Open {{buddy}}",
+    "stage": {
+      "EGG": "Egg",
+      "BABY": "Baby",
+      "CHILD": "Child",
+      "ADULT": "Adult"
+    },
+    "exp": "EXP",
+    "fullness": "Fullness",
+    "hungry": "Hungry",
+    "full": "Full",
+    "cleanliness": "Cleanliness",
+    "dirty": "Needs cleaning",
+    "clean": "Clean",
+    "feed": "Feed",
+    "cleanUp": "Clean up",
+    "growthHint": "The more you chat and take care of it, the more it grows."
   },
   "buddyEvent": {
     "HUNGRY": "{{buddy}} is hungry 🍚",
