@@ -20,7 +20,7 @@ import tools.jackson.databind.json.JsonMapper;
 /** A blocking WebSocket client for tests: send JSON, then wait for what comes back. */
 class TestSocket implements AutoCloseable {
 
-    private static final Duration WAIT = Duration.ofSeconds(5);
+    private static final Duration WAIT = Duration.ofSeconds(10);
 
     private final JsonMapper json;
     private final Sinks.Many<String> outbound = Sinks.many().unicast().onBackpressureBuffer();

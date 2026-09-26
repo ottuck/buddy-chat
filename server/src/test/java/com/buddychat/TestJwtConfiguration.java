@@ -27,7 +27,7 @@ public class TestJwtConfiguration {
     ReactiveJwtDecoder testJwtDecoder() {
         return token -> {
             // "slow-…" tokens take a while to verify, like the first check that fetches Google's keys.
-            Duration delay = token.startsWith("slow-") ? Duration.ofMillis(1500) : Duration.ZERO;
+            Duration delay = token.startsWith("slow-") ? Duration.ofMillis(3500) : Duration.ZERO;
             int bar = token.indexOf('~');
             if (bar < 0) return Mono.error(new BadJwtException("invalid test token"));
             return Mono.just(Jwt.withTokenValue(token)

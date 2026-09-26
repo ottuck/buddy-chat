@@ -110,6 +110,7 @@ server → client
   { type: "ready" }                               인증 완료
   { type: "ack", clientMessageId, message }       내 메시지 저장 완료(재전송이어도 같은 응답)
   { type: "message", message }                    상대 메시지, Buddy 이벤트
+  { type: "member", userId, displayName }         친구가 초대를 수락함(solo → duo)
   { type: "typing", userId, typing }
   { type: "presence", userId, online }
   { type: "read", userId, messageId }

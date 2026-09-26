@@ -11,6 +11,7 @@ import org.jspecify.annotations.Nullable;
     @JsonSubTypes.Type(value = ServerEvent.Ready.class, name = "ready"),
     @JsonSubTypes.Type(value = ServerEvent.Ack.class, name = "ack"),
     @JsonSubTypes.Type(value = ServerEvent.NewMessage.class, name = "message"),
+    @JsonSubTypes.Type(value = ServerEvent.MemberJoined.class, name = "member"),
     @JsonSubTypes.Type(value = ServerEvent.Error.class, name = "error"),
     @JsonSubTypes.Type(value = ServerEvent.Pong.class, name = "pong"),
 })
@@ -22,6 +23,9 @@ public sealed interface ServerEvent {
     record Ack(String clientMessageId, Message message) implements ServerEvent {}
 
     record NewMessage(Message message) implements ServerEvent {}
+
+    /** A friend accepted an invitation to this room (solo → duo). */
+    record MemberJoined(String userId, @Nullable String displayName) implements ServerEvent {}
 
     /** {@code clientMessageId} is set when a send failed, so the app can mark that message. */
     record Error(String code, @Nullable String clientMessageId) implements ServerEvent {}

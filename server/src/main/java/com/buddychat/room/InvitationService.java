@@ -4,6 +4,8 @@ import static org.springframework.data.mongodb.core.query.Criteria.where;
 import static org.springframework.data.mongodb.core.query.Query.query;
 
 import com.buddychat.common.ApiException;
+import com.buddychat.realtime.RoomHub;
+import com.buddychat.realtime.ServerEvent;
 import com.buddychat.user.User;
 import com.buddychat.user.UserService;
 import java.security.SecureRandom;
@@ -31,6 +33,7 @@ class InvitationService {
     private final RoomService roomService;
     private final UserService userService;
     private final ReactiveMongoTemplate mongo;
+    private final RoomHub hub;
     private final Clock clock;
     private final SecureRandom random = new SecureRandom();
 
@@ -39,11 +42,13 @@ class InvitationService {
             RoomService roomService,
             UserService userService,
             ReactiveMongoTemplate mongo,
+            RoomHub hub,
             Clock clock) {
         this.invitations = invitations;
         this.roomService = roomService;
         this.userService = userService;
         this.mongo = mongo;
+        this.hub = hub;
         this.clock = clock;
     }
 
@@ -83,7 +88,9 @@ class InvitationService {
                                             ? Mono.<Void>empty()
                                             : roomService.deleteIfSolo(user.roomId(), user.id()))
                             .then(roomService.findById(invitation.roomId()))
-                            .flatMap(roomService::toView);
+                            .flatMap(roomService::toView)
+                            .doOnNext(room -> hub.publish(
+                                    room.id(), new ServerEvent.MemberJoined(user.id(), user.displayName()), null));
                 });
     }
 

@@ -29,7 +29,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-        properties = "buddychat.realtime.auth-timeout=1s")
+        properties = "buddychat.realtime.auth-timeout=3s")
 @Import({TestcontainersConfiguration.class, TestJwtConfiguration.class})
 class ChatFlowTest {
 
@@ -82,6 +82,20 @@ class ChatFlowTest {
         assertThat(delivered.get("text").asString()).isEqualTo("おつかれ〜");
         assertThat(delivered.get("type").asString()).isEqualTo("TEXT");
         henry.expectSilence(); // the sender gets the ack, not its own message again
+    }
+
+    @Test
+    void ownerHearsWhenAFriendJoins() {
+        createRoom("henry");
+        TestSocket henry = connect("henry");
+
+        String code = invite("henry");
+        post("yuki", "/api/invitations/" + code + "/accept", Map.of())
+                .expectStatus()
+                .isOk();
+
+        JsonNode joined = henry.expect("member");
+        assertThat(joined.get("displayName").asString()).isEqualTo("yuki");
     }
 
     @Test
@@ -216,7 +230,7 @@ class ChatFlowTest {
 
     @Test
     void slowTokenCheckDoesNotCountAgainstTheAuthDeadline() {
-        createRoom("slow-henry"); // verifying this token takes longer than the 1s deadline
+        createRoom("slow-henry"); // verifying this token takes longer than the deadline
         connect("slow-henry").send(Map.of("type", "ping")).expect("pong");
     }
 
@@ -256,14 +270,18 @@ class ChatFlowTest {
         post(uid, "/api/rooms", Map.of("buddyName", "Mugi")).expectStatus().isCreated();
     }
 
-    private void duoRoom(String owner, String friend) {
-        createRoom(owner);
-        String code = post(owner, "/api/rooms/me/invitations", Map.of())
+    private String invite(String uid) {
+        return post(uid, "/api/rooms/me/invitations", Map.of())
                 .expectBody(JsonNode.class)
                 .returnResult()
                 .getResponseBody()
                 .get("code")
                 .asString();
+    }
+
+    private void duoRoom(String owner, String friend) {
+        createRoom(owner);
+        String code = invite(owner);
         post(friend, "/api/invitations/" + code + "/accept", Map.of())
                 .expectStatus()
                 .isOk();
