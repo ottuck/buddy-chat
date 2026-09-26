@@ -5,13 +5,14 @@
 
 - 기획: `docs/project-plan.md` — 구조를 바꾸기 전에 읽는다. 앞 섹션과 충돌하면 §65(MVP 인프라)가 우선.
 - 검토 결과와 결정 사항: `docs/review-notes.md`
+- 서버 설계(컬렉션, API, WebSocket 프로토콜, 마일스톤): `docs/server-design.md` — 서버 작업 전에 읽는다.
 
 ## Repo layout
 
 - `app/` — Expo(React Native) + TypeScript + Expo Router. iOS / Web / Android 공용 코드.
-- `server/` — Spring Boot + WebFlux (아직 없음)
+- `server/` — Java 25, Spring Boot 4.1 + WebFlux + Reactive MongoDB. 패키지는 기능 모듈(`auth`, `user`, `room`, `chat`, `buddy`, `realtime`).
 - `docs/` — 기획과 설계 문서
-- `.github/workflows/ci.yml` — app의 lint / typecheck / format 검사
+- `.github/workflows/ci.yml` — app(lint / typecheck / format), server(spotless / test)
 - 로컬 전용(gitignore): `.claude/`(desktop app preview 설정), `.idea/`, `.env*`
 
 ## App commands (`app/`에서 실행)
@@ -32,6 +33,23 @@
 - 로그인 여부로 화면을 나누는 건 `_layout.tsx`의 `Stack.Protected`.
 - Google 로그인은 지금 웹만 된다. 아이폰 Google/Apple 로그인은 개발용 빌드부터. 그 전까지 개발 중에는
   "게스트로 계속하기(개발용)" = Firebase 익명 로그인(`__DEV__`에서만 보임)으로 쓴다.
+
+## Server commands (`server/`에서 실행)
+
+- `./gradlew bootRun` — 로컬 실행. `compose.yaml`의 MongoDB가 Docker로 같이 뜬다(Docker Desktop 필요). :8080
+- `./gradlew test` — Testcontainers로 MongoDB를 띄워 테스트 · `./gradlew spotlessApply` — 포맷(palantir-java-format)
+- 커밋 전 `./gradlew spotlessCheck test`(server 변경 시)
+
+## Server principles
+
+- reactive chain 안에서 blocking I/O를 하지 않는다. 앱 시작 시 인덱스 생성처럼 트래픽 전 1회성 작업만 예외.
+- Firebase ID token은 Admin SDK가 아니라 Spring Security reactive JWT로 검증한다(`auth/FirebaseJwtConfig`).
+  사용자 식별은 항상 토큰의 `sub`(uid). 클라이언트가 보낸 id를 믿지 않는다.
+- 인덱스는 auto index creation 대신 모듈별 `*Indexes` 클래스에서 명시적으로 만든다.
+- Azure DocumentDB(MongoDB 호환)를 전제로, 트랜잭션·change stream·고급 aggregation은 쓰지 않는다.
+  동시성은 조건부 atomic update와 unique 인덱스로 해결한다.
+- 모듈끼리는 service로만 호출한다. 다른 모듈의 repository를 직접 쓰지 않는다.
+- 동시성·멱등성·권한은 테스트로 보여준다(`docs/project-plan.md` §57).
 
 ## Expo는 SDK마다 크게 바뀐다
 
