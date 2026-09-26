@@ -1,0 +1,6 @@
+node_modules
+.expo
+dist
+web-build
+pnpm-lock.yaml
+expo-env.d.ts
