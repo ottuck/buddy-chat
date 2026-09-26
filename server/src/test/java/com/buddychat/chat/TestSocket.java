@@ -4,7 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.net.URI;
 import java.time.Duration;
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -23,6 +25,8 @@ class TestSocket implements AutoCloseable {
     private final JsonMapper json;
     private final Sinks.Many<String> outbound = Sinks.many().unicast().onBackpressureBuffer();
     private final BlockingQueue<JsonNode> received = new LinkedBlockingQueue<>();
+    // Everything received so far, for failure messages.
+    private final List<String> log = new CopyOnWriteArrayList<>();
     private final CountDownLatch closed = new CountDownLatch(1);
     private final Disposable connection;
 
@@ -35,7 +39,10 @@ class TestSocket implements AutoCloseable {
                                 .and(session.receive()
                                         .filter(m -> m.getType() == WebSocketMessage.Type.TEXT)
                                         .map(WebSocketMessage::getPayloadAsText)
-                                        .doOnNext(text -> received.add(json.readTree(text)))
+                                        .doOnNext(text -> {
+                                            log.add(text);
+                                            received.add(json.readTree(text));
+                                        })
                                         .then()))
                 .doFinally(signal -> closed.countDown())
                 .subscribe();
@@ -49,8 +56,12 @@ class TestSocket implements AutoCloseable {
     /** The next event, which must be of the given type. */
     JsonNode expect(String type) {
         JsonNode event = next();
-        assertThat(event).as("waited for '%s'", type).isNotNull();
-        assertThat(event.get("type").asString()).as("event: %s", event).isEqualTo(type);
+        assertThat(event)
+                .as("waited for '%s'; received so far: %s; closed: %s", type, log, closed.getCount() == 0)
+                .isNotNull();
+        assertThat(event.get("type").asString())
+                .as("event: %s; received so far: %s", event, log)
+                .isEqualTo(type);
         return event;
     }
 
