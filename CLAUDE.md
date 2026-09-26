@@ -45,6 +45,9 @@
 - iOS UX가 기준이다(Safe Area, 키보드, 스크롤). Web은 같은 모바일 레이아웃을 가운데 정렬하고 최대 폭만 제한한다.
 - iOS-first design ≠ iOS-only code. 플랫폼 분기는 정말 다를 때만 `*.ios.ts` / `*.web.ts`로 나눈다.
 - 라이브러리는 구체적인 문제가 생겼을 때만 추가한다.
+- UI 문구는 처음부터 다국어(ja / ko / en). 화면에 문자열을 직접 쓰지 않고 `app/src/i18n/locales/*.json`에 넣고
+  `useTranslation()`의 `t()`로 쓴다. 세 파일의 키는 같아야 한다(typecheck가 검사). 언어는 기기 설정을 따르고,
+  지원하지 않는 언어면 영어.
 
 ## Git workflow
 
