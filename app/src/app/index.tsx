@@ -1,45 +1,50 @@
-import { useTheme } from 'expo-router';
-import { useTranslation } from 'react-i18next';
-import { StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-// Web shows the same mobile layout, centered and capped at this width (docs/project-plan.md §10).
-const MAX_CONTENT_WIDTH = 560;
+import { ChatHeader } from '@/features/chat/components/chat-header';
+import { MessageComposer } from '@/features/chat/components/message-composer';
+import { MessageList } from '@/features/chat/components/message-list';
+import { BUDDY, ME, PARTNER } from '@/features/chat/mock';
+import { useChat } from '@/features/chat/use-chat';
+import { MAX_CONTENT_WIDTH, useColors } from '@/theme';
 
-export default function HomeScreen() {
-  const { colors } = useTheme();
-  const { t } = useTranslation();
+export default function ChatScreen() {
+  const colors = useColors();
+  const insets = useSafeAreaInsets();
+  const { messages, send } = useChat();
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
-      <View style={styles.container}>
-        <Text style={[styles.title, { color: colors.text }]}>buddy-chat</Text>
-        <Text style={[styles.subtitle, { color: colors.text }]}>{t('home.tagline')}</Text>
-      </View>
+    <SafeAreaView edges={['top']} style={[styles.screen, { backgroundColor: colors.background }]}>
+      {/*
+        The composer already pads for the home indicator, so the keyboard offset subtracts it.
+        Expo Go has no react-native-keyboard-controller; switch to it once we use dev builds.
+      */}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={-insets.bottom}
+        style={styles.column}
+      >
+        <ChatHeader partnerName={PARTNER.displayName} online buddy={BUDDY} />
+        <View style={styles.list}>
+          <MessageList messages={messages} me={ME} members={[ME, PARTNER]} buddyName={BUDDY.name} />
+        </View>
+        <MessageComposer onSend={send} />
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  screen: {
     flex: 1,
     alignItems: 'center',
   },
-  container: {
+  column: {
     flex: 1,
     width: '100%',
     maxWidth: MAX_CONTENT_WIDTH,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingHorizontal: 16,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-  },
-  subtitle: {
-    fontSize: 16,
-    opacity: 0.7,
+  list: {
+    flex: 1,
   },
 });

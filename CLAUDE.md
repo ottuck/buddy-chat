@@ -17,6 +17,7 @@
 ## App commands (`app/`에서 실행)
 
 - `pnpm start` — Metro dev server (아이폰은 Expo Go로 QR 스캔) · `pnpm web` — 웹
+- 번역 JSON 등 수정이 화면에 반영되지 않으면 Metro 캐시 문제다: `pnpm start --clear`
 - `pnpm lint` / `pnpm typecheck` / `pnpm format:check` · 한 번에: `pnpm check`
 - 패키지 추가는 `pnpm exec expo install <pkg>` — SDK와 맞는 버전을 고른다. `pnpm add`로 직접 넣지 않는다.
 - `pnpm exec expo-doctor` — 의존성·설정 진단

@@ -1,5 +1,17 @@
 {
-  "home": {
-    "tagline": "대화가 먼저, Buddy는 재미를 더해요."
+  "chat": {
+    "composerPlaceholder": "메시지",
+    "send": "보내기",
+    "online": "온라인",
+    "offline": "오프라인"
+  },
+  "buddy": {
+    "level": "Lv.{{level}}"
+  },
+  "buddyEvent": {
+    "HUNGRY": "{{buddy}}가 배고파졌어요 🍚",
+    "FED": "{{actor}}님이 {{buddy}}에게 밥을 줬어요",
+    "POOPED": "{{buddy}}가 💩을 쌌어요",
+    "CLEANED": "{{actor}}님이 {{buddy}}의 💩을 치웠어요"
   }
 }

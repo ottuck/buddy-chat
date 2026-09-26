@@ -1,5 +1,17 @@
 {
-  "home": {
-    "tagline": "Chat first. Buddy makes it fun."
+  "chat": {
+    "composerPlaceholder": "Message",
+    "send": "Send",
+    "online": "Online",
+    "offline": "Offline"
+  },
+  "buddy": {
+    "level": "Lv.{{level}}"
+  },
+  "buddyEvent": {
+    "HUNGRY": "{{buddy}} is hungry 🍚",
+    "FED": "{{actor}} fed {{buddy}}",
+    "POOPED": "{{buddy}} pooped 💩",
+    "CLEANED": "{{actor}} cleaned up after {{buddy}}"
   }
 }

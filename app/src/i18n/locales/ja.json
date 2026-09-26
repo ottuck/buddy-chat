@@ -1,5 +1,17 @@
 {
-  "home": {
-    "tagline": "おしゃべりが主役。Buddy がちょっと楽しくしてくれる。"
+  "chat": {
+    "composerPlaceholder": "メッセージ",
+    "send": "送信",
+    "online": "オンライン",
+    "offline": "オフライン"
+  },
+  "buddy": {
+    "level": "Lv.{{level}}"
+  },
+  "buddyEvent": {
+    "HUNGRY": "{{buddy}}がおなかをすかせています 🍚",
+    "FED": "{{actor}}が{{buddy}}にごはんをあげました",
+    "POOPED": "{{buddy}}がうんちをしました 💩",
+    "CLEANED": "{{actor}}が{{buddy}}のうんちを片付けました"
   }
 }
