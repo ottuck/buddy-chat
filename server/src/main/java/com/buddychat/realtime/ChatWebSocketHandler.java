@@ -60,12 +60,15 @@ class ChatWebSocketHandler implements WebSocketHandler {
         // only ever carries an error; afterwards the connection's own sink takes over.
         Sinks.Many<ServerEvent> preAuth = Sinks.many().unicast().onBackpressureBuffer();
         Sinks.One<Flux<ServerEvent>> outboundSource = Sinks.one();
+        // Signalled when the first message arrives; verifying it may take a while after that.
+        Sinks.Empty<Void> firstMessage = Sinks.empty();
 
         Flux<String> inbound = session.receive()
                 .filter(message -> message.getType() == WebSocketMessage.Type.TEXT)
                 .map(WebSocketMessage::getPayloadAsText);
 
         Mono<Void> input = inbound.switchOnFirst((first, rest) -> {
+                    firstMessage.tryEmitEmpty();
                     ClientEvent event = first.hasValue() ? parse(first.get()) : null;
                     if (!(event instanceof ClientEvent.Auth auth)) {
                         return reject(preAuth, outboundSource, "UNAUTHORIZED");
@@ -93,12 +96,13 @@ class ChatWebSocketHandler implements WebSocketHandler {
                 })
                 .then();
 
-        // A socket that has not authenticated in time is rejected. A timer rather than a timeout
-        // on receive(): cancelling the inbound stream would drop the connection before the error
-        // is written. Authenticating first cancels the timer.
+        // A socket that sends nothing in time is rejected. A timer rather than a timeout on
+        // receive(): cancelling the inbound stream would drop the connection before the error is
+        // written. The deadline covers only the wait for the first message, not verifying it (the
+        // first token check may fetch Google's keys).
         Mono<Void> authDeadline = Mono.delay(properties.authTimeout())
                 .doOnNext(tick -> reject(preAuth, outboundSource, "AUTH_TIMEOUT"))
-                .takeUntilOther(outboundSource.asMono())
+                .takeUntilOther(firstMessage.asMono())
                 .then();
 
         Sinks.Empty<Void> outboundDone = Sinks.empty();

@@ -1,5 +1,6 @@
 package com.buddychat;
 
+import java.time.Duration;
 import java.time.Instant;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -25,15 +26,18 @@ public class TestJwtConfiguration {
     @Primary
     ReactiveJwtDecoder testJwtDecoder() {
         return token -> {
+            // "slow-…" tokens take a while to verify, like the first check that fetches Google's keys.
+            Duration delay = token.startsWith("slow-") ? Duration.ofMillis(1500) : Duration.ZERO;
             int bar = token.indexOf('~');
             if (bar < 0) return Mono.error(new BadJwtException("invalid test token"));
             return Mono.just(Jwt.withTokenValue(token)
-                    .header("alg", "none")
-                    .subject(token.substring(0, bar))
-                    .claim("name", token.substring(bar + 1))
-                    .issuedAt(Instant.now())
-                    .expiresAt(Instant.now().plusSeconds(3600))
-                    .build());
+                            .header("alg", "none")
+                            .subject(token.substring(0, bar))
+                            .claim("name", token.substring(bar + 1))
+                            .issuedAt(Instant.now())
+                            .expiresAt(Instant.now().plusSeconds(3600))
+                            .build())
+                    .delayElement(delay);
         };
     }
 }

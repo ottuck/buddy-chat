@@ -215,6 +215,12 @@ class ChatFlowTest {
     }
 
     @Test
+    void slowTokenCheckDoesNotCountAgainstTheAuthDeadline() {
+        createRoom("slow-henry"); // verifying this token takes longer than the 1s deadline
+        connect("slow-henry").send(Map.of("type", "ping")).expect("pong");
+    }
+
+    @Test
     void userWithoutRoomCannotConnect() {
         TestSocket socket = open().send(Map.of("type", "auth", "token", token("loner")));
 
