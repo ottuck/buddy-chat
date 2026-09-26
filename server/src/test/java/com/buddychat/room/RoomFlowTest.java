@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockJwt;
 
 import com.buddychat.TestcontainersConfiguration;
+import com.buddychat.user.User;
 import com.buddychat.user.UserService;
 import java.time.Instant;
 import java.util.List;
@@ -17,6 +18,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.web.reactive.server.EntityExchangeResult;
 import org.springframework.test.web.reactive.server.WebTestClient;
@@ -49,9 +51,9 @@ class RoomFlowTest {
 
     @BeforeEach
     void clean() {
-        mongo.getCollectionNames()
-                .flatMap(name -> mongo.getCollection(name)
-                        .flatMap(c -> reactor.core.publisher.Mono.from(c.deleteMany(new org.bson.Document()))))
+        // Keeps the indexes created at startup; only the documents go.
+        Flux.just(Room.class, Invitation.class, User.class)
+                .flatMap(type -> mongo.remove(new Query(), type))
                 .blockLast();
     }
 
