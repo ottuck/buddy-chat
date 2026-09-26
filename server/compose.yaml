@@ -1,0 +1,11 @@
+# Local development database. Started automatically by `./gradlew bootRun`
+# (spring-boot-docker-compose). Production uses Azure DocumentDB (MongoDB-compatible).
+services:
+  mongodb:
+    image: 'mongo:8.0'
+    environment:
+      - 'MONGO_INITDB_DATABASE=buddychat'
+      - 'MONGO_INITDB_ROOT_USERNAME=root'
+      - 'MONGO_INITDB_ROOT_PASSWORD=local-only'
+    ports:
+      - '27017'
