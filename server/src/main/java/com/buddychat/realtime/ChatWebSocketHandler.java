@@ -62,6 +62,8 @@ class ChatWebSocketHandler implements WebSocketHandler {
         Sinks.One<Flux<ServerEvent>> outboundSource = Sinks.one();
         // Signalled when the first message arrives; verifying it may take a while after that.
         Sinks.Empty<Void> firstMessage = Sinks.empty();
+        long openedAt = System.nanoTime();
+        log.debug("[{}] opened", session.getId());
 
         Flux<String> inbound = session.receive()
                 .filter(message -> message.getType() == WebSocketMessage.Type.TEXT)
@@ -69,6 +71,10 @@ class ChatWebSocketHandler implements WebSocketHandler {
 
         Mono<Void> input = inbound.switchOnFirst((first, rest) -> {
                     firstMessage.tryEmitEmpty();
+                    log.debug(
+                            "[{}] first message after {} ms",
+                            session.getId(),
+                            (System.nanoTime() - openedAt) / 1_000_000);
                     ClientEvent event = first.hasValue() ? parse(first.get()) : null;
                     if (!(event instanceof ClientEvent.Auth auth)) {
                         return reject(preAuth, outboundSource, "UNAUTHORIZED");
@@ -83,6 +89,11 @@ class ChatWebSocketHandler implements WebSocketHandler {
                                     return Flux.empty();
                                 }
                                 hub.join(connection);
+                                log.debug(
+                                        "[{}] authenticated user {} in room {}",
+                                        session.getId(),
+                                        user.id(),
+                                        user.roomId());
                                 connection.emit(new ServerEvent.Ready(user.id(), user.roomId()));
                                 return rest.skip(1)
                                         .concatMap(text -> onEvent(connection, user, text))
@@ -165,6 +176,7 @@ class ChatWebSocketHandler implements WebSocketHandler {
     private <T> Flux<T> reject(
             Sinks.Many<ServerEvent> preAuth, Sinks.One<Flux<ServerEvent>> outboundSource, String code) {
         if (outboundSource.tryEmitValue(preAuth.asFlux()).isSuccess()) {
+            log.debug("Rejected a WebSocket: {}", code);
             preAuth.tryEmitNext(new ServerEvent.Error(code, null));
             preAuth.tryEmitComplete();
         }

@@ -49,7 +49,8 @@ class TestSocket implements AutoCloseable {
     }
 
     TestSocket send(Object event) {
-        outbound.tryEmitNext(json.writeValueAsString(event));
+        // Fail loudly rather than lose a message the test thinks it sent.
+        outbound.emitNext(json.writeValueAsString(event), Sinks.EmitFailureHandler.busyLooping(Duration.ofSeconds(1)));
         return this;
     }
 
