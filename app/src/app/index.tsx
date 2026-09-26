@@ -1,4 +1,5 @@
 import { useTheme } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -7,14 +8,13 @@ const MAX_CONTENT_WIDTH = 560;
 
 export default function HomeScreen() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <View style={styles.container}>
         <Text style={[styles.title, { color: colors.text }]}>buddy-chat</Text>
-        <Text style={[styles.subtitle, { color: colors.text }]}>
-          Chat first. Buddy makes it fun.
-        </Text>
+        <Text style={[styles.subtitle, { color: colors.text }]}>{t('home.tagline')}</Text>
       </View>
     </SafeAreaView>
   );
