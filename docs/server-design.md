@@ -91,7 +91,7 @@ invitations  { _id, roomId, code (unique), createdBy, expiresAt, usedAt?, usedBy
 | GET | `/api/rooms/me` | 내 room, 멤버, Buddy 상태 |
 | POST | `/api/rooms/me/invitations` | 초대 코드 발급 |
 | POST | `/api/invitations/{code}/accept` | 초대 수락 → room 참가 |
-| GET | `/api/rooms/me/messages?before=&limit=` | 히스토리(최신순) |
+| GET | `/api/rooms/me/messages?before=&after=&limit=` | 타임라인(최신순, limit ≤ 50). `before`: 이전 페이지, `after`: 재연결 후 놓친 메시지. 응답 `{ messages, hasMore }` |
 
 ## WebSocket 프로토콜
 
@@ -118,6 +118,10 @@ server → client
   { type: "pong" }
 ```
 
+- 에러 코드: `UNAUTHORIZED`(토큰 불량·첫 메시지가 auth가 아님), `AUTH_TIMEOUT`, `ROOM_NOT_FOUND`(room 없음) → 연결 종료.
+  `INVALID_MESSAGE`(빈 문자열·2000자 초과, `clientMessageId` 포함), `INVALID_EVENT`(읽을 수 없는 메시지) → 연결 유지.
+- 연결은 인증 시점의 room에 묶인다. 초대를 수락해 room이 바뀌면 앱이 다시 연결한다.
+- 한 연결의 이벤트는 순서대로 처리한다(보낸 순서 = 저장 순서).
 - 재연결하면 클라이언트는 마지막으로 받은 메시지 이후를 REST로 채우고, ack 못 받은 메시지를 같은 `clientMessageId`로 다시 보낸다.
 - 세션·presence·typing은 서버 메모리에만 둔다(§65.7). 재배포하면 사라지는 것을 전제로 한다.
 - Container Apps의 유휴 연결 타임아웃 때문에 서버가 25초마다 ping 프레임을 보낸다.

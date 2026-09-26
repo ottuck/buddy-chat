@@ -36,7 +36,8 @@ class RoomController {
 
     record InvitationResponse(String code, Instant expiresAt) {}
 
-    record AcceptRequest(boolean leaveCurrentRoom) {}
+    // Optional in the body; absent means "do not leave my current room".
+    record AcceptRequest(@Nullable Boolean leaveCurrentRoom) {}
 
     @PostMapping("/api/rooms")
     @ResponseStatus(HttpStatus.CREATED)
@@ -65,7 +66,7 @@ class RoomController {
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable String code,
             @RequestBody(required = false) @Nullable AcceptRequest request) {
-        boolean leave = request != null && request.leaveCurrentRoom();
+        boolean leave = request != null && Boolean.TRUE.equals(request.leaveCurrentRoom());
         return userService.current(jwt).flatMap(user -> invitationService.accept(user, code, leave));
     }
 }

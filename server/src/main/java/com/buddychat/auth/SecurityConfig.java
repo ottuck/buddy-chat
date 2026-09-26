@@ -25,6 +25,9 @@ class SecurityConfig {
                         .permitAll()
                         .pathMatchers("/actuator/health")
                         .permitAll()
+                        // The WebSocket authenticates with its first message (realtime/ChatWebSocketHandler).
+                        .pathMatchers("/ws")
+                        .permitAll()
                         .pathMatchers("/api/**")
                         .authenticated()
                         .anyExchange()
