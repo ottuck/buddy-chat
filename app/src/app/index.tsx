@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -34,6 +35,7 @@ export default function ChatScreen() {
           online
           buddy={buddy}
           onPressBuddy={() => setBuddyOpen(true)}
+          onPressSettings={() => router.push('/settings')}
         />
         <View style={styles.list}>
           <MessageList messages={messages} me={ME} members={[ME, PARTNER]} buddyName={buddy.name} />

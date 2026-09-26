@@ -22,6 +22,16 @@
 - 패키지 추가는 `pnpm exec expo install <pkg>` — SDK와 맞는 버전을 고른다. `pnpm add`로 직접 넣지 않는다.
 - `pnpm exec expo-doctor` — 의존성·설정 진단
 - Node 24+, pnpm (버전은 `app/package.json`의 `packageManager`)
+- 처음 한 번: `app/.env.example`을 `app/.env.local`로 복사하고 Firebase 웹 앱 설정값을 채운다(공개 설정값, git 제외).
+
+## Auth
+
+- Firebase Auth는 JS SDK(`firebase`)만 쓴다 — iOS와 Web 공용. `@react-native-firebase`는 쓰지 않는다.
+- `app/src/lib/firebase.ts`(native, AsyncStorage 유지) / `firebase.web.ts`(web). firebase 타입이 web 전용이라
+  native의 `getReactNativePersistence` import에만 `@ts-expect-error`를 둔다.
+- 로그인 여부로 화면을 나누는 건 `_layout.tsx`의 `Stack.Protected`.
+- Google 로그인은 지금 웹만 된다. 아이폰 Google/Apple 로그인은 개발용 빌드부터. 그 전까지 개발 중에는
+  "게스트로 계속하기(개발용)" = Firebase 익명 로그인(`__DEV__`에서만 보임)으로 쓴다.
 
 ## Expo는 SDK마다 크게 바뀐다
 

@@ -18,9 +18,10 @@ type Props = {
   online: boolean;
   buddy: Buddy;
   onPressBuddy: () => void;
+  onPressSettings: () => void;
 };
 
-export function ChatHeader({ partnerName, online, buddy, onPressBuddy }: Props) {
+export function ChatHeader({ partnerName, online, buddy, onPressBuddy, onPressSettings }: Props) {
   const colors = useColors();
   const { t } = useTranslation();
   const level = levelOf(buddy.exp);
@@ -35,6 +36,15 @@ export function ChatHeader({ partnerName, online, buddy, onPressBuddy }: Props) 
           style={[styles.presenceDot, { backgroundColor: online ? colors.online : colors.border }]}
           accessibilityLabel={online ? t('chat.online') : t('chat.offline')}
         />
+        <Pressable
+          onPress={onPressSettings}
+          accessibilityRole="button"
+          accessibilityLabel={t('settings.title')}
+          hitSlop={12}
+          style={styles.settingsButton}
+        >
+          <Text style={[styles.settingsIcon, { color: colors.textMuted }]}>⚙︎</Text>
+        </Pressable>
       </View>
 
       {/* Compact buddy status; tapping opens the buddy detail (docs/project-plan.md §32). */}
@@ -79,6 +89,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     flexShrink: 1,
+  },
+  settingsButton: {
+    marginLeft: 'auto',
+  },
+  settingsIcon: {
+    fontSize: 20,
   },
   presenceDot: {
     width: 8,

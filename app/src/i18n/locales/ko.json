@@ -2,6 +2,13 @@
   "common": {
     "close": "닫기"
   },
+  "signIn": {
+    "tagline": "좋아하는 사람과 대화하며 작은 Buddy를 함께 키워요.",
+    "google": "Google로 계속하기",
+    "devGuest": "게스트로 계속하기 (개발용)",
+    "nativeNotReady": "아이폰 로그인은 앱 빌드부터 지원돼요.",
+    "error": "로그인하지 못했어요. 다시 시도해 주세요."
+  },
   "chat": {
     "composerPlaceholder": "메시지",
     "send": "보내기",
@@ -33,5 +40,11 @@
     "FED": "{{actor}}님이 {{buddy}}에게 밥을 줬어요",
     "POOPED": "{{buddy}}가 💩을 쌌어요",
     "CLEANED": "{{actor}}님이 {{buddy}}의 💩을 치웠어요"
+  },
+  "settings": {
+    "title": "설정",
+    "profile": "프로필",
+    "guest": "게스트",
+    "signOut": "로그아웃"
   }
 }

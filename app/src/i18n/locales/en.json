@@ -2,6 +2,13 @@
   "common": {
     "close": "Close"
   },
+  "signIn": {
+    "tagline": "Chat with someone you like, and raise a tiny buddy together.",
+    "google": "Continue with Google",
+    "devGuest": "Continue as guest (dev)",
+    "nativeNotReady": "Sign-in on iPhone arrives with the app build.",
+    "error": "Couldn’t sign in. Please try again."
+  },
   "chat": {
     "composerPlaceholder": "Message",
     "send": "Send",
@@ -33,5 +40,11 @@
     "FED": "{{actor}} fed {{buddy}}",
     "POOPED": "{{buddy}} pooped 💩",
     "CLEANED": "{{actor}} cleaned up after {{buddy}}"
+  },
+  "settings": {
+    "title": "Settings",
+    "profile": "Profile",
+    "guest": "Guest",
+    "signOut": "Sign out"
   }
 }

@@ -1,0 +1,153 @@
+import { FirebaseError } from 'firebase/app';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { isCancelledSignIn, signInAsGuest } from '@/features/auth/actions';
+import { googleSignInSupported, signInWithGoogle } from '@/features/auth/google-sign-in';
+import { MAX_CONTENT_WIDTH, useColors } from '@/theme';
+
+export default function SignInScreen() {
+  const colors = useColors();
+  const { t } = useTranslation();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // On success the auth listener swaps this screen out, so only failures need handling here.
+  const run = async (signIn: () => Promise<void>) => {
+    setBusy(true);
+    setError(null);
+    try {
+      await signIn();
+    } catch (e) {
+      if (!isCancelledSignIn(e)) {
+        console.warn(e);
+        // In development, show the Firebase error code (e.g. a provider not enabled in the console).
+        const code = __DEV__ && e instanceof FirebaseError ? ` (${e.code})` : '';
+        setError(t('signIn.error') + code);
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <SafeAreaView style={[styles.screen, { backgroundColor: colors.background }]}>
+      <View style={styles.column}>
+        <View style={styles.hero}>
+          <Text style={styles.egg}>🥚</Text>
+          <Text style={[styles.title, { color: colors.text }]}>buddy-chat</Text>
+          <Text style={[styles.tagline, { color: colors.textMuted }]}>{t('signIn.tagline')}</Text>
+        </View>
+
+        <View style={styles.actions}>
+          {googleSignInSupported ? (
+            <SignInButton
+              label={t('signIn.google')}
+              onPress={() => run(signInWithGoogle)}
+              disabled={busy}
+            />
+          ) : (
+            <Text style={[styles.notice, { color: colors.textMuted }]}>
+              {t('signIn.nativeNotReady')}
+            </Text>
+          )}
+          {__DEV__ ? (
+            <SignInButton
+              label={t('signIn.devGuest')}
+              onPress={() => run(signInAsGuest)}
+              disabled={busy}
+              secondary
+            />
+          ) : null}
+          {busy ? <ActivityIndicator color={colors.accent} /> : null}
+          {error ? <Text style={[styles.error, { color: colors.accent }]}>{error}</Text> : null}
+        </View>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+function SignInButton(props: {
+  label: string;
+  onPress: () => void;
+  disabled: boolean;
+  secondary?: boolean;
+}) {
+  const colors = useColors();
+  return (
+    <Pressable
+      onPress={props.onPress}
+      disabled={props.disabled}
+      accessibilityRole="button"
+      style={({ pressed }) => [
+        styles.button,
+        props.secondary
+          ? { borderColor: colors.border, borderWidth: 1, backgroundColor: colors.surface }
+          : { backgroundColor: colors.accent },
+        { opacity: props.disabled ? 0.5 : pressed ? 0.7 : 1 },
+      ]}
+    >
+      <Text
+        style={[styles.buttonLabel, { color: props.secondary ? colors.text : colors.onAccent }]}
+      >
+        {props.label}
+      </Text>
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  column: {
+    flex: 1,
+    width: '100%',
+    maxWidth: MAX_CONTENT_WIDTH,
+    paddingHorizontal: 24,
+    paddingBottom: 24,
+    justifyContent: 'space-between',
+  },
+  hero: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  egg: {
+    fontSize: 72,
+    lineHeight: 86,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '700',
+  },
+  tagline: {
+    fontSize: 15,
+    textAlign: 'center',
+  },
+  actions: {
+    gap: 12,
+  },
+  button: {
+    height: 52,
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonLabel: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  notice: {
+    fontSize: 13,
+    textAlign: 'center',
+  },
+  error: {
+    fontSize: 14,
+    textAlign: 'center',
+  },
+});
