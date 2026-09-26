@@ -51,9 +51,12 @@
 
 ## Git workflow
 
-- main에 직접 push하지 않는다. 작업 단위마다 브랜치 하나(feat/…, fix/…, refactor/…, test/…, docs/…, chore/…).
-- Conventional commit prefix: feat, fix, refactor, test, docs, chore. PR 제목도 이 형식(squash merge 커밋이 된다).
-- 커밋은 논리 단위로 나눈다. PR은 기능 하나, 되도록 ~400줄 이하(lockfile, 생성 파일 제외).
+- 브랜치: `main`(검증된 코드, 릴리스 기준) ← `dev`(개발). 기본 작업 브랜치는 `dev`.
+- 평소 작업은 `dev`에 바로 커밋·push한다. 기능 브랜치는 크거나 실험적인 작업일 때만 따로 만든다
+  (feat/…, fix/…, chore/… 이름, `dev`로 PR).
+- `main`에는 직접 커밋하지 않는다. 기능 묶음이 끝나거나 릴리스 전에 `dev` → `main` PR을 열고,
+  CI 통과 후 **merge commit**으로 합친다(squash하면 `dev`와 `main` 히스토리가 어긋난다).
+- Conventional commit prefix: feat, fix, refactor, test, docs, chore. 커밋은 논리 단위로 나눈다.
 - 커밋 전 `pnpm check`(app 변경 시).
 - 비밀 값(.env, 키, 인증서)을 커밋하지 않는다.
 - Git 텍스트(커밋 메시지, PR 제목·본문)는 자연스러운 한국어. 브랜치 이름과 기술 용어는 영어.
