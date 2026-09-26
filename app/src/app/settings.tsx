@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -25,6 +26,18 @@ export default function SettingsScreen() {
             <Text style={[styles.email, { color: colors.textMuted }]}>{user.email}</Text>
           ) : null}
         </View>
+
+        {/* For someone who started solo and got a friend's code later. */}
+        <Pressable
+          onPress={() => router.push('/join')}
+          accessibilityRole="button"
+          style={({ pressed }) => [
+            styles.card,
+            { backgroundColor: colors.surface, opacity: pressed ? 0.7 : 1 },
+          ]}
+        >
+          <Text style={[styles.row, { color: colors.text }]}>{t('settings.joinWithCode')}</Text>
+        </Pressable>
 
         <Pressable
           onPress={signOut}
@@ -65,6 +78,9 @@ const styles = StyleSheet.create({
   },
   email: {
     fontSize: 14,
+  },
+  row: {
+    fontSize: 16,
   },
   signOut: {
     fontSize: 16,

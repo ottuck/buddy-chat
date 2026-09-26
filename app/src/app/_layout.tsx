@@ -7,10 +7,12 @@ import { useColorScheme } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import '@/i18n';
+import { StatusScreen } from '@/components/status-screen';
 import { AuthProvider, useAuth } from '@/features/auth/auth-provider';
+import { RoomProvider, useRoom } from '@/features/room/room-provider';
 
-// Keep the splash screen up until the saved session is restored, so a signed-in user never sees
-// the sign-in screen flash by.
+// Keep the splash screen up until we know where the user belongs (signed out, no room yet, or
+// their room), so no screen flashes by on launch.
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
@@ -20,7 +22,9 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <AuthProvider>
-          <RootNavigator />
+          <RoomProvider>
+            <RootNavigator />
+          </RoomProvider>
         </AuthProvider>
         <StatusBar style="auto" />
       </ThemeProvider>
@@ -30,24 +34,51 @@ export default function RootLayout() {
 
 function RootNavigator() {
   const { user, initializing } = useAuth();
+  const { state, reload } = useRoom();
   const { t } = useTranslation();
+  const signedIn = !!user;
+  const settled = !initializing && (!signedIn || state.status !== 'loading');
 
   useEffect(() => {
-    if (!initializing) SplashScreen.hideAsync();
-  }, [initializing]);
+    if (settled) SplashScreen.hideAsync();
+  }, [settled]);
 
   if (initializing) return null;
+  if (signedIn && state.status === 'loading') return <StatusScreen loading />;
+  if (signedIn && state.status === 'error') {
+    return (
+      <StatusScreen
+        message={t('errors.loadFailed')}
+        actionLabel={t('common.retry')}
+        onAction={reload}
+      />
+    );
+  }
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Protected guard={!!user}>
+      <Stack.Protected guard={signedIn && state.status === 'ready'}>
         <Stack.Screen name="index" />
         <Stack.Screen
           name="settings"
           options={{ headerShown: true, title: t('settings.title'), headerBackTitle: '' }}
         />
       </Stack.Protected>
-      <Stack.Protected guard={!user}>
+      <Stack.Protected guard={signedIn && state.status === 'none'}>
+        <Stack.Screen name="welcome" />
+      </Stack.Protected>
+      <Stack.Protected guard={signedIn}>
+        <Stack.Screen
+          name="join"
+          options={{
+            headerShown: true,
+            title: t('join.title'),
+            headerBackTitle: '',
+            presentation: 'modal',
+          }}
+        />
+      </Stack.Protected>
+      <Stack.Protected guard={!signedIn}>
         <Stack.Screen name="sign-in" />
       </Stack.Protected>
     </Stack>

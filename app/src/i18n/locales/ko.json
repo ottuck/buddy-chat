@@ -1,6 +1,19 @@
 {
   "common": {
-    "close": "닫기"
+    "close": "닫기",
+    "retry": "다시 시도",
+    "cancel": "취소"
+  },
+  "errors": {
+    "loadFailed": "서버에 연결하지 못했어요.",
+    "unknown": "문제가 생겼어요. 다시 시도해 주세요.",
+    "NETWORK": "서버에 연결할 수 없어요. 인터넷 연결을 확인해 주세요.",
+    "ROOM_FULL": "이 방은 이미 두 명이 있어요.",
+    "INVITATION_NOT_FOUND": "이 코드의 초대를 찾을 수 없어요.",
+    "INVITATION_EXPIRED": "초대가 만료됐어요. 새 코드를 받아 주세요.",
+    "INVITATION_USED": "이미 사용된 초대예요. 새 코드를 받아 주세요.",
+    "ALREADY_MEMBER": "이미 이 방에 있어요.",
+    "ALREADY_IN_ROOM": "이미 다른 방에서 누군가와 대화 중이에요."
   },
   "signIn": {
     "tagline": "좋아하는 사람과 대화하며 작은 Buddy를 함께 키워요.",
@@ -9,11 +22,35 @@
     "nativeNotReady": "아이폰 로그인은 앱 빌드부터 지원돼요.",
     "error": "로그인하지 못했어요. 다시 시도해 주세요."
   },
+  "welcome": {
+    "title": "새로운 Buddy가 태어나려고 해요!",
+    "subtitle": "이름을 지어 주세요. 친구는 언제든 초대할 수 있어요.",
+    "namePlaceholder": "Buddy 이름",
+    "startSolo": "혼자 시작하기",
+    "haveCode": "초대 코드가 있어요"
+  },
+  "join": {
+    "title": "코드로 참가",
+    "hint": "친구에게 받은 8자리 코드를 입력해 주세요.",
+    "submit": "참가하기",
+    "leaveTitle": "지금 Buddy와 헤어질까요?",
+    "leaveMessage": "이 방에 참가하면 지금 키우던 Buddy와 대화 내용이 사라져요.",
+    "leaveConfirm": "참가하기"
+  },
   "chat": {
     "composerPlaceholder": "메시지",
     "send": "보내기",
-    "online": "온라인",
-    "offline": "오프라인"
+    "connecting": "연결 중…",
+    "retry": "전송 실패 · 눌러서 다시 보내기",
+    "guestName": "게스트"
+  },
+  "invite": {
+    "button": "친구 초대",
+    "title": "친구 초대",
+    "hint": "이 코드를 보내 주세요. 친구가 로그인한 뒤 입력하면 돼요.",
+    "expires": "{{time}}까지 유효 · 한 번만 사용",
+    "share": "코드 보내기",
+    "shareMessage": "buddy-chat에서 같이 Buddy를 키우자! 초대 코드: {{code}}"
   },
   "buddy": {
     "level": "Lv.{{level}}",
@@ -45,6 +82,7 @@
     "title": "설정",
     "profile": "프로필",
     "guest": "게스트",
-    "signOut": "로그아웃"
+    "signOut": "로그아웃",
+    "joinWithCode": "초대 코드로 참가"
   }
 }

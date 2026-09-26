@@ -24,6 +24,16 @@
 - `pnpm exec expo-doctor` — 의존성·설정 진단
 - Node 24+, pnpm (버전은 `app/package.json`의 `packageManager`)
 - 처음 한 번: `app/.env.example`을 `app/.env.local`로 복사하고 Firebase 웹 앱 설정값을 채운다(공개 설정값, git 제외).
+- 앱은 로컬 서버(`server/`의 `./gradlew bootRun`, :8080)가 떠 있어야 동작한다. 개발 중 서버 주소는 Metro를 띄운 PC의
+  주소로 자동으로 정해진다(`app/src/lib/api-url.ts`). 아이폰(Expo Go)에서 쓰려면 Windows 방화벽에서 8080 인바운드를 허용한다.
+
+## App structure
+
+- 서버 통신: `lib/api.ts`(REST, Firebase ID token 첨부) · `features/chat/socket.ts`(WebSocket, 첫 메시지 인증, 재연결)
+- `features/room/room-provider.tsx`: 로그인 후 `/api/me` → room 유무로 `welcome` / 채팅 화면을 나눈다(`_layout.tsx` 가드).
+- `features/chat/use-chat.ts`: 타임라인 상태. 재연결하면 놓친 메시지를 `after`로 채우고, ack 못 받은 메시지를 같은
+  `clientMessageId`로 다시 보낸다. 서버 에러 코드의 문구는 `errors.*` 번역 키로 보여준다.
+- web은 Node에서 미리 렌더링되므로 모듈 최상위에서 `window`에 접근하지 않는다.
 
 ## Auth
 

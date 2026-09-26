@@ -8,16 +8,45 @@ import { useBuddy } from '@/features/buddy/use-buddy';
 import { ChatHeader } from '@/features/chat/components/chat-header';
 import { MessageComposer } from '@/features/chat/components/message-composer';
 import { MessageList } from '@/features/chat/components/message-list';
-import { ME, PARTNER } from '@/features/chat/mock';
 import { useChat } from '@/features/chat/use-chat';
+import { InviteSheet } from '@/features/room/components/invite-sheet';
+import type { Me, Room } from '@/features/room/api';
+import { useReadyRoom } from '@/features/room/room-provider';
 import { MAX_CONTENT_WIDTH, useColors } from '@/theme';
 
-export default function ChatScreen() {
+export default function ChatRoute() {
+  const { me, room, reload, refreshRoom } = useReadyRoom();
+  // Keyed by room: joining another room starts over with a new connection and timeline.
+  return (
+    <ChatScreen
+      key={room.id}
+      me={me}
+      room={room}
+      onRoomLost={reload}
+      onMemberJoined={refreshRoom}
+    />
+  );
+}
+
+type ChatScreenProps = {
+  me: Me;
+  room: Room;
+  onRoomLost: () => void;
+  onMemberJoined: () => void;
+};
+
+function ChatScreen({ me, room, onRoomLost, onMemberJoined }: ChatScreenProps) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { messages, send, addBuddyEvent } = useChat();
-  const { buddy, feed, clean } = useBuddy();
+  const { messages, status, send, retry, loadOlder } = useChat({
+    myId: me.id,
+    onRoomLost,
+    onMemberJoined,
+  });
+  const { buddy, feed, clean } = useBuddy(room.buddy);
   const [buddyOpen, setBuddyOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const partner = room.members.find((member) => member.id !== me.id);
 
   return (
     <SafeAreaView edges={['top']} style={[styles.screen, { backgroundColor: colors.background }]}>
@@ -31,14 +60,22 @@ export default function ChatScreen() {
         style={styles.column}
       >
         <ChatHeader
-          partnerName={PARTNER.displayName}
-          online
+          partnerName={partner ? (partner.displayName ?? '') : null}
+          connected={status === 'online'}
           buddy={buddy}
           onPressBuddy={() => setBuddyOpen(true)}
+          onPressInvite={() => setInviteOpen(true)}
           onPressSettings={() => router.push('/settings')}
         />
         <View style={styles.list}>
-          <MessageList messages={messages} me={ME} members={[ME, PARTNER]} buddyName={buddy.name} />
+          <MessageList
+            messages={messages}
+            myId={me.id}
+            members={room.members}
+            buddyName={buddy.name}
+            onRetry={retry}
+            onLoadOlder={loadOlder}
+          />
         </View>
         <MessageComposer onSend={send} />
       </KeyboardAvoidingView>
@@ -47,9 +84,10 @@ export default function ChatScreen() {
         visible={buddyOpen}
         buddy={buddy}
         onClose={() => setBuddyOpen(false)}
-        onFeed={() => feed() && addBuddyEvent('FED', ME.id)}
-        onClean={() => clean() && addBuddyEvent('CLEANED', ME.id)}
+        onFeed={feed}
+        onClean={clean}
       />
+      <InviteSheet visible={inviteOpen} onClose={() => setInviteOpen(false)} />
     </SafeAreaView>
   );
 }

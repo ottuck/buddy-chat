@@ -1,9 +1,10 @@
 import { FirebaseError } from 'firebase/app';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Button } from '@/components/button';
 import { isCancelledSignIn, signInAsGuest } from '@/features/auth/actions';
 import { googleSignInSupported, signInWithGoogle } from '@/features/auth/google-sign-in';
 import { MAX_CONTENT_WIDTH, useColors } from '@/theme';
@@ -43,7 +44,7 @@ export default function SignInScreen() {
 
         <View style={styles.actions}>
           {googleSignInSupported ? (
-            <SignInButton
+            <Button
               label={t('signIn.google')}
               onPress={() => run(signInWithGoogle)}
               disabled={busy}
@@ -54,11 +55,11 @@ export default function SignInScreen() {
             </Text>
           )}
           {__DEV__ ? (
-            <SignInButton
+            <Button
               label={t('signIn.devGuest')}
               onPress={() => run(signInAsGuest)}
               disabled={busy}
-              secondary
+              variant="secondary"
             />
           ) : null}
           {busy ? <ActivityIndicator color={colors.accent} /> : null}
@@ -66,35 +67,6 @@ export default function SignInScreen() {
         </View>
       </View>
     </SafeAreaView>
-  );
-}
-
-function SignInButton(props: {
-  label: string;
-  onPress: () => void;
-  disabled: boolean;
-  secondary?: boolean;
-}) {
-  const colors = useColors();
-  return (
-    <Pressable
-      onPress={props.onPress}
-      disabled={props.disabled}
-      accessibilityRole="button"
-      style={({ pressed }) => [
-        styles.button,
-        props.secondary
-          ? { borderColor: colors.border, borderWidth: 1, backgroundColor: colors.surface }
-          : { backgroundColor: colors.accent },
-        { opacity: props.disabled ? 0.5 : pressed ? 0.7 : 1 },
-      ]}
-    >
-      <Text
-        style={[styles.buttonLabel, { color: props.secondary ? colors.text : colors.onAccent }]}
-      >
-        {props.label}
-      </Text>
-    </Pressable>
   );
 }
 
@@ -131,16 +103,6 @@ const styles = StyleSheet.create({
   },
   actions: {
     gap: 12,
-  },
-  button: {
-    height: 52,
-    borderRadius: 26,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  buttonLabel: {
-    fontSize: 16,
-    fontWeight: '700',
   },
   notice: {
     fontSize: 13,

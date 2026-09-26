@@ -1,24 +1,28 @@
 import { useTranslation } from 'react-i18next';
 import { FlatList, StyleSheet, View } from 'react-native';
 
-import { runPosition, formatTime } from '../timeline';
+import { formatTime, runPosition } from '../timeline';
 import type { Member, Message } from '../types';
 import { BuddyEventRow } from './buddy-event-row';
 import { MessageBubble } from './message-bubble';
 
 type Props = {
   messages: Message[]; // newest first
-  me: Member;
+  myId: string;
   members: Member[];
   buddyName: string;
+  onRetry: (clientMessageId: string) => void;
+  onLoadOlder: () => void;
 };
 
-export function MessageList({ messages, me, members, buddyName }: Props) {
+export function MessageList({ messages, myId, members, buddyName, onRetry, onLoadOlder }: Props) {
   const { t, i18n } = useTranslation();
-  const nameOf = (id?: string) => members.find((member) => member.id === id)?.displayName ?? '';
+  const nameOf = (id?: string) =>
+    members.find((member) => member.id === id)?.displayName ?? t('chat.guestName');
 
   return (
-    // Inverted: the newest message sits at the bottom and new ones stay in view.
+    // Inverted: the newest message sits at the bottom and new ones stay in view. The list's
+    // "end" is the top, so reaching it loads older history.
     <FlatList
       inverted
       data={messages}
@@ -26,6 +30,8 @@ export function MessageList({ messages, me, members, buddyName }: Props) {
       keyboardDismissMode="interactive"
       keyboardShouldPersistTaps="handled"
       contentContainerStyle={styles.content}
+      onEndReached={onLoadOlder}
+      onEndReachedThreshold={0.5}
       renderItem={({ item, index }) => {
         if (item.type === 'BUDDY_EVENT') {
           return (
@@ -44,8 +50,10 @@ export function MessageList({ messages, me, members, buddyName }: Props) {
           <View style={continuesOlder ? styles.grouped : styles.spaced}>
             <MessageBubble
               text={item.text}
-              mine={item.senderId === me.id}
+              mine={item.senderId === myId}
               time={showTime ? formatTime(item.createdAt, i18n.language) : undefined}
+              status={item.status}
+              onRetry={() => onRetry(item.clientMessageId)}
             />
           </View>
         );

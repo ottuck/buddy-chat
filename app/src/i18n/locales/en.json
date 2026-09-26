@@ -1,6 +1,19 @@
 {
   "common": {
-    "close": "Close"
+    "close": "Close",
+    "retry": "Try again",
+    "cancel": "Cancel"
+  },
+  "errors": {
+    "loadFailed": "Couldn't connect to the server.",
+    "unknown": "Something went wrong. Please try again.",
+    "NETWORK": "Couldn't reach the server. Check your connection.",
+    "ROOM_FULL": "That room already has two people.",
+    "INVITATION_NOT_FOUND": "No invite with that code.",
+    "INVITATION_EXPIRED": "That invite has expired. Ask for a new one.",
+    "INVITATION_USED": "That invite was already used. Ask for a new one.",
+    "ALREADY_MEMBER": "You're already in this room.",
+    "ALREADY_IN_ROOM": "You're already chatting with someone in another room."
   },
   "signIn": {
     "tagline": "Chat with someone you like, and raise a tiny buddy together.",
@@ -9,11 +22,35 @@
     "nativeNotReady": "Sign-in on iPhone arrives with the app build.",
     "error": "Couldn’t sign in. Please try again."
   },
+  "welcome": {
+    "title": "A new buddy is about to hatch!",
+    "subtitle": "Give it a name. You can invite a friend any time.",
+    "namePlaceholder": "Buddy's name",
+    "startSolo": "Start on my own",
+    "haveCode": "I have an invite code"
+  },
+  "join": {
+    "title": "Join with a code",
+    "hint": "Enter the 8-character code your friend shared.",
+    "submit": "Join",
+    "leaveTitle": "Leave your buddy?",
+    "leaveMessage": "If you join this room, the buddy you're raising now and its chat will be gone.",
+    "leaveConfirm": "Join anyway"
+  },
   "chat": {
     "composerPlaceholder": "Message",
     "send": "Send",
-    "online": "Online",
-    "offline": "Offline"
+    "connecting": "Connecting…",
+    "retry": "Failed · tap to retry",
+    "guestName": "Guest"
+  },
+  "invite": {
+    "button": "Invite a friend",
+    "title": "Invite a friend",
+    "hint": "Share this code. Your friend enters it after signing in.",
+    "expires": "Valid until {{time}} · one use",
+    "share": "Share code",
+    "shareMessage": "Let's raise a buddy together on buddy-chat! Invite code: {{code}}"
   },
   "buddy": {
     "level": "Lv.{{level}}",
@@ -45,6 +82,7 @@
     "title": "Settings",
     "profile": "Profile",
     "guest": "Guest",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "joinWithCode": "Join with an invite code"
   }
 }

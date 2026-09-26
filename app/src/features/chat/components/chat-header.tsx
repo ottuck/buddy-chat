@@ -14,14 +14,23 @@ import {
 import { useColors } from '@/theme';
 
 type Props = {
-  partnerName: string;
-  online: boolean;
+  // null in a solo room: an invite button takes the partner's place.
+  partnerName: string | null;
+  connected: boolean;
   buddy: Buddy;
   onPressBuddy: () => void;
+  onPressInvite: () => void;
   onPressSettings: () => void;
 };
 
-export function ChatHeader({ partnerName, online, buddy, onPressBuddy, onPressSettings }: Props) {
+export function ChatHeader({
+  partnerName,
+  connected,
+  buddy,
+  onPressBuddy,
+  onPressInvite,
+  onPressSettings,
+}: Props) {
   const colors = useColors();
   const { t } = useTranslation();
   const level = levelOf(buddy.exp);
@@ -29,13 +38,30 @@ export function ChatHeader({ partnerName, online, buddy, onPressBuddy, onPressSe
   return (
     <View style={[styles.container, { borderColor: colors.border }]}>
       <View style={styles.partnerRow}>
-        <Text style={[styles.partnerName, { color: colors.text }]} numberOfLines={1}>
-          {partnerName}
-        </Text>
-        <View
-          style={[styles.presenceDot, { backgroundColor: online ? colors.online : colors.border }]}
-          accessibilityLabel={online ? t('chat.online') : t('chat.offline')}
-        />
+        {partnerName !== null ? (
+          <Text style={[styles.partnerName, { color: colors.text }]} numberOfLines={1}>
+            {partnerName}
+          </Text>
+        ) : (
+          <Pressable
+            onPress={onPressInvite}
+            accessibilityRole="button"
+            style={({ pressed }) => [
+              styles.inviteButton,
+              { backgroundColor: colors.accent, opacity: pressed ? 0.7 : 1 },
+            ]}
+          >
+            <Text style={[styles.inviteLabel, { color: colors.onAccent }]}>
+              {t('invite.button')}
+            </Text>
+          </Pressable>
+        )}
+        {/* Our own connection to the server; the partner's presence comes with S6. */}
+        {!connected ? (
+          <Text style={[styles.connecting, { color: colors.textMuted }]}>
+            {t('chat.connecting')}
+          </Text>
+        ) : null}
         <Pressable
           onPress={onPressSettings}
           accessibilityRole="button"
@@ -96,10 +122,18 @@ const styles = StyleSheet.create({
   settingsIcon: {
     fontSize: 20,
   },
-  presenceDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  inviteButton: {
+    paddingHorizontal: 14,
+    height: 30,
+    borderRadius: 15,
+    justifyContent: 'center',
+  },
+  inviteLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  connecting: {
+    fontSize: 12,
   },
   buddyRow: {
     flexDirection: 'row',

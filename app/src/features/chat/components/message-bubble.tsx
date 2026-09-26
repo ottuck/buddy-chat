@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useColors } from '@/theme';
 
@@ -7,10 +8,13 @@ type Props = {
   mine: boolean;
   // Formatted time, shown only on the last message of a consecutive run.
   time?: string;
+  status?: 'sending' | 'failed';
+  onRetry?: () => void;
 };
 
-export function MessageBubble({ text, mine, time }: Props) {
+export function MessageBubble({ text, mine, time, status, onRetry }: Props) {
   const colors = useColors();
+  const { t } = useTranslation();
 
   return (
     <View style={[styles.row, mine ? styles.rowMine : styles.rowTheirs]}>
@@ -24,6 +28,8 @@ export function MessageBubble({ text, mine, time }: Props) {
                 borderColor: colors.border,
                 borderWidth: StyleSheet.hairlineWidth,
               },
+          // Not confirmed by the server yet.
+          status === 'sending' && styles.sending,
         ]}
       >
         <Text
@@ -32,7 +38,13 @@ export function MessageBubble({ text, mine, time }: Props) {
           {text}
         </Text>
       </View>
-      {time ? <Text style={[styles.time, { color: colors.textMuted }]}>{time}</Text> : null}
+      {status === 'failed' ? (
+        <Pressable onPress={onRetry} accessibilityRole="button" hitSlop={8}>
+          <Text style={[styles.failed, { color: colors.accent }]}>{t('chat.retry')}</Text>
+        </Pressable>
+      ) : time && status !== 'sending' ? (
+        <Text style={[styles.time, { color: colors.textMuted }]}>{time}</Text>
+      ) : null}
     </View>
   );
 }
@@ -55,12 +67,20 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 18,
   },
+  sending: {
+    opacity: 0.55,
+  },
   text: {
     fontSize: 16,
     lineHeight: 22,
   },
   time: {
     fontSize: 11,
+    marginBottom: 2,
+  },
+  failed: {
+    fontSize: 12,
+    fontWeight: '700',
     marginBottom: 2,
   },
 });
