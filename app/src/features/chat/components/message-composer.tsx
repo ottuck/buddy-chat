@@ -20,6 +20,7 @@ export function MessageComposer({ onSend, onTyping }: Props) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [draft, setDraft] = useState('');
+  const [focused, setFocused] = useState(false);
   const canSend = draft.trim().length > 0;
 
   const send = () => {
@@ -49,9 +50,16 @@ export function MessageComposer({ onSend, onTyping }: Props) {
         placeholderTextColor={colors.textMuted}
         multiline
         {...webSingleRow}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
         style={[
           styles.input,
-          { color: colors.text, backgroundColor: colors.surface, borderColor: colors.border },
+          {
+            color: colors.text,
+            backgroundColor: colors.surface,
+            // Focus shows as the accent border (the web's default outline was a thick black ring).
+            borderColor: focused ? colors.accent : colors.border,
+          },
         ]}
         onKeyPress={(event) => {
           // Web: Enter sends, Shift+Enter adds a line. On phones the return key adds a line.
@@ -108,6 +116,7 @@ const styles = StyleSheet.create({
     // A fixed line height: with "normal", a single line overflowed the box by a pixel on the web
     // and showed a scrollbar.
     lineHeight: 20,
+    outlineWidth: 0,
   },
   sendButton: {
     width: 40,
