@@ -39,12 +39,14 @@ function ChatScreen({ me, room, onRoomLost, onMemberJoined }: ChatScreenProps) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { buddy, busy, setBuddy, feed, clean } = useBuddy(room.buddy);
-  const { messages, status, send, retry, loadOlder } = useChat({
-    myId: me.id,
-    onRoomLost,
-    onMemberJoined,
-    onBuddy: setBuddy,
-  });
+  const { messages, status, online, typing, reads, send, retry, loadOlder, notifyTyping } = useChat(
+    {
+      myId: me.id,
+      onRoomLost,
+      onMemberJoined,
+      onBuddy: setBuddy,
+    },
+  );
   const [buddyOpen, setBuddyOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const partner = room.members.find((member) => member.id !== me.id);
@@ -62,6 +64,8 @@ function ChatScreen({ me, room, onRoomLost, onMemberJoined }: ChatScreenProps) {
       >
         <ChatHeader
           partnerName={partner ? (partner.displayName ?? '') : null}
+          partnerOnline={partner ? online.includes(partner.id) : false}
+          partnerTyping={partner ? typing.includes(partner.id) : false}
           connected={status === 'online'}
           buddy={buddy}
           onPressBuddy={() => setBuddyOpen(true)}
@@ -74,11 +78,12 @@ function ChatScreen({ me, room, onRoomLost, onMemberJoined }: ChatScreenProps) {
             myId={me.id}
             members={room.members}
             buddyName={buddy.name}
+            partnerReadId={partner ? reads[partner.id] : undefined}
             onRetry={retry}
             onLoadOlder={loadOlder}
           />
         </View>
-        <MessageComposer onSend={send} />
+        <MessageComposer onSend={send} onTyping={notifyTyping} />
       </KeyboardAvoidingView>
 
       <BuddySheet

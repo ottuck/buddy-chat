@@ -9,10 +9,12 @@ type Props = {
   // Formatted time, shown only on the last message of a consecutive run.
   time?: string;
   status?: 'sending' | 'failed';
+  // "Read", on my newest message the partner has seen.
+  receipt?: string;
   onRetry?: () => void;
 };
 
-export function MessageBubble({ text, mine, time, status, onRetry }: Props) {
+export function MessageBubble({ text, mine, time, status, receipt, onRetry }: Props) {
   const colors = useColors();
   const { t } = useTranslation();
 
@@ -42,8 +44,13 @@ export function MessageBubble({ text, mine, time, status, onRetry }: Props) {
         <Pressable onPress={onRetry} accessibilityRole="button" hitSlop={8}>
           <Text style={[styles.failed, { color: colors.accent }]}>{t('chat.retry')}</Text>
         </Pressable>
-      ) : time && status !== 'sending' ? (
-        <Text style={[styles.time, { color: colors.textMuted }]}>{time}</Text>
+      ) : (time || receipt) && status !== 'sending' ? (
+        <View style={mine ? styles.metaMine : styles.metaTheirs}>
+          {receipt ? (
+            <Text style={[styles.meta, { color: colors.textMuted }]}>{receipt}</Text>
+          ) : null}
+          {time ? <Text style={[styles.meta, { color: colors.textMuted }]}>{time}</Text> : null}
+        </View>
       ) : null}
     </View>
   );
@@ -74,9 +81,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 22,
   },
-  time: {
-    fontSize: 11,
+  metaMine: {
+    alignItems: 'flex-end',
     marginBottom: 2,
+  },
+  metaTheirs: {
+    alignItems: 'flex-start',
+    marginBottom: 2,
+  },
+  meta: {
+    fontSize: 11,
   },
   failed: {
     fontSize: 12,

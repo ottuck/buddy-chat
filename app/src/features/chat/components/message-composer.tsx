@@ -11,9 +11,11 @@ const webSingleRow = Platform.OS === 'web' ? { rows: 1 } : {};
 
 type Props = {
   onSend: (text: string) => void;
+  // Called on every change with whether there is something typed (drives "typing…").
+  onTyping: (hasDraft: boolean) => void;
 };
 
-export function MessageComposer({ onSend }: Props) {
+export function MessageComposer({ onSend, onTyping }: Props) {
   const colors = useColors();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -39,7 +41,10 @@ export function MessageComposer({ onSend }: Props) {
     >
       <TextInput
         value={draft}
-        onChangeText={setDraft}
+        onChangeText={(text) => {
+          setDraft(text);
+          onTyping(text.trim().length > 0);
+        }}
         placeholder={t('chat.composerPlaceholder')}
         placeholderTextColor={colors.textMuted}
         multiline

@@ -42,7 +42,11 @@
     "send": "送信",
     "connecting": "接続中…",
     "retry": "送信失敗・タップで再送",
-    "guestName": "ゲスト"
+    "guestName": "ゲスト",
+    "typing": "入力中…",
+    "read": "既読",
+    "online": "オンライン",
+    "offline": "オフライン"
   },
   "invite": {
     "button": "友だちを招待",

@@ -42,7 +42,11 @@
     "send": "Send",
     "connecting": "Connecting…",
     "retry": "Failed · tap to retry",
-    "guestName": "Guest"
+    "guestName": "Guest",
+    "typing": "typing…",
+    "read": "Read",
+    "online": "Online",
+    "offline": "Offline"
   },
   "invite": {
     "button": "Invite a friend",

@@ -42,7 +42,11 @@
     "send": "보내기",
     "connecting": "연결 중…",
     "retry": "전송 실패 · 눌러서 다시 보내기",
-    "guestName": "게스트"
+    "guestName": "게스트",
+    "typing": "입력 중…",
+    "read": "읽음",
+    "online": "접속 중",
+    "offline": "접속 안 함"
   },
   "invite": {
     "button": "친구 초대",

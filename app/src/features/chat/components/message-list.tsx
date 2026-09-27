@@ -11,14 +11,30 @@ type Props = {
   myId: string;
   members: Member[];
   buddyName: string;
+  // Newest message id the partner has read, if any.
+  partnerReadId?: string;
   onRetry: (clientMessageId: string) => void;
   onLoadOlder: () => void;
 };
 
-export function MessageList({ messages, myId, members, buddyName, onRetry, onLoadOlder }: Props) {
+export function MessageList({
+  messages,
+  myId,
+  members,
+  buddyName,
+  partnerReadId,
+  onRetry,
+  onLoadOlder,
+}: Props) {
   const { t, i18n } = useTranslation();
   const nameOf = (id?: string) =>
     members.find((member) => member.id === id)?.displayName ?? t('chat.guestName');
+  // Only my newest read message says so; everything before it is read too.
+  const lastRead = partnerReadId
+    ? messages.find(
+        (m) => m.type === 'TEXT' && m.senderId === myId && m.id && m.id <= partnerReadId,
+      )
+    : undefined;
 
   return (
     // Inverted: the newest message sits at the bottom and new ones stay in view. The list's
@@ -53,6 +69,7 @@ export function MessageList({ messages, myId, members, buddyName, onRetry, onLoa
               mine={item.senderId === myId}
               time={showTime ? formatTime(item.createdAt, i18n.language) : undefined}
               status={item.status}
+              receipt={item === lastRead ? t('chat.read') : undefined}
               onRetry={() => onRetry(item.clientMessageId)}
             />
           </View>

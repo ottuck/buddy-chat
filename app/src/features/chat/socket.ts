@@ -7,11 +7,20 @@ import type { ServerMessage } from './types';
 // Server → app events (docs/server-design.md, "WebSocket 프로토콜").
 type ServerEvent =
   | { type: 'hello' }
-  | { type: 'ready'; userId: string; roomId: string }
+  | {
+      type: 'ready';
+      userId: string;
+      roomId: string;
+      online: string[];
+      reads: Record<string, string>;
+    }
   | { type: 'ack'; clientMessageId: string; message: ServerMessage }
   | { type: 'message'; message: ServerMessage }
   | { type: 'member'; userId: string; displayName: string | null }
   | { type: 'buddy'; buddy: BuddyView }
+  | { type: 'presence'; userId: string; online: boolean }
+  | { type: 'typing'; userId: string; typing: boolean }
+  | { type: 'read'; userId: string; messageId: string }
   | { type: 'error'; code: string; clientMessageId: string | null }
   | { type: 'pong' };
 
@@ -20,13 +29,17 @@ export type ConnectionStatus = 'connecting' | 'online' | 'offline';
 export type SocketListener = {
   onStatus: (status: ConnectionStatus) => void;
   // Authenticated; the app should fetch what it missed and resend unacknowledged messages.
-  onReady: () => void;
+  // online: other members connected now. reads: user id → newest message id they have read.
+  onReady: (online: string[], reads: Record<string, string>) => void;
   onAck: (clientMessageId: string, message: ServerMessage) => void;
   onMessage: (message: ServerMessage) => void;
   // A friend joined this room; the room's member list is out of date.
   onMemberJoined: () => void;
   // The buddy changed (someone cared for it, or chatting gave it EXP).
   onBuddy: (buddy: BuddyView) => void;
+  onPresence: (userId: string, online: boolean) => void;
+  onTyping: (userId: string, typing: boolean) => void;
+  onRead: (userId: string, messageId: string) => void;
   onSendFailed: (clientMessageId: string, code: string) => void;
   // The server refused the connection for a reason reconnecting will not fix (e.g. no room).
   onFatal: (code: string) => void;
@@ -74,6 +87,17 @@ export class ChatSocket {
     return true;
   }
 
+  // Typing and read marks are not worth queueing: while offline they are simply dropped.
+  sendTyping(typing: boolean) {
+    if (this.ws && this.ready) this.ws.send(JSON.stringify({ type: 'typing', typing }));
+  }
+
+  sendRead(messageId: string): boolean {
+    if (!this.ws || !this.ready) return false;
+    this.ws.send(JSON.stringify({ type: 'read', messageId }));
+    return true;
+  }
+
   private connect() {
     this.listener.onStatus('connecting');
     const ws = new WebSocket(wsUrl());
@@ -100,7 +124,7 @@ export class ChatSocket {
         this.ready = true;
         this.attempt = 0;
         this.listener.onStatus('online');
-        this.listener.onReady();
+        this.listener.onReady(event.online, event.reads);
         break;
       case 'ack':
         this.listener.onAck(event.clientMessageId, event.message);
@@ -110,6 +134,15 @@ export class ChatSocket {
         break;
       case 'buddy':
         this.listener.onBuddy(event.buddy);
+        break;
+      case 'presence':
+        this.listener.onPresence(event.userId, event.online);
+        break;
+      case 'typing':
+        this.listener.onTyping(event.userId, event.typing);
+        break;
+      case 'read':
+        this.listener.onRead(event.userId, event.messageId);
         break;
       case 'member':
         this.listener.onMemberJoined();

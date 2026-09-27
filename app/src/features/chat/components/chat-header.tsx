@@ -9,6 +9,8 @@ import { useColors } from '@/theme';
 type Props = {
   // null in a solo room: an invite button takes the partner's place.
   partnerName: string | null;
+  partnerOnline: boolean;
+  partnerTyping: boolean;
   connected: boolean;
   buddy: BuddyView;
   onPressBuddy: () => void;
@@ -18,6 +20,8 @@ type Props = {
 
 export function ChatHeader({
   partnerName,
+  partnerOnline,
+  partnerTyping,
   connected,
   buddy,
   onPressBuddy,
@@ -31,9 +35,21 @@ export function ChatHeader({
     <View style={[styles.container, { borderColor: colors.border }]}>
       <View style={styles.partnerRow}>
         {partnerName !== null ? (
-          <Text style={[styles.partnerName, { color: colors.text }]} numberOfLines={1}>
-            {partnerName}
-          </Text>
+          <>
+            <View
+              accessibilityLabel={t(partnerOnline ? 'chat.online' : 'chat.offline')}
+              style={[
+                styles.presence,
+                { backgroundColor: partnerOnline ? colors.online : colors.border },
+              ]}
+            />
+            <Text style={[styles.partnerName, { color: colors.text }]} numberOfLines={1}>
+              {partnerName}
+            </Text>
+            {partnerTyping ? (
+              <Text style={[styles.typing, { color: colors.textMuted }]}>{t('chat.typing')}</Text>
+            ) : null}
+          </>
         ) : (
           <Pressable
             onPress={onPressInvite}
@@ -48,7 +64,7 @@ export function ChatHeader({
             </Text>
           </Pressable>
         )}
-        {/* Our own connection to the server; the partner's presence comes with S6. */}
+        {/* Our own connection to the server. Without it the partner's presence is unknown. */}
         {!connected ? (
           <Text style={[styles.connecting, { color: colors.textMuted }]}>
             {t('chat.connecting')}
@@ -102,6 +118,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  presence: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  typing: {
+    fontSize: 12,
   },
   partnerName: {
     fontSize: 18,
