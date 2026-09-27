@@ -1,9 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { ProgressBar } from '@/components/progress-bar';
-import { BuddyAvatar } from '@/features/buddy/components/buddy-avatar';
-import type { BuddyView } from '@/features/buddy/api';
 import { useColors } from '@/theme';
 
 type Props = {
@@ -12,8 +9,6 @@ type Props = {
   partnerOnline: boolean;
   partnerTyping: boolean;
   connected: boolean;
-  buddy: BuddyView;
-  onPressBuddy: () => void;
   onPressInvite: () => void;
   onPressSettings: () => void;
 };
@@ -23,8 +18,6 @@ export function ChatHeader({
   partnerOnline,
   partnerTyping,
   connected,
-  buddy,
-  onPressBuddy,
   onPressInvite,
   onPressSettings,
 }: Props) {
@@ -80,28 +73,6 @@ export function ChatHeader({
           <Text style={[styles.settingsIcon, { color: colors.textMuted }]}>⚙︎</Text>
         </Pressable>
       </View>
-
-      {/* Compact buddy status; tapping opens the buddy detail (docs/product.md). */}
-      <Pressable
-        onPress={onPressBuddy}
-        accessibilityRole="button"
-        accessibilityLabel={t('buddy.open', { buddy: buddy.name })}
-        style={({ pressed }) => [
-          styles.buddyRow,
-          { backgroundColor: colors.surface, opacity: pressed ? 0.7 : 1 },
-        ]}
-      >
-        <BuddyAvatar stage={buddy.stage} size={18} />
-        <Text style={[styles.buddyName, { color: colors.text }]} numberOfLines={1}>
-          {buddy.name}
-        </Text>
-        <Text style={[styles.buddyLevel, { color: colors.textMuted }]}>
-          {t('buddy.level', { level: buddy.level })}
-        </Text>
-        <ProgressBar progress={buddy.levelProgress} />
-        {buddy.hungry ? <Text style={styles.status}>🍚</Text> : null}
-        {buddy.poops > 0 ? <Text style={styles.status}>{'💩'.repeat(buddy.poops)}</Text> : null}
-      </Pressable>
     </View>
   );
 }
@@ -111,7 +82,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 10,
-    gap: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   partnerRow: {
@@ -150,24 +120,5 @@ const styles = StyleSheet.create({
   },
   connecting: {
     fontSize: 12,
-  },
-  buddyRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 14,
-  },
-  buddyName: {
-    fontSize: 14,
-    fontWeight: '600',
-    flexShrink: 1,
-  },
-  buddyLevel: {
-    fontSize: 12,
-  },
-  status: {
-    fontSize: 14,
   },
 });

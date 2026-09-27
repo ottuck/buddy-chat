@@ -15,6 +15,10 @@ const light = {
   online: '#3CC37A',
   fullness: '#F5B642',
   cleanliness: '#58B7E8',
+  // The buddy's stage: a soft toy-screen tint, not a monochrome LCD.
+  stage: '#EAF3E3',
+  stageFloor: '#D6E6C8',
+  stageLine: '#B8CFA4',
 };
 
 export type Colors = typeof light;
@@ -34,6 +38,9 @@ const dark: Colors = {
   online: '#3CC37A',
   fullness: '#F5B642',
   cleanliness: '#58B7E8',
+  stage: '#1E2822',
+  stageFloor: '#27352C',
+  stageLine: '#36493C',
 };
 
 export function useColors(): Colors {

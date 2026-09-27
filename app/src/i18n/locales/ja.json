@@ -76,7 +76,9 @@
     "feed": "ごはん",
     "cleanUp": "おそうじ",
     "growthHint": "おしゃべりしたりお世話したりするほど、大きくなります。",
-    "peckish": "ちょっと小腹"
+    "peckish": "ちょっと小腹",
+    "pet": "{{buddy}}をなでる",
+    "showStage": "{{buddy}}を大きく表示"
   },
   "buddyEvent": {
     "HUNGRY": "{{buddy}}がおなかをすかせています 🍚",

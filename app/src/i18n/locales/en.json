@@ -76,7 +76,9 @@
     "feed": "Feed",
     "cleanUp": "Clean up",
     "growthHint": "The more you chat and take care of it, the more it grows.",
-    "peckish": "Could eat"
+    "peckish": "Could eat",
+    "pet": "Pet {{buddy}}",
+    "showStage": "Show {{buddy}}"
   },
   "buddyEvent": {
     "HUNGRY": "{{buddy}} is hungry 🍚",
