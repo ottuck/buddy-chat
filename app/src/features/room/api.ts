@@ -1,5 +1,5 @@
 import type { BuddyView } from '@/features/buddy/api';
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 
 // Shapes returned by the server (server/src/main/java/com/buddychat/room/RoomView.java).
 export type Me = { id: string; displayName: string | null; roomId: string | null };
@@ -17,8 +17,24 @@ export const createRoom = (buddyName: string) =>
 export const createInvitation = () =>
   api<Invitation>('/api/rooms/me/invitations', { method: 'POST' });
 
-export const acceptInvitation = (code: string, leaveCurrentRoom: boolean) =>
-  api<Room>(`/api/invitations/${encodeURIComponent(code.trim())}/accept`, {
-    method: 'POST',
-    body: { leaveCurrentRoom },
-  });
+// Accepting runs several steps on the server without a transaction. If it fails midway (network,
+// 5xx), the same user accepting the same code again finishes it (docs/server-design.md), so it is
+// retried a couple of times rather than leaving the friend's room half-joined.
+export async function acceptInvitation(code: string, leaveCurrentRoom: boolean): Promise<Room> {
+  const request = () =>
+    api<Room>(`/api/invitations/${encodeURIComponent(code.trim())}/accept`, {
+      method: 'POST',
+      body: { leaveCurrentRoom },
+    });
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await request();
+    } catch (e) {
+      const retryable = e instanceof ApiError && (e.status === 0 || e.status >= 500);
+      if (!retryable || attempt > ACCEPT_RETRIES) throw e;
+      await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
+    }
+  }
+}
+
+const ACCEPT_RETRIES = 2;
