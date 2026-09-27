@@ -95,7 +95,8 @@ push_tokens  { _id: <Expo push token>, userId, updatedAt }
 
 | Method | Path | 설명 |
 | --- | --- | --- |
-| GET | `/api/me` | 내 정보. 첫 호출 때 user 생성 |
+| GET | `/api/me` | 내 정보. 첫 호출 때 user 생성(이름은 토큰의 name, 게스트는 없음) |
+| PATCH | `/api/me` | 내 이름 바꾸기 `{ displayName }`(1~20자). 게스트는 처음에 여기서 이름을 정한다. Google을 연결해도 uid가 같아 이름은 유지 |
 | POST | `/api/rooms` | 내 room 생성(solo, Buddy 알) |
 | GET | `/api/rooms/me` | 내 room, 멤버, Buddy 상태 |
 | POST | `/api/rooms/me/invitations` | 초대 코드 발급 |

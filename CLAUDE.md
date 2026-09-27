@@ -48,8 +48,12 @@
 - `app/src/lib/firebase.ts`(native, AsyncStorage 유지) / `firebase.web.ts`(web). firebase 타입이 web 전용이라
   native의 `getReactNativePersistence` import에만 `@ts-expect-error`를 둔다.
 - 로그인 여부로 화면을 나누는 건 `_layout.tsx`의 `Stack.Protected`.
-- Google 로그인은 지금 웹만 된다. 아이폰 Google/Apple 로그인은 개발용 빌드에서 붙인다(아직). 그 전까지 개발 중에는
-  "게스트로 계속하기(개발용)" = Firebase 익명 로그인(`__DEV__`에서만 보임)으로 쓴다.
+- **게스트 우선.** 첫 화면의 주 버튼은 "바로 시작하기" = Firebase 익명 로그인이고, 운영에서도 정식 기능이다.
+  게스트도 모든 기능을 쓴다. 이름이 없으니 먼저 `/name` 화면에서 이름을 받는다(`PATCH /api/me`).
+- 계정은 나중에 설정에서 연결한다. 익명 계정에 Google을 `linkWithPopup`으로 붙이므로 Firebase uid가 그대로라 서버 데이터를
+  옮기지 않는다. 이미 다른 사용자인 Google 계정이면 합치지 않고, 확인 후 그 계정으로 전환한다(게스트 데이터는 이 기기에서 못 봄).
+- 연결은 지금 웹 Google만 된다. 아이폰 Google/Apple 연결은 개발용 빌드에서 붙인다.
+- Firebase 콘솔에서 익명 계정 자동 정리(30일)는 켜지 않는다. 게스트 사용자와 Buddy가 통째로 사라진다.
 
 ## Server commands (`server/`에서 실행)
 
