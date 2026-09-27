@@ -20,7 +20,7 @@
     "google": "Googleで続ける",
     "error": "ログインできませんでした。もう一度お試しください。",
     "startNow": "すぐに始める",
-    "noAccountNeeded": "アカウントなしで始められます"
+    "noAccountNeeded": "アカウントなしで始められます。ゲストは30日間使え、アカウントを連携するとそのまま続けられます。"
   },
   "welcome": {
     "title": "新しいBuddyが生まれそう！",
@@ -101,7 +101,7 @@
     "changeName": "名前を変更",
     "account": "アカウント",
     "guestTitle": "ゲストで利用中",
-    "guestBody": "アカウントを連携すると、機種変更やブラウザのデータ削除のあとも Buddy と会話を続けられます。",
+    "guestBody": "ゲストは30日間使えます。Google アカウントを連携すると、その後も機種変更後も Buddy と会話を続けられます。",
     "linkGoogle": "Google アカウントを連携",
     "linkNotReady": "アプリでのアカウント連携はもうすぐ対応します。",
     "linkedGoogle": "Google アカウントと連携済み",
@@ -121,5 +121,12 @@
     "placeholder": "名前",
     "next": "次へ",
     "save": "保存"
+  },
+  "guest": {
+    "expiring_one": "ゲスト利用期間は残り{{count}}日です",
+    "expiring_other": "ゲスト利用期間は残り{{count}}日です",
+    "link": "アカウント連携",
+    "daysLeft_one": "残り{{count}}日",
+    "daysLeft_other": "残り{{count}}日"
   }
 }
