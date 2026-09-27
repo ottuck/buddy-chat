@@ -2,6 +2,7 @@ import { getLocales } from 'expo-localization';
 import { createInstance } from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
+import { josa, type JosaPair } from './josa';
 import en from './locales/en.json';
 import ja from './locales/ja.json';
 import ko from './locales/ko.json';
@@ -36,5 +37,10 @@ i18n.use(initReactI18next).init({
   fallbackLng: FALLBACK_LANGUAGE,
   interpolation: { escapeValue: false }, // React already escapes.
 });
+
+// Korean particles after names, e.g. "{{buddy, 이가}} 배고파졌어요" → "하늘이 배고파졌어요".
+for (const pair of ['이가', '은는', '과와'] satisfies JosaPair[]) {
+  i18n.services.formatter?.add(pair, (value) => josa(String(value), pair));
+}
 
 export default i18n;
