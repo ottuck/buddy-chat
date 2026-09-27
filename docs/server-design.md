@@ -188,6 +188,18 @@ iPhone / Web ──HTTPS·WSS──▶ Azure Container Apps (Spring WebFlux, Doc
 - 쓰지 않는 것: Redis, Blob Storage, VM, self-hosted MongoDB, MongoDB Atlas, Cosmos DB for MongoDB, Firestore,
   Kafka, Kubernetes/AKS.
 
+### 공유 인프라 이름 (정책만 정함, 적용은 나중에)
+
+개인 Azure 구독을 여러 사이드 프로젝트가 같이 쓰고 앞으로 더 늘어난다. 지금 공유 중인 ACR·Container Apps 환경·tfstate
+Storage는 이름이 ur-manager에 묶여 있어(`cae-ur-manager-prod` 안에 buddy-chat이 들어가 있는 식) 실제 역할과 어긋난다.
+
+- 공유 리소스: `<type>-personal-<env>-<region>` — 예: `cae-personal-prod-jpe`, `log-personal-prod-jpe`, ACR은 `acrpersonal…`
+  (ACR·Storage는 하이픈 불가, 전역 고유)
+- 프로젝트 전용 리소스: `<type>-<project>-<env>` — 예: `ca-buddy-chat-prod`, `id-buddy-chat-prod`, `ca-ur-manager-prod`
+- 지금은 이름을 바꾸지 않는다. Azure 리소스는 이름을 바꾸려면 대개 새로 만들고 옮겨야 한다(환경은 새 환경 생성 → 앱 이동).
+  S7 뒤 별도 인프라 정리 작업으로, 공유 리소스를 한 번에 맞출 필요 없이 하나씩 옮긴다. 공유 리소스는 별도 Terraform
+  (공용 state)이 소유하고, 각 프로젝트는 `data`로 읽는 구조는 그대로 둔다.
+
 ## 마일스톤
 
 1. **S1 서버 뼈대**: 프로젝트, 로컬 Mongo, Firebase token 검증, `/api/me`, CI
@@ -199,7 +211,7 @@ iPhone / Web ──HTTPS·WSS──▶ Azure Container Apps (Spring WebFlux, Doc
 7. **S7 배포**: Container Apps, DocumentDB, Terraform. 배포 후 확인할 것:
    - WebSocket을 15분 이상 유지: 25초 ping이 계속되고, 그 뒤 메시지를 보내고 받는다. 일반 HTTP 요청 timeout(240초)이나
      유휴 timeout이 업그레이드된 연결에 어떻게 적용되는지 문서로 가정하지 않고 실제로 본다.
-   - 아이폰 백그라운드 → 포그라운드 → 재연결, 토큰 만료 뒤 재연결
+   - 아이폰 백그라운드 → 포그라운드 → 재연결(2026-09-27 확인: 웹에서 보낸 메시지를 복귀 즉시 받음), 토큰 만료 뒤 재연결
    - DocumentDB: unique 인덱스가 null/없는 필드(Buddy 이벤트의 `senderId`)를 MongoDB처럼 하나의 값으로 다루는지,
      `$or` 조건부 update, 중복 키 upsert(읽음 위치)가 같은지
 8. **S8 Push**: FCM / APNs. 상대가 오프라인일 때 상대 메시지만 알린다(Buddy 알림 없음).
