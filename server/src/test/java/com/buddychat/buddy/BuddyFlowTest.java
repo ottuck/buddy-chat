@@ -182,7 +182,7 @@ class BuddyFlowTest {
     void hatchesWhenReachingLevelTwo() {
         String roomId = createRoom("henry").id();
 
-        for (int i = 0; i < BuddyRules.EXP_PER_LEVEL; i++)
+        for (int i = 0; i < BuddyRules.expPerLevel(); i++)
             buddyService.onMessageSent(roomId).block();
 
         BuddyView buddy = room("henry").buddy();
