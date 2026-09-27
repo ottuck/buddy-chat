@@ -1,13 +1,13 @@
 name: Deploy server
 
-# Deploys the server to Azure Container Apps after CI passes on main (docs/server-design.md, 인프라).
-# Signs in with OIDC as buddy-chat's own deploy identity (infra/main.tf); no secret is stored.
+# Deploys the server to Azure Container Apps (docs/server-design.md, 인프라). Called by CI after it
+# passes on a push to main, or run by hand on main. Signs in with OIDC as buddy-chat's own deploy
+# identity (infra/main.tf), which trusts only main; no secret is stored.
 # Repository variables: AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID.
+#
+# Not a workflow_run trigger: those run as the default branch (dev), so the OIDC token would say dev.
 on:
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
-    branches: [main]
+  workflow_call:
   workflow_dispatch:
 
 concurrency:
@@ -26,12 +26,10 @@ env:
 
 jobs:
   deploy:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-        with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       # Tagged by the server/ tree, so a push that changes only the app deploys nothing (a new
       # revision would drop everyone's WebSocket).

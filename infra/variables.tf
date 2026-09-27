@@ -15,9 +15,12 @@ variable "suffix" {
   default = "bc26jp01"
 }
 
-variable "github_repository" {
+# How GitHub names the repository in OIDC subjects: owner and repo with their numeric ids
+# (e.g. repo:ottuck@116790133/buddy-chat@1389320040:ref:refs/heads/main), so a renamed or recreated
+# repository with the same name does not match.
+variable "github_oidc_repository" {
   type    = string
-  default = "ottuck/buddy-chat"
+  default = "ottuck@116790133/buddy-chat@1389320040"
 }
 
 # Only used on the first apply. After that the deploy workflow sets the image and Terraform

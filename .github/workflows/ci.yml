@@ -58,3 +58,12 @@ jobs:
         with:
           name: server-test-reports
           path: server/build/reports/tests/test
+
+  # A push to main that passed both jobs deploys the server.
+  deploy:
+    needs: [app, server]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      id-token: write
+      contents: read
+    uses: ./.github/workflows/deploy.yml
