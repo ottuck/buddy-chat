@@ -217,6 +217,8 @@ Storage는 이름이 ur-manager에 묶여 있어(`cae-ur-manager-prod` 안에 bu
    - **결과(2026-09-27, PR #4)**: 서버 테스트 58개를 실제 DocumentDB에서 전부 통과. 배포된 서버에서 16분 idle 뒤에도
      WebSocket 유지(240초 요청 timeout은 업그레이드된 연결에 적용되지 않음), 재연결 0.14초, 토큰 만료 시각에
      `TOKEN_EXPIRED` → 새 토큰으로 재연결, 아이폰 백그라운드 복귀 정상. 메시지 전달 30~400ms.
+   - **남은 것(blocker 아님)**: scale-to-zero 뒤 첫 접속 시간. 열린 WebSocket이 있으면 0대로 줄지 않으므로 앱과 웹을 모두
+     닫고 10~20분 뒤 잰다. 불편할 만큼 길면 `minReplicas = 1`을 검토한다. `main` 자동 배포(CI 안의 deploy job)는 확인 완료.
 8. **S8 Push**: FCM / APNs. 상대가 오프라인일 때 상대 메시지만 알린다(Buddy 알림 없음).
    iOS는 결국 APNs를 거치므로 `expo-notifications`로 할지 FCM으로 할지 이때 정한다. 개발용 빌드와
    Apple Developer Program이 필요하다. Firebase Admin SDK는 이때 도입한다.
