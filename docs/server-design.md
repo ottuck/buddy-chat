@@ -154,9 +154,18 @@ iPhone / Web ──HTTPS·WSS──▶ Azure Container Apps (Spring WebFlux, Doc
 - **Redis는 쓰지 않는다.** 레플리카가 1개라 세션·presence·typing은 프로세스 메모리로 충분하다. 수평 확장이
   필요해지면 `RoomHub.publish` 뒤에 Redis Pub/Sub을 둔다.
 - **Blob Storage는 쓰지 않는다.** 사진 첨부가 MVP 밖이다. 나중에 넣으면 바이너리는 Blob, 메타데이터만 DB.
-- **Terraform**으로 Resource Group, Container Apps Environment·App, Container Registry, DocumentDB를 관리한다
-  (필요하면 Log Analytics, Budget alert). 재현 가능한 배포에 필요한 만큼만.
-- **배포**: GitHub Actions에서 test → build → Docker 이미지 → ACR → Container Apps.
+- **ur-manager와 공유하는 것은 Container Registry(`acurmanagerur26jp01`, 이미지 `buddy-chat/server`)와 tfstate
+  Storage Account(`sturmanagerur26jp01`, buddy-chat 전용 container `buddy-chat-tfstate`)뿐이다.** Resource Group
+  (`rg-buddy-chat-prod`), Container Apps 환경·앱, DocumentDB, Managed Identity, 배포 권한은 전부 buddy-chat 것이다.
+  buddy-chat을 destroy해도 ur-manager에 영향이 없다.
+- **Terraform**(`infra/`): RG, DocumentDB(free tier) + 방화벽, Log Analytics(하루 0.5GB 상한), Container Apps
+  환경·앱, 이미지 pull용 identity(공유 ACR에 AcrPull), 배포용 identity. 재현 가능한 배포에 필요한 만큼만.
+- **배포**(`.github/workflows/deploy.yml`): main에서 CI가 통과하면 buddy-chat 전용 배포 identity로 OIDC 로그인
+  (저장된 비밀 없음) → 이미지 빌드·push → `az containerapp update` → health 확인. 권한은 공유 ACR에 AcrPush,
+  buddy-chat Container App에 Contributor뿐이다. 이미지 태그는 `server/` 트리 해시라서 앱만 바뀐 push는
+  재배포하지 않는다(새 리비전은 모든 WebSocket을 끊는다). 이미지는 Terraform이 아니라 이 workflow가 바꾼다.
+- **DocumentDB 방화벽**: 포털의 "Azure 서비스 허용"과 같은 0.0.0.0 규칙. Container Apps(consumption)는 나가는 IP가
+  고정이 아니다. 접속에는 비밀번호와 TLS가 필요하다. 비밀번호는 Terraform이 만들어 Container App secret으로 넣는다.
 - **리전**: 일본 사용자 우선이라 Japan East(서비스별 지원·무료 조건은 만들 때 확인).
 - 쓰지 않는 것: Redis, Blob Storage, VM, self-hosted MongoDB, MongoDB Atlas, Cosmos DB for MongoDB, Firestore,
   Kafka, Kubernetes/AKS.

@@ -1,0 +1,75 @@
+name: Deploy server
+
+# Deploys the server to Azure Container Apps after CI passes on main (docs/server-design.md, 인프라).
+# Signs in with OIDC as buddy-chat's own deploy identity (infra/main.tf); no secret is stored.
+# Repository variables: AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-server
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  REGISTRY: acurmanagerur26jp01
+  IMAGE: acurmanagerur26jp01.azurecr.io/buddy-chat/server
+  RESOURCE_GROUP: rg-buddy-chat-prod
+  APP: ca-buddy-chat-prod
+
+jobs:
+  deploy:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      # Tagged by the server/ tree, so a push that changes only the app deploys nothing (a new
+      # revision would drop everyone's WebSocket).
+      - name: Image tag
+        id: tag
+        run: echo "tag=$(git rev-parse HEAD:server)" >> "$GITHUB_OUTPUT"
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Skip if already running this server
+        id: current
+        run: |
+          current=$(az containerapp show -g "$RESOURCE_GROUP" -n "$APP" \
+            --query "properties.template.containers[0].image" -o tsv)
+          echo "current=$current"
+          if [ "$current" = "$IMAGE:${{ steps.tag.outputs.tag }}" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build and push image
+        if: steps.current.outputs.skip != 'true'
+        run: |
+          az acr login -n "$REGISTRY"
+          docker build -t "$IMAGE:${{ steps.tag.outputs.tag }}" server
+          docker push "$IMAGE:${{ steps.tag.outputs.tag }}"
+
+      - name: Deploy
+        if: steps.current.outputs.skip != 'true'
+        run: |
+          az containerapp update -g "$RESOURCE_GROUP" -n "$APP" \
+            --image "$IMAGE:${{ steps.tag.outputs.tag }}" --only-show-errors -o none
+          fqdn=$(az containerapp show -g "$RESOURCE_GROUP" -n "$APP" --query properties.configuration.ingress.fqdn -o tsv)
+          for i in $(seq 1 30); do
+            if curl -fsS "https://$fqdn/actuator/health"; then exit 0; fi
+            sleep 5
+          done
+          echo "health check failed" && exit 1

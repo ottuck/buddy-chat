@@ -11,8 +11,10 @@
 
 - `app/` — Expo(React Native) + TypeScript + Expo Router. iOS / Web / Android 공용 코드.
 - `server/` — Java 25, Spring Boot 4.1 + WebFlux + Reactive MongoDB. 패키지는 기능 모듈(`auth`, `user`, `room`, `chat`, `buddy`, `realtime`).
+- `infra/` — Azure Terraform(Container Apps, DocumentDB). ur-manager와 ACR·tfstate Storage만 공유
 - `docs/` — 기획과 설계 문서
 - `.github/workflows/ci.yml` — app(lint / typecheck / format), server(spotless / test)
+- `.github/workflows/deploy.yml` — main에서 CI 통과 후 서버를 Azure Container Apps에 배포
 - 로컬 전용(gitignore): `.claude/`(desktop app preview 설정), `.idea/`, `.env*`
 
 ## App commands (`app/`에서 실행)
@@ -50,6 +52,15 @@
 - `./gradlew bootRun` — 로컬 실행. `compose.yaml`의 MongoDB가 Docker로 같이 뜬다(Docker Desktop 필요). :8080
 - `./gradlew test` — Testcontainers로 MongoDB를 띄워 테스트 · `./gradlew spotlessApply` — 포맷(palantir-java-format)
 - 커밋 전 `./gradlew spotlessCheck test`(server 변경 시)
+- 이미지: `docker build -t buddy-chat-server server/`(`server/Dockerfile`). 운영 설정은 환경변수
+  (`SPRING_MONGODB_URI`, `SPRING_MONGODB_DATABASE`, `FIREBASE_PROJECT_ID`, `CORS_ALLOWED_ORIGINS`).
+
+## Infra (`infra/`에서 실행)
+
+- `terraform init` / `terraform plan -out=prod.tfplan` / `terraform apply prod.tfplan`. state는 공유 Storage의
+  `buddy-chat-tfstate` container(Entra ID 인증, `az login` 필요).
+- apply 전에 plan을 사용자에게 보여주고 확인받는다. 이미 있는 리소스를 바꾸거나 지우는 plan은 특히.
+- 서버 이미지는 Terraform이 아니라 deploy workflow가 바꾼다(`ignore_changes`).
 
 ## Server principles
 
