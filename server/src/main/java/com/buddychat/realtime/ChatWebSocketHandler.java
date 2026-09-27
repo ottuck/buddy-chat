@@ -1,5 +1,6 @@
 package com.buddychat.realtime;
 
+import com.buddychat.buddy.BuddyService;
 import com.buddychat.chat.ChatService;
 import com.buddychat.common.ApiException;
 import com.buddychat.user.User;
@@ -37,6 +38,7 @@ class ChatWebSocketHandler implements WebSocketHandler {
     private final ReactiveJwtDecoder jwtDecoder;
     private final UserService userService;
     private final ChatService chatService;
+    private final BuddyService buddyService;
     private final RoomHub hub;
     private final JsonMapper json;
     private final RealtimeProperties properties;
@@ -45,12 +47,14 @@ class ChatWebSocketHandler implements WebSocketHandler {
             ReactiveJwtDecoder jwtDecoder,
             UserService userService,
             ChatService chatService,
+            BuddyService buddyService,
             RoomHub hub,
             JsonMapper json,
             RealtimeProperties properties) {
         this.jwtDecoder = jwtDecoder;
         this.userService = userService;
         this.chatService = chatService;
+        this.buddyService = buddyService;
         this.hub = hub;
         this.json = json;
         this.properties = properties;
@@ -97,7 +101,13 @@ class ChatWebSocketHandler implements WebSocketHandler {
                                         user.id(),
                                         user.roomId());
                                 connection.emit(new ServerEvent.Ready(user.id(), user.roomId()));
-                                return rest.skip(1)
+                                // Hunger or poops since anyone last looked go to the whole room.
+                                Mono<Void> noticeBuddy = buddyService
+                                        .observe(user.roomId())
+                                        .onErrorResume(e -> Mono.empty())
+                                        .then();
+                                return noticeBuddy
+                                        .thenMany(rest.skip(1))
                                         .concatMap(text -> onEvent(connection, user, text))
                                         .doFinally(signal -> {
                                             hub.leave(connection);
@@ -158,6 +168,9 @@ class ChatWebSocketHandler implements WebSocketHandler {
                                         connection.roomId, new ServerEvent.NewMessage(result.message()), connection);
                             }
                         })
+                        // Chatting grows the buddy; a resend earned its EXP the first time.
+                        .flatMap(result ->
+                                result.created() ? buddyService.onMessageSent(connection.roomId) : Mono.<Void>empty())
                         .onErrorResume(ApiException.class, e -> {
                             connection.emit(new ServerEvent.Error(e.code(), send.clientMessageId()));
                             return Mono.empty();

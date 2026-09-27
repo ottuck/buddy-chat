@@ -113,6 +113,7 @@ server → client
   { type: "ack", clientMessageId, message }       내 메시지 저장 완료(재전송이어도 같은 응답)
   { type: "message", message }                    상대 메시지, Buddy 이벤트
   { type: "member", userId, displayName }         친구가 초대를 수락함(solo → duo)
+  { type: "buddy", buddy }                         Buddy 상태 변경(돌봄, 경험치)
   { type: "typing", userId, typing }
   { type: "presence", userId, online }
   { type: "read", userId, messageId }
@@ -139,6 +140,24 @@ server → client
 6. **S6 Presence·Typing·Read**
 7. **S7 배포**: Container Apps, DocumentDB, Terraform
 8. **S8 Push**: FCM / APNs
+
+## Buddy 규칙 (S5)
+
+수치는 `server/.../buddy/BuddyRules.java` 한 곳에 있고 임시값이다(기획 §62).
+
+- **저장하는 것**: `exp`, `bornAt`, `lastFedAt`, `lastCleanedAt`, 오늘 메시지 EXP 카운터. 배고픔·똥은 저장하지 않고
+  조회 시점에 계산한다. 앱은 서버가 계산한 `BuddyView`(level, stage, fullness, poops, canFeed, canClean)를 그대로 보여준다.
+- **배고픔**: 밥을 먹은 뒤 12시간에 걸쳐 100 → 0. 80 미만이면 밥을 줄 수 있고, 30 이하면 "배고파요".
+- **똥**: 청소 뒤 6시간마다 하나, 최대 3개. 있으면 청소할 수 있다.
+- **경험치**: 밥 +2, 청소 +2, 메시지 +1(room당 하루 50까지, 일본 시간 기준). 레벨당 20.
+  단계: 알(Lv1) → 아기(Lv2) → 어린이(Lv5) → 어른(Lv10). 죽지 않는다.
+- **타임라인 이벤트**: `FED`, `CLEANED`(누가 했는지 포함), `EVOLVED`는 일어날 때, `HUNGRY`, `POOPED`는 누군가
+  앱을 열거나(`GET /api/rooms/me`) 연결할 때 기록한다. 원인 시각으로 만든 키(`buddy:hungry:<lastFedAt>` 등)가
+  메시지 unique 인덱스에 걸려서 여러 번 확인해도 한 번만 남는다. 스케줄러가 없다.
+- **동시성**: 밥주기는 `lastFedAt < 지금 - 2.4h`, 청소는 `lastCleanedAt <= 지금 - 6h` 조건부 update. 둘이 동시에 눌러도
+  한 번만 적용되고, 진 쪽은 `changed: false`와 현재 상태를 받는다. 메시지 EXP 상한도 조건부 update 두 단계로 지킨다.
+- API: `POST /api/rooms/me/buddy/feed`, `POST /api/rooms/me/buddy/clean` → `{ buddy, changed }`.
+  변화는 room 전체에 `message`(타임라인 이벤트)와 `buddy`(새 상태) WebSocket 이벤트로 전달된다.
 
 ## Room·초대 규칙 (S2에서 확정)
 

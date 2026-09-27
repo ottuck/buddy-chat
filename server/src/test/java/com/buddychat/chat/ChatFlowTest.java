@@ -4,6 +4,7 @@ import static com.buddychat.TestJwtConfiguration.token;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.buddychat.TestJwtConfiguration;
+import com.buddychat.TestSocket;
 import com.buddychat.TestcontainersConfiguration;
 import com.buddychat.room.Invitation;
 import com.buddychat.room.Room;
@@ -142,7 +143,9 @@ class ChatFlowTest {
         }
         for (int i = 0; i < 20; i++) henry.expect("ack");
 
+        // 20 messages also hatch the egg; only the texts matter here.
         List<String> texts = history("henry", "?limit=50").messages().reversed().stream()
+                .filter(m -> m.type() == Message.Type.TEXT)
                 .map(Message::text)
                 .toList();
         assertThat(texts)
@@ -262,7 +265,8 @@ class ChatFlowTest {
     }
 
     private TestSocket openSilently() {
-        TestSocket socket = new TestSocket(URI.create("ws://localhost:" + port + "/ws"), json);
+        // Buddy growth from chatting is covered in BuddyFlowTest.
+        TestSocket socket = new TestSocket(URI.create("ws://localhost:" + port + "/ws"), json).ignoring("buddy");
         sockets.add(socket);
         return socket;
     }

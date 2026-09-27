@@ -29,6 +29,11 @@ public record Message(
         BUDDY_EVENT
     }
 
+    /** {@code key} makes the event idempotent: recording the same key twice stores it once. */
+    static Message buddyEvent(String roomId, String event, @Nullable String actorId, String key, Instant now) {
+        return new Message(null, roomId, null, Type.BUDDY_EVENT, null, event, actorId, key, now);
+    }
+
     static Message text(String roomId, String senderId, String clientMessageId, String text, Instant now) {
         return new Message(null, roomId, senderId, Type.TEXT, text, null, null, clientMessageId, now);
     }

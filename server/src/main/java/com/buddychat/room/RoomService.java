@@ -4,6 +4,7 @@ import static org.springframework.data.mongodb.core.query.Criteria.where;
 import static org.springframework.data.mongodb.core.query.Query.query;
 
 import com.buddychat.buddy.Buddy;
+import com.buddychat.buddy.BuddyView;
 import com.buddychat.common.ApiException;
 import com.buddychat.user.User;
 import com.buddychat.user.UserService;
@@ -97,7 +98,11 @@ public class RoomService {
         return userService
                 .findAllById(room.memberIds())
                 .collectMap(User::id, Function.identity())
-                .map(byId -> new RoomView(room.id(), members(room, byId), room.buddy(), room.createdAt()));
+                .map(byId -> new RoomView(
+                        room.id(),
+                        members(room, byId),
+                        BuddyView.of(room.buddy(), Instant.now(clock)),
+                        room.createdAt()));
     }
 
     // Keeps join order (the room's creator first).

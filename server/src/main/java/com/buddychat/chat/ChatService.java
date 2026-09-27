@@ -64,6 +64,15 @@ public class ChatService {
     }
 
     /**
+     * Adds a buddy event (fed, pooped, …) to a room's timeline. Emits the message only when it is
+     * new; a key recorded before (e.g. the same poop noticed again) completes empty.
+     */
+    public Mono<Message> recordBuddyEvent(String roomId, String event, @Nullable String actorId, String key) {
+        return messages.insert(Message.buddyEvent(roomId, event, actorId, key, Instant.now(clock)))
+                .onErrorResume(DuplicateKeyException.class, e -> Mono.empty());
+    }
+
+    /**
      * A page of the user's room timeline, newest first. {@code before} pages back through history;
      * {@code after} fetches what was missed while disconnected (repeat while {@code hasMore}).
      */

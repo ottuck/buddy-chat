@@ -1,6 +1,7 @@
 package com.buddychat.room;
 
 import com.buddychat.buddy.Buddy;
+import com.buddychat.buddy.BuddyService;
 import com.buddychat.user.UserService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -24,11 +25,17 @@ class RoomController {
     private final UserService userService;
     private final RoomService roomService;
     private final InvitationService invitationService;
+    private final BuddyService buddyService;
 
-    RoomController(UserService userService, RoomService roomService, InvitationService invitationService) {
+    RoomController(
+            UserService userService,
+            RoomService roomService,
+            InvitationService invitationService,
+            BuddyService buddyService) {
         this.userService = userService;
         this.roomService = roomService;
         this.invitationService = invitationService;
+        this.buddyService = buddyService;
     }
 
     record CreateRoomRequest(
@@ -49,7 +56,11 @@ class RoomController {
 
     @GetMapping("/api/rooms/me")
     Mono<RoomView> mine(@AuthenticationPrincipal Jwt jwt) {
-        return userService.current(jwt).flatMap(roomService::getMine);
+        // Opening the room is when hunger and poops that happened meanwhile get noticed.
+        return userService
+                .current(jwt)
+                .flatMap(roomService::getMine)
+                .flatMap(room -> buddyService.observe(room.id()).map(room::withBuddy));
     }
 
     @PostMapping("/api/rooms/me/invitations")
