@@ -60,19 +60,26 @@ function RootNavigator() {
     );
   }
 
+  const me = state.status === 'none' || state.status === 'ready' ? state.me : null;
+  // Guests start without a name; they pick one before anything else (the friend sees it).
+  const named = !!me?.displayName;
+
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Protected guard={signedIn && state.status === 'ready'}>
+      <Stack.Protected guard={signedIn && state.status === 'ready' && named}>
         <Stack.Screen name="index" />
         <Stack.Screen
           name="settings"
           options={{ headerShown: true, title: t('settings.title'), headerBackTitle: '' }}
         />
       </Stack.Protected>
-      <Stack.Protected guard={signedIn && state.status === 'none'}>
+      <Stack.Protected guard={signedIn && state.status === 'none' && named}>
         <Stack.Screen name="welcome" />
       </Stack.Protected>
-      <Stack.Protected guard={signedIn}>
+      <Stack.Protected guard={!!me}>
+        <Stack.Screen name="name" />
+      </Stack.Protected>
+      <Stack.Protected guard={signedIn && named}>
         <Stack.Screen
           name="join"
           options={{

@@ -4,21 +4,43 @@ import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { PageTitle } from '@/components/page-title';
-import { signOut } from '@/features/auth/actions';
+import { isCancelledSignIn, signOut, switchAccount } from '@/features/auth/actions';
 import { useAuth } from '@/features/auth/auth-provider';
+import {
+  GoogleAccountInUseError,
+  googleSignInSupported,
+  linkGoogle,
+  switchToGoogle,
+} from '@/features/auth/google-sign-in';
 import { leaveRoom, type Room } from '@/features/room/api';
 import { errorMessage } from '@/features/room/error-message';
 import { useRoom } from '@/features/room/room-provider';
 import { confirm } from '@/lib/confirm';
 import { MAX_CONTENT_WIDTH, useColors } from '@/theme';
 
-// Who is signed in, the room, and leaving or signing out (docs/product.md, MVP 범위).
+// Who you are, your account, the room, and leaving or signing out (docs/product.md, MVP 범위).
 export default function SettingsScreen() {
   const colors = useColors();
   const { t } = useTranslation();
   const { user } = useAuth();
   const { state } = useRoom();
-  const name = user?.displayName ?? (user?.isAnonymous ? t('settings.guest') : '');
+  const me = state.status === 'ready' ? state.me : null;
+  const guest = !!user?.isAnonymous;
+
+  // A guest who signs out can never come back to this account; say so first.
+  const onSignOut = async () => {
+    if (guest) {
+      const ok = await confirm({
+        title: t('settings.guestSignOutTitle'),
+        message: t('settings.guestSignOutMessage'),
+        confirmLabel: t('settings.signOut'),
+        cancelLabel: t('common.cancel'),
+        destructive: true,
+      });
+      if (!ok) return;
+    }
+    await signOut();
+  };
 
   return (
     <ScrollView
@@ -29,11 +51,20 @@ export default function SettingsScreen() {
       <View style={styles.column}>
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
           <Text style={[styles.label, { color: colors.textMuted }]}>{t('settings.profile')}</Text>
-          <Text style={[styles.name, { color: colors.text }]}>{name}</Text>
-          {user?.email ? (
-            <Text style={[styles.email, { color: colors.textMuted }]}>{user.email}</Text>
-          ) : null}
+          <Text style={[styles.name, { color: colors.text }]}>{me?.displayName ?? ''}</Text>
+          <Pressable
+            onPress={() => router.push('/name')}
+            accessibilityRole="button"
+            hitSlop={8}
+            style={({ pressed }) => [styles.link, { opacity: pressed ? 0.6 : 1 }]}
+          >
+            <Text style={[styles.linkLabel, { color: colors.accent }]}>
+              {t('settings.changeName')}
+            </Text>
+          </Pressable>
         </View>
+
+        <AccountCard guest={guest} email={user?.email ?? null} />
 
         {state.status === 'ready' ? <RoomCard room={state.room} myId={state.me.id} /> : null}
 
@@ -50,7 +81,7 @@ export default function SettingsScreen() {
         </Pressable>
 
         <Pressable
-          onPress={signOut}
+          onPress={onSignOut}
           accessibilityRole="button"
           style={({ pressed }) => [
             styles.card,
@@ -61,6 +92,87 @@ export default function SettingsScreen() {
         </Pressable>
       </View>
     </ScrollView>
+  );
+}
+
+// Guests can keep everything by linking an account: the Firebase uid stays the same, so nothing
+// moves on the server. Offered here rather than at the start, once there is something to keep.
+function AccountCard({ guest, email }: { guest: boolean; email: string | null }) {
+  const colors = useColors();
+  const { t } = useTranslation();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const link = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await linkGoogle();
+    } catch (e) {
+      if (e instanceof GoogleAccountInUseError) {
+        const ok = await confirm({
+          title: t('settings.accountInUseTitle'),
+          message: t('settings.accountInUseMessage'),
+          confirmLabel: t('settings.accountInUseConfirm'),
+          cancelLabel: t('common.cancel'),
+          destructive: true,
+        });
+        if (ok) {
+          await switchAccount(() => switchToGoogle(e.credential)).catch((err) => {
+            console.warn(err);
+            setError(t('settings.linkFailed'));
+          });
+        }
+      } else if (!isCancelledSignIn(e)) {
+        console.warn(e);
+        setError(t('settings.linkFailed'));
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <View style={[styles.card, { backgroundColor: colors.surface }]}>
+      <Text style={[styles.label, { color: colors.textMuted }]}>{t('settings.account')}</Text>
+      {guest ? (
+        <>
+          <Text style={[styles.name, { color: colors.text }]}>{t('settings.guestTitle')}</Text>
+          <Text
+            lineBreakStrategyIOS="hangul-word"
+            style={[styles.email, { color: colors.textMuted }]}
+          >
+            {t('settings.guestBody')}
+          </Text>
+          {googleSignInSupported ? (
+            <Pressable
+              onPress={link}
+              disabled={busy}
+              accessibilityRole="button"
+              style={({ pressed }) => [styles.leave, { opacity: pressed || busy ? 0.6 : 1 }]}
+            >
+              {busy ? (
+                <ActivityIndicator color={colors.accent} />
+              ) : (
+                <Text style={[styles.signOut, { color: colors.accent }]}>
+                  {t('settings.linkGoogle')}
+                </Text>
+              )}
+            </Pressable>
+          ) : (
+            <Text style={[styles.email, styles.section, { color: colors.textMuted }]}>
+              {t('settings.linkNotReady')}
+            </Text>
+          )}
+          {error ? <Text style={[styles.email, { color: colors.accent }]}>{error}</Text> : null}
+        </>
+      ) : (
+        <>
+          <Text style={[styles.name, { color: colors.text }]}>{t('settings.linkedGoogle')}</Text>
+          {email ? <Text style={[styles.email, { color: colors.textMuted }]}>{email}</Text> : null}
+        </>
+      )}
+    </View>
   );
 }
 
@@ -134,6 +246,14 @@ function RoomCard({ room, myId }: { room: Room; myId: string }) {
 }
 
 const styles = StyleSheet.create({
+  link: {
+    alignSelf: 'flex-start',
+    marginTop: 6,
+  },
+  linkLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
   section: {
     marginTop: 12,
   },

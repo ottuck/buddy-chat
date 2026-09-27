@@ -18,9 +18,9 @@
   "signIn": {
     "tagline": "好きな人とおしゃべりしながら、小さなBuddyをいっしょに育てよう。",
     "google": "Googleで続ける",
-    "devGuest": "ゲストで続ける（開発用）",
-    "nativeNotReady": "iPhoneでのログインはアプリ版で使えるようになります。",
-    "error": "ログインできませんでした。もう一度お試しください。"
+    "error": "ログインできませんでした。もう一度お試しください。",
+    "startNow": "すぐに始める",
+    "noAccountNeeded": "アカウントなしで始められます"
   },
   "welcome": {
     "title": "新しいBuddyが生まれそう！",
@@ -88,7 +88,6 @@
   "settings": {
     "title": "設定",
     "profile": "プロフィール",
-    "guest": "ゲスト",
     "signOut": "ログアウト",
     "joinWithCode": "招待コードで参加",
     "room": "ルーム",
@@ -98,9 +97,29 @@
     "leaveTitle": "ルームを退出しますか？",
     "leaveDuo": "{{buddy}}は{{partner}}さんと一緒に残ります。会話も見られなくなります。",
     "leaveSolo": "{{buddy}}と会話がすべて消えます。元に戻せません。",
-    "leaveConfirm": "退出する"
+    "leaveConfirm": "退出する",
+    "changeName": "名前を変更",
+    "account": "アカウント",
+    "guestTitle": "ゲストで利用中",
+    "guestBody": "アカウントを連携すると、機種変更やブラウザのデータ削除のあとも Buddy と会話を続けられます。",
+    "linkGoogle": "Google アカウントを連携",
+    "linkNotReady": "アプリでのアカウント連携はもうすぐ対応します。",
+    "linkedGoogle": "Google アカウントと連携済み",
+    "linkFailed": "連携できませんでした。もう一度お試しください。",
+    "accountInUseTitle": "すでに使われている Google アカウントです",
+    "accountInUseMessage": "このアカウントにはすでに buddy-chat の記録があります。切り替えると、いまゲストで使っている Buddy と会話はこの端末では見られなくなります。",
+    "accountInUseConfirm": "切り替える",
+    "guestSignOutTitle": "ゲストアカウントからログアウトしますか？",
+    "guestSignOutMessage": "ログアウトすると、このゲストアカウントには戻れません。Buddy と会話を残すには、先にアカウントを連携してください。"
   },
   "systemEvent": {
     "MEMBER_LEFT": "{{name}}さんが退出しました"
+  },
+  "name": {
+    "title": "何と呼べばいいですか？",
+    "subtitle": "友だちにはこの名前で表示されます。あとから設定で変えられます。",
+    "placeholder": "名前",
+    "next": "次へ",
+    "save": "保存"
   }
 }

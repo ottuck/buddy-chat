@@ -9,6 +9,11 @@ export type Invitation = { code: string; expiresAt: string };
 
 export const fetchMe = () => api<Me>('/api/me');
 
+// The name others see. Guests start without one (server: User.MAX_NAME_LENGTH).
+export const MAX_DISPLAY_NAME = 20;
+export const updateMyName = (displayName: string) =>
+  api<Me>('/api/me', { method: 'PATCH', body: { displayName } });
+
 export const fetchRoom = () => api<Room>('/api/rooms/me');
 
 export const createRoom = (buddyName: string) =>
