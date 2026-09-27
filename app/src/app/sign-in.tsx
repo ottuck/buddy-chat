@@ -41,7 +41,12 @@ export default function SignInScreen() {
         <View style={styles.hero}>
           <Text style={styles.egg}>🥚</Text>
           <Text style={[styles.title, { color: colors.text }]}>buddy-chat</Text>
-          <Text style={[styles.tagline, { color: colors.textMuted }]}>{t('signIn.tagline')}</Text>
+          <Text
+            lineBreakStrategyIOS="hangul-word"
+            style={[styles.tagline, { color: colors.textMuted }]}
+          >
+            {t('signIn.tagline')}
+          </Text>
         </View>
 
         <View style={styles.actions}>

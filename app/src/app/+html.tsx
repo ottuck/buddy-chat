@@ -28,8 +28,11 @@ export default function Root({ children }: PropsWithChildren) {
   );
 }
 
+// Korean wraps between words, not letters ("키워" / "요." split otherwise); a word too long
+// for the line still breaks. Only for Korean: Japanese has no spaces to break at.
 const pageBackground = `
 body { background-color: #F6F4F1; }
 @media (prefers-color-scheme: dark) {
   body { background-color: #16161A; }
-}`;
+}
+html:lang(ko) body { word-break: keep-all; overflow-wrap: anywhere; }`;

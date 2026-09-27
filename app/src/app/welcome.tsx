@@ -44,7 +44,10 @@ export default function WelcomeScreen() {
         <View style={styles.hero}>
           <Text style={styles.egg}>🥚</Text>
           <Text style={[styles.title, { color: colors.text }]}>{t('welcome.title')}</Text>
-          <Text style={[styles.subtitle, { color: colors.textMuted }]}>
+          <Text
+            lineBreakStrategyIOS="hangul-word"
+            style={[styles.subtitle, { color: colors.textMuted }]}
+          >
             {t('welcome.subtitle')}
           </Text>
           <TextInput

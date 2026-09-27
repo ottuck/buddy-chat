@@ -22,7 +22,7 @@ export function EmptyChat({ buddyName, stage, partnerName, onInvite }: Props) {
   return (
     <View style={styles.container}>
       <BuddyAvatar stage={stage} size={56} />
-      <Text style={[styles.text, { color: colors.textMuted }]}>
+      <Text lineBreakStrategyIOS="hangul-word" style={[styles.text, { color: colors.textMuted }]}>
         {partnerName === null
           ? t('chat.emptySolo', { buddy: buddyName })
           : t('chat.emptyDuo', { partner: partnerName || t('chat.guestName') })}
