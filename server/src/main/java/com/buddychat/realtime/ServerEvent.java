@@ -16,6 +16,7 @@ import org.jspecify.annotations.Nullable;
     @JsonSubTypes.Type(value = ServerEvent.Ack.class, name = "ack"),
     @JsonSubTypes.Type(value = ServerEvent.NewMessage.class, name = "message"),
     @JsonSubTypes.Type(value = ServerEvent.MemberJoined.class, name = "member"),
+    @JsonSubTypes.Type(value = ServerEvent.MemberLeft.class, name = "left"),
     @JsonSubTypes.Type(value = ServerEvent.BuddyUpdated.class, name = "buddy"),
     @JsonSubTypes.Type(value = ServerEvent.Presence.class, name = "presence"),
     @JsonSubTypes.Type(value = ServerEvent.Typing.class, name = "typing"),
@@ -44,6 +45,9 @@ public sealed interface ServerEvent {
 
     /** A friend accepted an invitation to this room (solo → duo). */
     record MemberJoined(String userId, @Nullable String displayName) implements ServerEvent {}
+
+    /** A member left the room (duo → solo). */
+    record MemberLeft(String userId) implements ServerEvent {}
 
     /** The buddy changed (care, EXP): its state as of now. */
     record BuddyUpdated(BuddyView buddy) implements ServerEvent {}

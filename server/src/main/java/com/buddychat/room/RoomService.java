@@ -5,7 +5,10 @@ import static org.springframework.data.mongodb.core.query.Query.query;
 
 import com.buddychat.buddy.Buddy;
 import com.buddychat.buddy.BuddyView;
+import com.buddychat.chat.ChatService;
 import com.buddychat.common.ApiException;
+import com.buddychat.realtime.RoomHub;
+import com.buddychat.realtime.ServerEvent;
 import com.buddychat.user.User;
 import com.buddychat.user.UserService;
 import java.time.Clock;
@@ -26,12 +29,22 @@ public class RoomService {
     private final RoomRepository rooms;
     private final UserService userService;
     private final ReactiveMongoTemplate mongo;
+    private final ChatService chatService;
+    private final RoomHub hub;
     private final Clock clock;
 
-    RoomService(RoomRepository rooms, UserService userService, ReactiveMongoTemplate mongo, Clock clock) {
+    RoomService(
+            RoomRepository rooms,
+            UserService userService,
+            ReactiveMongoTemplate mongo,
+            ChatService chatService,
+            RoomHub hub,
+            Clock clock) {
         this.rooms = rooms;
         this.userService = userService;
         this.mongo = mongo;
+        this.chatService = chatService;
+        this.hub = hub;
         this.clock = clock;
     }
 
@@ -58,6 +71,47 @@ public class RoomService {
 
     public Mono<RoomView> getMine(User user) {
         return findMine(user).flatMap(this::toView);
+    }
+
+    /**
+     * Leaves the user's room (docs/server-design.md, Room·초대 규칙). The other member keeps the room
+     * and its buddy and is told right away; a room left empty is deleted with its history. The user's
+     * other devices are disconnected. Separate updates, no transaction: leaving again finishes a leave
+     * that failed midway.
+     */
+    public Mono<Void> leave(User user) {
+        String roomId = user.roomId();
+        if (roomId == null) return Mono.error(roomNotFound());
+        Mono<Boolean> removed = mongo.updateFirst(
+                        query(where("_id").is(roomId).and("memberIds").is(user.id())),
+                        new Update().pull("memberIds", user.id()).inc("memberCount", -1),
+                        Room.class)
+                .map(result -> result.getModifiedCount() == 1);
+        return removed.flatMap(wasMember -> userService
+                .leaveRoom(user.id(), roomId)
+                .then(Mono.fromRunnable(
+                        () -> hub.disconnect(roomId, user.id(), new ServerEvent.Error("ROOM_NOT_FOUND", null))))
+                .then(afterLeaving(roomId, user, wasMember)));
+    }
+
+    // Both members may leave at once; whoever finds the room empty deletes it. The one who remains
+    // is told, once: a retried leave (announce = false) only tidies up.
+    private Mono<Void> afterLeaving(String roomId, User user, boolean announce) {
+        return mongo.remove(query(where("_id").is(roomId).and("memberCount").is(0)), Room.class)
+                .flatMap(result -> {
+                    if (result.getDeletedCount() == 1) return chatService.deleteRoomHistory(roomId);
+                    if (!announce) return Mono.<Void>empty();
+                    return chatService
+                            .recordSystemEvent(roomId, "MEMBER_LEFT", user.id(), user.displayName())
+                            .doOnNext(message -> {
+                                hub.publish(roomId, new ServerEvent.MemberLeft(user.id()), null);
+                                hub.publish(roomId, new ServerEvent.NewMessage(message), null);
+                            })
+                            // The last member may have left meanwhile and deleted the history before
+                            // this note was stored; then it goes too.
+                            .then(rooms.existsById(roomId))
+                            .flatMap(exists -> exists ? Mono.<Void>empty() : chatService.deleteRoomHistory(roomId));
+                });
     }
 
     Mono<Room> findMine(User user) {
@@ -90,7 +144,7 @@ public class RoomService {
                                 query(where("_id").is(roomId).and("memberIds").is(userId)), Room.class));
     }
 
-    /** Deletes a room only while the given user is still its only member. */
+    /** Deletes a room, with its history, only while the given user is still its only member. */
     Mono<Void> deleteIfSolo(String roomId, String userId) {
         return mongo.remove(
                         query(where("_id")
@@ -100,7 +154,8 @@ public class RoomService {
                                 .and("memberIds")
                                 .is(List.of(userId))),
                         Room.class)
-                .then();
+                .flatMap(result ->
+                        result.getDeletedCount() == 1 ? chatService.deleteRoomHistory(roomId) : Mono.<Void>empty());
     }
 
     Mono<RoomView> toView(Room room) {

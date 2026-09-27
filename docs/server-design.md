@@ -65,7 +65,7 @@ com.buddychat
 users        { _id, firebaseUid (unique), displayName, roomId?, createdAt }
 rooms        { _id, memberIds [1..2], memberCount, createdAt,
                buddy { name, exp, bornAt, lastFedAt?, lastCleanedAt?, expDay?, messageExpToday? } }
-messages     { _id, roomId, senderId?, type (TEXT | SYSTEM | BUDDY_EVENT), text?, buddyEvent?, actorId?,
+messages     { _id, roomId, senderId?, type (TEXT | SYSTEM | BUDDY_EVENT), text?, buddyEvent?, systemEvent?, actorId?,
                clientMessageId, createdAt }
 invitations  { _id, roomId, code (unique), createdBy, createdAt, expiresAt, usedAt?, usedBy? }
 reads        { _id: "<roomId>:<userId>", roomId, userId, messageId, updatedAt }
@@ -100,6 +100,7 @@ push_tokens  { _id: <Expo push token>, userId, updatedAt }
 | GET | `/api/rooms/me` | 내 room, 멤버, Buddy 상태 |
 | POST | `/api/rooms/me/invitations` | 초대 코드 발급 |
 | POST | `/api/invitations/{code}/accept` | 초대 수락 → room 참가 |
+| POST | `/api/rooms/me/leave` | room 나가기 → 204(아래 Room 규칙) |
 | GET | `/api/rooms/me/messages?before=&after=&limit=` | 타임라인(최신순, limit ≤ 50). `before`: 이전 페이지, `after`: 재연결 후 놓친 메시지. 응답 `{ messages, hasMore }` |
 | POST | `/api/me/push-tokens` | 이 기기의 Expo 푸시 토큰 등록 `{ token }` → 204. 다른 사용자가 갖고 있던 토큰이면 이쪽으로 옮긴다 |
 | DELETE | `/api/me/push-tokens/{token}` | 로그아웃할 때 토큰 삭제(자기 것만) → 204 |
@@ -125,6 +126,7 @@ server → client
   { type: "ack", clientMessageId, message }       내 메시지 저장 완료(재전송이어도 같은 응답)
   { type: "message", message }                    상대 메시지, Buddy 이벤트
   { type: "member", userId, displayName }         친구가 초대를 수락함(solo → duo)
+  { type: "left", userId }                         친구가 나감(duo → solo). 타임라인에는 SYSTEM MEMBER_LEFT 메시지
   { type: "buddy", buddy }                         Buddy 상태 변경(돌봄, 경험치)
   { type: "typing", userId, typing }              다른 멤버에게만. 6초 동안 다시 안 오면 앱이 지운다
   { type: "presence", userId, online }            그 사용자의 첫 연결이 열리거나 마지막 연결이 닫힐 때
@@ -270,7 +272,13 @@ Storage는 이름이 ur-manager에 묶여 있어(`cae-ur-manager-prod` 안에 bu
 - 초대 코드: 8자리(헷갈리는 0/O, 1/I/L 제외), 24시간 유효, 한 번만 사용. 대소문자 구분 없음.
 - 이미 solo room이 있는 사람이 초대를 수락하면 `LEAVE_CONFIRMATION_REQUIRED`를 받는다. 앱이 "지금 Buddy는 사라져요"를
   확인받고 `leaveCurrentRoom: true`로 다시 요청하면 참가하고, 기존 solo room과 Buddy는 삭제된다.
-- 다른 멤버가 있는 room에 있는 사람은 다른 room에 참가할 수 없다(`ALREADY_IN_ROOM`). 나가기는 MVP 밖.
+- 다른 멤버가 있는 room에 있는 사람은 다른 room에 참가할 수 없다(`ALREADY_IN_ROOM`). 먼저 나가야 한다.
+- **나가기**(`POST /api/rooms/me/leave`): 2명 room이면 남은 사람이 room과 Buddy를 그대로 갖고, `left` 이벤트와
+  SYSTEM `MEMBER_LEFT` 메시지(text = 나간 사람 이름, 더는 멤버가 아니므로)를 받는다. 혼자 room이면 room·Buddy·기록이
+  지워진다. 나간 사람의 다른 기기 연결은 `ROOM_NOT_FOUND`로 닫힌다. 순서: room에서 빼기(조건부) → 사용자 roomId 비우기
+  (조건부) → 빈 room이면 삭제 + 기록 삭제. 둘이 동시에 나가면 room을 비운 쪽이 지운다. 먼저 나간 쪽의 SYSTEM 메시지가
+  그 뒤에 저장될 수 있어서, 저장 뒤 room이 없으면 기록을 한 번 더 지운다(테스트로 잡은 경쟁). 다시 나가면 중간에 멈춘
+  나가기를 끝낸다. 초대 수락으로 solo room을 떠날 때도 기록을 함께 지운다.
 - 동시성: 초대 사용은 `usedAt: null` 조건부 update, 참가는 `memberCount < 2` 조건부 update로 보장한다.
   같은 room의 서로 다른 코드가 동시에 수락되어 자리가 없으면, 진 쪽의 초대는 사용 처리를 되돌린다.
 - 트랜잭션이 없으므로 초대 사용 → 참가 → 사용자 roomId 변경 → 기존 room 삭제 순서로 처리한다. 중간에 실패하면

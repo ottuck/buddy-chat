@@ -63,6 +63,12 @@ class RoomController {
                 .flatMap(room -> buddyService.observe(room.id()).map(room::withBuddy));
     }
 
+    @PostMapping("/api/rooms/me/leave")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    Mono<Void> leave(@AuthenticationPrincipal Jwt jwt) {
+        return userService.current(jwt).flatMap(roomService::leave);
+    }
+
     @PostMapping("/api/rooms/me/invitations")
     @ResponseStatus(HttpStatus.CREATED)
     Mono<InvitationResponse> invite(@AuthenticationPrincipal Jwt jwt) {

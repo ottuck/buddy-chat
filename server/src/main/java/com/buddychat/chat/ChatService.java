@@ -75,6 +75,20 @@ public class ChatService {
                 .onErrorResume(DuplicateKeyException.class, e -> Mono.empty());
     }
 
+    /** Adds a system entry (e.g. a member left) to a room's timeline. */
+    public Mono<Message> recordSystemEvent(String roomId, String event, String actorId, @Nullable String actorName) {
+        Instant now = Instant.now(clock);
+        String key = "system:" + event + ":" + actorId + ":" + now.toEpochMilli();
+        return messages.insert(Message.system(roomId, event, actorId, actorName, key, now));
+    }
+
+    /** Removes a deleted room's timeline and read marks. */
+    public Mono<Void> deleteRoomHistory(String roomId) {
+        return Mono.when(
+                mongo.remove(query(where("roomId").is(roomId)), Message.class),
+                mongo.remove(query(where("roomId").is(roomId)), ReadMark.class));
+    }
+
     /**
      * A page of the user's room timeline, newest first. {@code before} pages back through history;
      * {@code after} fetches what was missed while disconnected (repeat while {@code hasMore}).

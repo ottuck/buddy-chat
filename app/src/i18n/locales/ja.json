@@ -88,6 +88,17 @@
     "profile": "プロフィール",
     "guest": "ゲスト",
     "signOut": "ログアウト",
-    "joinWithCode": "招待コードで参加"
+    "joinWithCode": "招待コードで参加",
+    "room": "ルーム",
+    "members": "メンバー",
+    "since": "{{date}}から",
+    "leave": "ルームを退出",
+    "leaveTitle": "ルームを退出しますか？",
+    "leaveDuo": "{{buddy}}は{{partner}}さんと一緒に残ります。会話も見られなくなります。",
+    "leaveSolo": "{{buddy}}と会話がすべて消えます。元に戻せません。",
+    "leaveConfirm": "退出する"
+  },
+  "systemEvent": {
+    "MEMBER_LEFT": "{{name}}さんが退出しました"
   }
 }

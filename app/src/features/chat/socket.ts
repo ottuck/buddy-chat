@@ -17,6 +17,7 @@ type ServerEvent =
   | { type: 'ack'; clientMessageId: string; message: ServerMessage }
   | { type: 'message'; message: ServerMessage }
   | { type: 'member'; userId: string; displayName: string | null }
+  | { type: 'left'; userId: string }
   | { type: 'buddy'; buddy: BuddyView }
   | { type: 'presence'; userId: string; online: boolean }
   | { type: 'typing'; userId: string; typing: boolean }
@@ -33,8 +34,8 @@ export type SocketListener = {
   onReady: (online: string[], reads: Record<string, string>) => void;
   onAck: (clientMessageId: string, message: ServerMessage) => void;
   onMessage: (message: ServerMessage) => void;
-  // A friend joined this room; the room's member list is out of date.
-  onMemberJoined: () => void;
+  // A friend joined or left this room; the room's member list is out of date.
+  onMembersChanged: () => void;
   // The buddy changed (someone cared for it, or chatting gave it EXP).
   onBuddy: (buddy: BuddyView) => void;
   onPresence: (userId: string, online: boolean) => void;
@@ -166,7 +167,8 @@ export class ChatSocket {
         this.listener.onRead(event.userId, event.messageId);
         break;
       case 'member':
-        this.listener.onMemberJoined();
+      case 'left':
+        this.listener.onMembersChanged();
         break;
       case 'error':
         if (event.clientMessageId) {

@@ -14,6 +14,9 @@ export const fetchRoom = () => api<Room>('/api/rooms/me');
 export const createRoom = (buddyName: string) =>
   api<Room>('/api/rooms', { method: 'POST', body: { buddyName } });
 
+// Leaves the room: the partner keeps the room and buddy; a solo room is deleted.
+export const leaveRoom = () => api<void>('/api/rooms/me/leave', { method: 'POST' });
+
 export const createInvitation = () =>
   api<Invitation>('/api/rooms/me/invitations', { method: 'POST' });
 

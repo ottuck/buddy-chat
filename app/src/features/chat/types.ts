@@ -1,4 +1,5 @@
 export type BuddyEvent = 'HUNGRY' | 'FED' | 'POOPED' | 'CLEANED' | 'EVOLVED';
+export type SystemEvent = 'MEMBER_LEFT';
 
 // As the server sends it (server/src/main/java/com/buddychat/chat/Message.java).
 export type ServerMessage = {
@@ -8,6 +9,8 @@ export type ServerMessage = {
   type: 'TEXT' | 'SYSTEM' | 'BUDDY_EVENT';
   text: string | null;
   buddyEvent: BuddyEvent | null;
+  // SYSTEM entries: what happened; text then holds the actor's name at the time.
+  systemEvent?: SystemEvent | null;
   actorId: string | null;
   clientMessageId: string;
   createdAt: string;
@@ -36,14 +39,21 @@ export type BuddyEventMessage = MessageBase & {
   actorId?: string;
 };
 
-export type Message = TextMessage | BuddyEventMessage;
+// E.g. "Yuki left". The name is kept on the entry: a member who left is no longer in the room.
+export type SystemMessage = MessageBase & {
+  type: 'SYSTEM';
+  event: SystemEvent;
+  actorName: string | null;
+};
+
+export type Message = TextMessage | BuddyEventMessage | SystemMessage;
 
 export type Member = {
   id: string;
   displayName: string | null;
 };
 
-// Maps a server message to the timeline's shape. SYSTEM messages are not produced yet.
+// Maps a server message to the timeline's shape; kinds this app version does not know are skipped.
 export function fromServer(message: ServerMessage): Message | null {
   const base = {
     id: message.id,
@@ -60,6 +70,9 @@ export function fromServer(message: ServerMessage): Message | null {
       event: message.buddyEvent,
       actorId: message.actorId ?? undefined,
     };
+  }
+  if (message.type === 'SYSTEM' && message.systemEvent) {
+    return { ...base, type: 'SYSTEM', event: message.systemEvent, actorName: message.text };
   }
   return null;
 }

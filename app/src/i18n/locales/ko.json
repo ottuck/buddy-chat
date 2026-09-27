@@ -88,6 +88,17 @@
     "profile": "프로필",
     "guest": "게스트",
     "signOut": "로그아웃",
-    "joinWithCode": "초대 코드로 참가"
+    "joinWithCode": "초대 코드로 참가",
+    "room": "방",
+    "members": "함께하는 사람",
+    "since": "{{date}}부터",
+    "leave": "방 나가기",
+    "leaveTitle": "방에서 나갈까요?",
+    "leaveDuo": "{{buddy}}는 {{partner}}님과 계속 지내요. 대화 내용도 더 볼 수 없어요.",
+    "leaveSolo": "{{buddy}}와 대화 내용이 모두 사라져요. 되돌릴 수 없어요.",
+    "leaveConfirm": "나가기"
+  },
+  "systemEvent": {
+    "MEMBER_LEFT": "{{name}}님이 나갔어요"
   }
 }

@@ -171,6 +171,7 @@ class NotificationFlowTest {
                 Message.Type.BUDDY_EVENT,
                 null,
                 "FED",
+                null,
                 henry.id(),
                 "buddy:FED:1",
                 Instant.now());

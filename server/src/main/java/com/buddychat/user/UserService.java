@@ -60,6 +60,15 @@ public class UserService {
                 .map(result -> result.getModifiedCount() == 1);
     }
 
+    /** Clears the user's room, only if it is still that room (leaving twice is harmless). */
+    public Mono<Void> leaveRoom(String userId, String roomId) {
+        return mongo.updateFirst(
+                        query(where("_id").is(userId).and("roomId").is(roomId)),
+                        new Update().unset("roomId"),
+                        User.class)
+                .then();
+    }
+
     public Mono<Void> moveToRoom(String userId, String roomId) {
         return mongo.updateFirst(query(where("_id").is(userId)), Update.update("roomId", roomId), User.class)
                 .then();

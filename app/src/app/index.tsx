@@ -24,7 +24,7 @@ export default function ChatRoute() {
       me={me}
       room={room}
       onRoomLost={reload}
-      onMemberJoined={refreshRoom}
+      onMembersChanged={refreshRoom}
     />
   );
 }
@@ -33,10 +33,10 @@ type ChatScreenProps = {
   me: Me;
   room: Room;
   onRoomLost: () => void;
-  onMemberJoined: () => void;
+  onMembersChanged: () => void;
 };
 
-function ChatScreen({ me, room, onRoomLost, onMemberJoined }: ChatScreenProps) {
+function ChatScreen({ me, room, onRoomLost, onMembersChanged }: ChatScreenProps) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { buddy, busy, setBuddy, feed, clean } = useBuddy(room.buddy);
@@ -44,7 +44,7 @@ function ChatScreen({ me, room, onRoomLost, onMemberJoined }: ChatScreenProps) {
     {
       myId: me.id,
       onRoomLost,
-      onMemberJoined,
+      onMembersChanged,
       onBuddy: setBuddy,
     },
   );
