@@ -3,9 +3,9 @@
 1~2명이 작은 가상 생명체(Buddy)를 함께 키우며 쓰는 초경량 1:1 실시간 채팅 앱.
 **Chat first. Buddy makes it fun.** iOS가 기준 플랫폼이고 Web은 보조, Android는 나중.
 
-- 기획: `docs/project-plan.md` — 구조를 바꾸기 전에 읽는다. 앞 섹션과 충돌하면 §65(MVP 인프라)가 우선.
-- 검토 결과와 결정 사항: `docs/review-notes.md`
-- 서버 설계(컬렉션, API, WebSocket 프로토콜, 마일스톤): `docs/server-design.md` — 서버 작업 전에 읽는다.
+- 제품(원칙, MVP 범위와 진행 상태, 넣지 않는 것): `docs/product.md` — 기능·범위를 바꾸기 전에 읽는다.
+- 서버 설계(컬렉션, API, WebSocket 프로토콜, 규칙, 인프라, 마일스톤): `docs/server-design.md` — 서버 작업 전에 읽는다.
+- 이 두 문서가 기준(source of truth)이다. 결정이 바뀌면 코드와 같은 커밋에서 문서도 고친다.
 
 ## Repo layout
 
@@ -61,7 +61,7 @@
 - Azure DocumentDB(MongoDB 호환)를 전제로, 트랜잭션·change stream·고급 aggregation은 쓰지 않는다.
   동시성은 조건부 atomic update와 unique 인덱스로 해결한다.
 - 모듈끼리는 service로만 호출한다. 다른 모듈의 repository를 직접 쓰지 않는다.
-- 동시성·멱등성·권한은 테스트로 보여준다(`docs/project-plan.md` §57).
+- 동시성·멱등성·권한은 테스트로 보여준다(초대 경쟁, 메시지 중복, 동시 밥주기·청소, 남의 room 접근, 읽음 위치).
 
 ## Expo는 SDK마다 크게 바뀐다
 

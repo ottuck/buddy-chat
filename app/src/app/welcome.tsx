@@ -13,7 +13,7 @@ import { MAX_CONTENT_WIDTH, useColors } from '@/theme';
 const MAX_BUDDY_NAME = 12; // server: Buddy.MAX_NAME_LENGTH
 
 // First screen after signing in without a room: name the egg and start solo, or join a friend
-// (docs/project-plan.md §6, §40).
+// (docs/product.md, 핵심 경험).
 export default function WelcomeScreen() {
   const colors = useColors();
   const { t } = useTranslation();

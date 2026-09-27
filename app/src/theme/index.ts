@@ -40,5 +40,5 @@ export function useColors(): Colors {
   return useColorScheme() === 'dark' ? dark : light;
 }
 
-// Web shows the same mobile layout, centered and capped at this width (docs/project-plan.md §10).
+// Web shows the same mobile layout, centered and capped at this width (docs/product.md, 플랫폼).
 export const MAX_CONTENT_WIDTH = 560;

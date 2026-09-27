@@ -13,7 +13,7 @@ import reactor.core.publisher.Sinks;
 
 /**
  * Open connections per room, in memory. With a single backend replica this is enough; it is lost
- * on restart and clients reconnect (docs/project-plan.md §65.7). Scaling out would put Redis
+ * on restart and clients reconnect (docs/server-design.md, 인프라). Scaling out would put Redis
  * Pub/Sub behind {@link #publish}.
  */
 @Component

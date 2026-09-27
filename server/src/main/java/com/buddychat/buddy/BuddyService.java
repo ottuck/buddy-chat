@@ -27,7 +27,7 @@ import reactor.core.publisher.Mono;
 /**
  * Buddy care and growth. The buddy is a sub-document of its room, and this service owns the
  * {@code buddy.*} fields of the {@code rooms} collection. Every change is one conditional update,
- * so two members pressing Feed at once feed it once (docs/project-plan.md §35).
+ * so two members pressing Feed at once feed it once.
  *
  * <p>Changes are announced to the room here: the timeline event as a message, the new state as a
  * {@code buddy} event.
@@ -59,7 +59,7 @@ public class BuddyService {
     /**
      * The buddy as of now. Hunger and poops that happened since anyone last looked are added to the
      * timeline here (once each: their keys come from the timestamps they follow from), so there is
-     * no scheduler (§36). They show up when someone opens the app (§46).
+     * no scheduler. They show up when someone opens the app.
      */
     public Mono<BuddyView> observe(String roomId) {
         Instant now = Instant.now(clock);

@@ -81,7 +81,7 @@ export function ChatHeader({
         </Pressable>
       </View>
 
-      {/* Compact buddy status; tapping opens the buddy detail (docs/project-plan.md §32). */}
+      {/* Compact buddy status; tapping opens the buddy detail (docs/product.md). */}
       <Pressable
         onPress={onPressBuddy}
         accessibilityRole="button"

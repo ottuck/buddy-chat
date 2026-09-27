@@ -20,7 +20,7 @@ type Props = {
   onClean: () => void;
 };
 
-// Buddy detail: stats and the two care actions (docs/project-plan.md §32). A native page sheet on
+// Buddy detail: stats and the two care actions (docs/product.md). A native page sheet on
 // iOS, so it can be swiped down.
 export function BuddySheet({ visible, buddy, busy, onClose, onFeed, onClean }: Props) {
   const colors = useColors();

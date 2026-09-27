@@ -2,7 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { useColors } from '@/theme';
 
-// A buddy event shown in the timeline, e.g. "Mugi pooped 💩" (docs/project-plan.md §33).
+// A buddy event shown in the timeline, e.g. "Mugi pooped 💩" (docs/product.md).
 export function BuddyEventRow({ label }: { label: string }) {
   const colors = useColors();
 

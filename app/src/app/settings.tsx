@@ -6,7 +6,7 @@ import { signOut } from '@/features/auth/actions';
 import { useAuth } from '@/features/auth/auth-provider';
 import { MAX_CONTENT_WIDTH, useColors } from '@/theme';
 
-// Minimal settings for now: who is signed in, and sign out (docs/project-plan.md §41).
+// Minimal settings for now: who is signed in, and sign out (docs/product.md, MVP 범위).
 export default function SettingsScreen() {
   const colors = useColors();
   const { t } = useTranslation();

@@ -2,7 +2,7 @@ import { Text } from 'react-native';
 
 import type { BuddyStage } from '../api';
 
-// Placeholder art until the original buddy assets exist (docs/project-plan.md §29–31).
+// Placeholder art until the original buddy assets exist (docs/product.md, Buddy).
 const PLACEHOLDER: Record<BuddyStage, string> = {
   EGG: '🥚',
   BABY: '🐣',

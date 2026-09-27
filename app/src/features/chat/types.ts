@@ -16,7 +16,7 @@ export type ServerMessage = {
 type MessageBase = {
   // Server id; absent while one of my messages is still on its way.
   id?: string;
-  // Generated on the client so a retried send is stored only once (docs/project-plan.md §21).
+  // Generated on the client so a retried send is stored only once (docs/server-design.md).
   clientMessageId: string;
   createdAt: string; // ISO 8601
 };

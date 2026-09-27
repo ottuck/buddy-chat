@@ -6,8 +6,8 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 
 /**
- * Growth and care rules. The numbers are placeholders until tuned (docs/project-plan.md §62). The
- * buddy never dies: neglect only makes it hungry and dirty (§27).
+ * Growth and care rules. The numbers are placeholders until tuned (docs/server-design.md, Buddy 규칙). The
+ * buddy never dies: neglect only makes it hungry and dirty (docs/product.md).
  */
 public final class BuddyRules {
 
@@ -15,7 +15,7 @@ public final class BuddyRules {
     public static final int FEED_EXP = 2;
     public static final int CLEAN_EXP = 2;
     public static final int MESSAGE_EXP = 1;
-    // Stops "ㅎ ㅎ ㅎ" spam from levelling the buddy (§26).
+    // Stops "ㅎ ㅎ ㅎ" spam from levelling the buddy.
     public static final int MESSAGE_EXP_DAILY_CAP = 50;
 
     // Fullness drops from 100 to 0 over this long after a meal.
@@ -25,7 +25,7 @@ public final class BuddyRules {
     // One poop per this long since the last clean, up to MAX_POOPS.
     static final Duration POOP_EVERY = Duration.ofHours(6);
     static final int MAX_POOPS = 3;
-    // "Today" for the daily EXP cap; the app is for users in Japan first (§65.15).
+    // "Today" for the daily EXP cap; the app is for users in Japan first.
     static final ZoneId DAY_ZONE = ZoneId.of("Asia/Tokyo");
 
     public enum Stage {
