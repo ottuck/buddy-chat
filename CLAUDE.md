@@ -19,15 +19,18 @@
 
 ## App commands (`app/`에서 실행)
 
-- `pnpm start` — Metro dev server (아이폰은 Expo Go로 QR 스캔) · `pnpm web` — 웹
+- `pnpm start` — Metro dev server · `pnpm web` — 웹
+- 아이폰은 **개발용 빌드**(`expo-dev-client`, bundle id `com.ottuck.buddychat`)로 연다. Expo Go에는 푸시가 없어 S8부터 쓰지 않는다.
+  JS 수정은 Metro로 바로 반영되고, 네이티브 설정(패키지·config plugin·`app.json`)이 바뀔 때만 다시 빌드한다:
+  `npx eas-cli build --profile development --platform ios`(Apple 계정 로그인이 필요해 사용자가 실행, `eas.json`).
 - 번역 JSON 등 수정이 화면에 반영되지 않으면 Metro 캐시 문제다: `pnpm start --clear`
 - `pnpm lint` / `pnpm typecheck` / `pnpm format:check` · 한 번에: `pnpm check`
 - 패키지 추가는 `pnpm exec expo install <pkg>` — SDK와 맞는 버전을 고른다. `pnpm add`로 직접 넣지 않는다.
 - `pnpm exec expo-doctor` — 의존성·설정 진단
 - Node 24+, pnpm (버전은 `app/package.json`의 `packageManager`)
 - 처음 한 번: `app/.env.example`을 `app/.env.local`로 복사하고 Firebase 웹 앱 설정값을 채운다(공개 설정값, git 제외).
-- 앱은 로컬 서버(`server/`의 `./gradlew bootRun`, :8080)가 떠 있어야 동작한다. 개발 중 서버 주소는 Metro를 띄운 PC의
-  주소로 자동으로 정해진다(`app/src/lib/api-url.ts`). 아이폰(Expo Go)에서 쓰려면 Windows 방화벽에서 8080 인바운드를 허용한다.
+- 서버 주소는 `EXPO_PUBLIC_API_URL`(`.env.local`, 예: Azure 주소). 비우면 Metro를 띄운 PC의 :8080 로컬 서버
+  (`./gradlew bootRun`)로 정해진다(`app/src/lib/api-url.ts`). 아이폰에서 로컬 서버를 쓰려면 Windows 방화벽에서 8080을 허용한다.
 
 ## App structure
 
@@ -44,7 +47,7 @@
 - `app/src/lib/firebase.ts`(native, AsyncStorage 유지) / `firebase.web.ts`(web). firebase 타입이 web 전용이라
   native의 `getReactNativePersistence` import에만 `@ts-expect-error`를 둔다.
 - 로그인 여부로 화면을 나누는 건 `_layout.tsx`의 `Stack.Protected`.
-- Google 로그인은 지금 웹만 된다. 아이폰 Google/Apple 로그인은 개발용 빌드부터. 그 전까지 개발 중에는
+- Google 로그인은 지금 웹만 된다. 아이폰 Google/Apple 로그인은 개발용 빌드에서 붙인다(아직). 그 전까지 개발 중에는
   "게스트로 계속하기(개발용)" = Firebase 익명 로그인(`__DEV__`에서만 보임)으로 쓴다.
 
 ## Server commands (`server/`에서 실행)
@@ -87,8 +90,9 @@
 - 라우트는 `app/src/app/`에만 둔다(파일 = 화면, `_layout.tsx` = navigator). 컴포넌트·hook·유틸은
   `app/src/app/` 밖에 둔다. `Link`, `router`, `useLocalSearchParams`는 `expo-router`에서 import.
 - `ios/`, `android/`는 CNG로 생성되는 폴더다. 직접 만들거나 고치지 않고 `app.json`과 config plugin으로 설정한다.
-- Windows에서는 iOS 로컬 빌드가 안 된다. Expo Go에 없는 네이티브 모듈을 넣으면 EAS 클라우드
-  개발 빌드가 필요하다 — 넣기 전에 사용자에게 먼저 확인한다.
+- Windows에서는 iOS 로컬 빌드가 안 된다. 네이티브 모듈을 넣거나 네이티브 설정을 바꾸면 EAS 클라우드 빌드를 다시
+  해야 한다(무료 플랜은 월 빌드 수 제한) — 넣기 전에 사용자에게 먼저 확인한다.
+- 플랫폼마다 지원이 다른 기능은 `*.web.ts`로 빈 구현을 둔다(예: `features/notifications/push.web.ts`, 웹은 푸시 없음).
 
 ## Principles
 

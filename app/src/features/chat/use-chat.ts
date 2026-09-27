@@ -1,6 +1,6 @@
 import { randomUUID } from 'expo-crypto';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState } from 'react-native';
+import { AppState, Platform } from 'react-native';
 
 import type { BuddyView } from '@/features/buddy/api';
 
@@ -158,7 +158,13 @@ export function useChat({ myId, onRoomLost, onMemberJoined, onBuddy }: Options) 
 
     const subscription = AppState.addEventListener('change', (state) => {
       setActive(state === 'active');
-      if (state === 'active') socket.reconnectNow();
+      if (state === 'active') {
+        socket.resume();
+        socket.reconnectNow();
+      } else if (state === 'background' && Platform.OS !== 'web') {
+        // Web has no push notifications, so a hidden tab stays connected.
+        socket.pause();
+      }
     });
     const timers = typingTimers.current;
     return () => {
