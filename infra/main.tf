@@ -91,6 +91,7 @@ resource "azurerm_container_app" "server" {
   resource_group_name          = azurerm_resource_group.prod.name
   container_app_environment_id = data.azurerm_container_app_environment.shared.id
   revision_mode                = "Single"
+  workload_profile_name        = "Consumption" # the shared environment uses workload profiles
   tags                         = local.tags
 
   identity {
@@ -172,11 +173,11 @@ resource "azurerm_user_assigned_identity" "deploy" {
 }
 
 resource "azurerm_federated_identity_credential" "deploy_main" {
-  name      = "github-main"
-  parent_id = azurerm_user_assigned_identity.deploy.id
-  audience  = ["api://AzureADTokenExchange"]
-  issuer    = "https://token.actions.githubusercontent.com"
-  subject   = "repo:${var.github_repository}:ref:refs/heads/main"
+  name                      = "github-main"
+  user_assigned_identity_id = azurerm_user_assigned_identity.deploy.id
+  audience                  = ["api://AzureADTokenExchange"]
+  issuer                    = "https://token.actions.githubusercontent.com"
+  subject                   = "repo:${var.github_repository}:ref:refs/heads/main"
 }
 
 # On the shared registry, only pushing images.
