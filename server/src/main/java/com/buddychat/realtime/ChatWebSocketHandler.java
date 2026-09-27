@@ -3,6 +3,7 @@ package com.buddychat.realtime;
 import com.buddychat.buddy.BuddyService;
 import com.buddychat.chat.ChatService;
 import com.buddychat.common.ApiException;
+import com.buddychat.notification.NotificationService;
 import com.buddychat.user.User;
 import com.buddychat.user.UserService;
 import java.time.Duration;
@@ -44,6 +45,7 @@ class ChatWebSocketHandler implements WebSocketHandler {
     private final UserService userService;
     private final ChatService chatService;
     private final BuddyService buddyService;
+    private final NotificationService notifications;
     private final RoomHub hub;
     private final JsonMapper json;
     private final RealtimeProperties properties;
@@ -53,6 +55,7 @@ class ChatWebSocketHandler implements WebSocketHandler {
             UserService userService,
             ChatService chatService,
             BuddyService buddyService,
+            NotificationService notifications,
             RoomHub hub,
             JsonMapper json,
             RealtimeProperties properties) {
@@ -60,6 +63,7 @@ class ChatWebSocketHandler implements WebSocketHandler {
         this.userService = userService;
         this.chatService = chatService;
         this.buddyService = buddyService;
+        this.notifications = notifications;
         this.hub = hub;
         this.json = json;
         this.properties = properties;
@@ -194,6 +198,7 @@ class ChatWebSocketHandler implements WebSocketHandler {
                             if (result.created()) {
                                 hub.publish(
                                         connection.roomId, new ServerEvent.NewMessage(result.message()), connection);
+                                notifications.onNewMessage(result.message(), user);
                             }
                         })
                         // Chatting grows the buddy; a resend earned its EXP the first time.

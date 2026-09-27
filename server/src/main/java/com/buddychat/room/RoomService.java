@@ -51,6 +51,11 @@ public class RoomService {
                 .flatMap(this::toView);
     }
 
+    /** Who is in the room (empty if it no longer exists). */
+    public Mono<List<String>> memberIds(String roomId) {
+        return rooms.findById(roomId).map(Room::memberIds);
+    }
+
     public Mono<RoomView> getMine(User user) {
         return findMine(user).flatMap(this::toView);
     }

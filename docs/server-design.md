@@ -53,7 +53,8 @@ com.buddychat
  ├ room       Room, Invitation, 멤버 관리
  ├ chat       Message, 히스토리 조회
  ├ buddy      Buddy 규칙과 상태 변경
- └ realtime   WebSocket handler, 세션 레지스트리(메모리), 이벤트 전달
+ ├ realtime   WebSocket handler, 세션 레지스트리(메모리), 이벤트 전달
+ └ notification  푸시 토큰, 새 메시지 알림(Expo 푸시 서비스)
 ```
 
 모듈끼리는 service를 통해서만 호출한다. 다른 모듈의 repository를 직접 쓰지 않는다.
@@ -68,6 +69,7 @@ messages     { _id, roomId, senderId?, type (TEXT | SYSTEM | BUDDY_EVENT), text?
                clientMessageId, createdAt }
 invitations  { _id, roomId, code (unique), createdBy, createdAt, expiresAt, usedAt?, usedBy? }
 reads        { _id: "<roomId>:<userId>", roomId, userId, messageId, updatedAt }
+push_tokens  { _id: <Expo push token>, userId, updatedAt }
 ```
 
 - **Buddy는 room에 embed한다.** room과 1:1로 생성·삭제되고 항상 같이 읽는다. 밥주기·청소를 room 문서
@@ -99,6 +101,8 @@ reads        { _id: "<roomId>:<userId>", roomId, userId, messageId, updatedAt }
 | POST | `/api/rooms/me/invitations` | 초대 코드 발급 |
 | POST | `/api/invitations/{code}/accept` | 초대 수락 → room 참가 |
 | GET | `/api/rooms/me/messages?before=&after=&limit=` | 타임라인(최신순, limit ≤ 50). `before`: 이전 페이지, `after`: 재연결 후 놓친 메시지. 응답 `{ messages, hasMore }` |
+| POST | `/api/me/push-tokens` | 이 기기의 Expo 푸시 토큰 등록 `{ token }` → 204. 다른 사용자가 갖고 있던 토큰이면 이쪽으로 옮긴다 |
+| DELETE | `/api/me/push-tokens/{token}` | 로그아웃할 때 토큰 삭제(자기 것만) → 204 |
 
 ## WebSocket 프로토콜
 
@@ -147,6 +151,19 @@ server → client
   참고, 16진 문자열 비교 = ObjectId 비교).
   앱은 상대가 읽은 위치 이하인 내 메시지 중 가장 최근 것에 "읽음"을 표시한다.
 - Container Apps의 유휴 연결 타임아웃 때문에 서버가 25초마다 ping 프레임을 보낸다.
+
+## 푸시 알림 (S8)
+
+- **경로**: 앱이 `expo-notifications`로 받은 Expo 푸시 토큰을 등록하고, 서버가 Expo 푸시 API로 보내면 Expo가 APNs(나중에
+  Android는 FCM)로 전달한다. 기기에 네이티브 Firebase SDK가 필요 없다(Firebase는 JS SDK만). APNs 키는 EAS가 관리한다.
+- **무엇을 보내나**: 상대의 새 텍스트 메시지만. 제목은 보낸 사람 이름, 본문은 메시지(180자까지). Buddy 이벤트는 보내지 않는다.
+- **누구에게**: 메시지를 저장하고 **3초 뒤에도 그 메시지까지 읽지 않은** 다른 멤버의 모든 기기. 채팅을 보고 있는 앱은
+  1초 안에 읽음을 보내므로 알림이 가지 않는다. 연결 여부(presence)로 판단하지 않는 이유: iOS가 앱을 멈춘 뒤 서버가
+  끊김을 알아채기까지(ping 실패) 수십 초 동안 "접속 중"으로 보이는 틈이 있다. 읽음 기준이면 그 틈, 백그라운드,
+  숨긴 웹 탭까지 한 규칙으로 처리된다. 메시지 전송(ack)은 알림을 기다리지 않는다.
+- **무효 토큰**: 보낼 때 받는 ticket과 약 15분 뒤 조회하는 receipt에서 `DeviceNotRegistered`면 토큰을 지운다.
+  receipt 확인은 스케줄러 없이 메모리에서 지연 실행하므로 재배포되면 그 사이 것은 빠진다(다음 전송에서 다시 걸린다).
+- 설정: `buddychat.push.grace-period`(3s), `receipt-delay`(15m), `expo-access-token`(Expo의 강화 보안을 켤 때).
 
 ## 인프라 (S7)
 
