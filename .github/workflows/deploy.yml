@@ -1,9 +1,11 @@
-name: Deploy server
+name: Deploy
 
-# Deploys the server to Azure Container Apps (docs/server-design.md, 인프라). Called by CI after it
+# Deploys the server to Azure Container Apps and the web app to Azure Static Web Apps
+# (docs/server-design.md, 인프라). Called by CI after it
 # passes on a push to main, or run by hand on main. Signs in with OIDC as buddy-chat's own deploy
 # identity (infra/main.tf), which trusts only main; no secret is stored.
-# Repository variables: AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID.
+# Repository variables: AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID, and for the web build
+# the app's public settings: EXPO_PUBLIC_API_URL, EXPO_PUBLIC_FIREBASE_{API_KEY,AUTH_DOMAIN,PROJECT_ID,APP_ID}.
 #
 # Not a workflow_run trigger: those run as the default branch (dev), so the OIDC token would say dev.
 on:
@@ -23,9 +25,10 @@ env:
   IMAGE: acurmanagerur26jp01.azurecr.io/buddy-chat/server
   RESOURCE_GROUP: rg-buddy-chat-prod
   APP: ca-buddy-chat-prod
+  WEB_APP: stapp-buddy-chat-prod
 
 jobs:
-  deploy:
+  server:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
@@ -71,3 +74,53 @@ jobs:
             sleep 5
           done
           echo "health check failed" && exit 1
+
+  web:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: app/package.json
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: app/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+
+      # EXPO_PUBLIC_* values are compiled into the bundle; they are public settings, not secrets.
+      - name: Build
+        run: pnpm build:web
+        env:
+          EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL }}
+          EXPO_PUBLIC_FIREBASE_API_KEY: ${{ vars.EXPO_PUBLIC_FIREBASE_API_KEY }}
+          EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ vars.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+          EXPO_PUBLIC_FIREBASE_PROJECT_ID: ${{ vars.EXPO_PUBLIC_FIREBASE_PROJECT_ID }}
+          EXPO_PUBLIC_FIREBASE_APP_ID: ${{ vars.EXPO_PUBLIC_FIREBASE_APP_ID }}
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      # Read with the deploy identity each time instead of keeping the site's token in GitHub.
+      - name: Deployment token
+        id: token
+        run: |
+          token=$(az staticwebapp secrets list -g "$RESOURCE_GROUP" -n "$WEB_APP" --query properties.apiKey -o tsv)
+          echo "::add-mask::$token"
+          echo "token=$token" >> "$GITHUB_OUTPUT"
+
+      - uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ steps.token.outputs.token }}
+          action: upload
+          app_location: app/dist
+          skip_app_build: true
+          skip_api_build: true

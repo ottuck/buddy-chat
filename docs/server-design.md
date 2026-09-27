@@ -179,6 +179,13 @@ iPhone / Web ──HTTPS·WSS──▶ Azure Container Apps (Spring WebFlux, Doc
 - **DB**: Azure DocumentDB. MongoDB 자체가 아니라 MongoDB 호환이므로 CRUD, 인덱스 조회, 커서 페이지네이션,
   조건부 atomic update, unique 인덱스만 쓴다(위 컬렉션 참고).
   README 등에는 "Azure DocumentDB (MongoDB-compatible)"로 적는다. 확인할 것은 마일스톤 S7 참고.
+- **웹 앱**: Azure Static Web Apps(Free, `stapp-buddy-chat-prod`)에 `expo export -p web` 결과(정적 파일)를 올린다.
+  무료 플랜: 커스텀 도메인 2개, 자동 갱신 SSL, 전 세계 배포, 앱 250MB. Expo는 route마다 `<route>.html`을 만들고
+  Static Web Apps는 `<route>/index.html`을 찾으므로 `app/scripts/static-web-app-config.mjs`가 export 뒤에 rewrite 규칙을
+  만든다(`pnpm build:web`). `EXPO_PUBLIC_*`(서버 주소, Firebase 웹 설정)는 빌드에 들어가는 공개 값이라 repo variables로 둔다.
+  배포 토큰은 저장하지 않고 배포 identity가 매번 읽는다. 서버 CORS에는 웹 주소와 `web_origins`(커스텀 도메인, 로컬 dev)가 들어간다.
+- **도메인(구매 후)**: 웹 `<domain>` → Static Web Apps 커스텀 도메인, 서버 `api.<domain>` → Container App 커스텀 도메인
+  (managed certificate, 무료). Firebase 콘솔의 승인된 도메인에 웹 도메인을 추가해야 Google 로그인이 된다.
 - **Redis는 쓰지 않는다.** 레플리카가 1개라 세션·presence·typing은 프로세스 메모리로 충분하다. 수평 확장이
   필요해지면 `RoomHub.publish` 뒤에 Redis Pub/Sub을 둔다.
 - **Blob Storage는 쓰지 않는다.** 사진 첨부가 MVP 밖이다. 나중에 넣으면 바이너리는 Blob, 메타데이터만 DB.

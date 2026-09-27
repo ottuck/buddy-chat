@@ -14,7 +14,7 @@
 - `infra/` — Azure Terraform(Container App, DocumentDB). ur-manager의 ACR·Container Apps 환경·tfstate Storage를 읽어서 씀
 - `docs/` — 기획과 설계 문서
 - `.github/workflows/ci.yml` — app(lint / typecheck / format), server(spotless / test)
-- `.github/workflows/deploy.yml` — main에서 CI 통과 후 서버를 Azure Container Apps에 배포
+- `.github/workflows/deploy.yml` — main에서 CI 통과 후 서버(Container Apps)와 웹(Static Web Apps) 배포
 - 로컬 전용(gitignore): `.claude/`(desktop app preview 설정), `.idea/`, `.env*`
 
 ## App commands (`app/`에서 실행)
@@ -25,6 +25,7 @@
   `npx eas-cli build --profile development --platform ios`(Apple 계정 로그인이 필요해 사용자가 실행, `eas.json`).
 - 번역 JSON 등 수정이 화면에 반영되지 않으면 Metro 캐시 문제다: `pnpm start --clear`
 - `pnpm lint` / `pnpm typecheck` / `pnpm format:check` · 한 번에: `pnpm check`
+- `pnpm build:web` — 배포용 웹 빌드(`dist/`, Static Web Apps 설정 포함)
 - 패키지 추가는 `pnpm exec expo install <pkg>` — SDK와 맞는 버전을 고른다. `pnpm add`로 직접 넣지 않는다.
 - `pnpm exec expo-doctor` — 의존성·설정 진단
 - Node 24+, pnpm (버전은 `app/package.json`의 `packageManager`)
