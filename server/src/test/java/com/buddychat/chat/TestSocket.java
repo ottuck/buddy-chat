@@ -35,11 +35,7 @@ class TestSocket implements AutoCloseable {
         this.connection = new ReactorNettyWebSocketClient()
                 .execute(
                         uri,
-                        session -> session.send(outbound.asFlux()
-                                        .doOnSubscribe(sub -> trace("client handler started"))
-                                        .doOnNext(text -> trace(
-                                                "client writing " + text.substring(0, Math.min(20, text.length()))))
-                                        .map(session::textMessage))
+                        session -> session.send(outbound.asFlux().map(session::textMessage))
                                 .and(session.receive()
                                         .filter(m -> m.getType() == WebSocketMessage.Type.TEXT)
                                         .map(WebSocketMessage::getPayloadAsText)
@@ -50,11 +46,6 @@ class TestSocket implements AutoCloseable {
                                         .then()))
                 .doFinally(signal -> closed.countDown())
                 .subscribe();
-    }
-
-    private static void trace(String what) {
-        System.out.println(
-                java.time.LocalTime.now() + " [" + Thread.currentThread().getName() + "] " + what);
     }
 
     TestSocket send(Object event) {

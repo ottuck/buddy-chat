@@ -96,7 +96,8 @@ invitations  { _id, roomId, code (unique), createdBy, expiresAt, usedAt?, usedBy
 ## WebSocket 프로토콜
 
 `wss://<host>/ws`. 브라우저 WebSocket은 헤더를 못 붙이므로 **첫 메시지로 인증**한다(token을 URL에 넣지 않는다).
-5초 안에 `auth`가 없으면 끊는다.
+서버가 먼저 `hello`를 보내고, 클라이언트는 그걸 받은 뒤에 `auth`를 보낸다. 업그레이드 직후 바로 보낸 프레임은
+서버가 읽기 시작하기 전에 도착해 사라질 수 있다(Linux/epoll에서 재현). 5초 안에 첫 메시지가 없으면 끊는다.
 
 ```text
 client → server
@@ -107,6 +108,7 @@ client → server
   { type: "ping" }
 
 server → client
+  { type: "hello" }                               연결됨, 이제 auth를 보내도 됨
   { type: "ready" }                               인증 완료
   { type: "ack", clientMessageId, message }       내 메시지 저장 완료(재전송이어도 같은 응답)
   { type: "message", message }                    상대 메시지, Buddy 이벤트

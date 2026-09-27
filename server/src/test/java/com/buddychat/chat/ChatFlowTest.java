@@ -29,7 +29,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-        properties = {"buddychat.realtime.auth-timeout=3s", "logging.level.com.buddychat.realtime=TRACE"})
+        properties = {"buddychat.realtime.auth-timeout=3s"})
 @Import({TestcontainersConfiguration.class, TestJwtConfiguration.class})
 class ChatFlowTest {
 
@@ -222,7 +222,7 @@ class ChatFlowTest {
 
     @Test
     void closesConnectionsThatNeverAuthenticate() {
-        TestSocket socket = open();
+        TestSocket socket = open(); // hello, then nothing
 
         assertThat(socket.expect("error").get("code").asString()).isEqualTo("AUTH_TIMEOUT");
         assertThat(socket.awaitClosed()).isTrue();
@@ -254,7 +254,14 @@ class ChatFlowTest {
 
     // --- helpers ---
 
+    // Like the app: wait for the server's hello before sending anything.
     private TestSocket open() {
+        TestSocket socket = openSilently();
+        socket.expect("hello");
+        return socket;
+    }
+
+    private TestSocket openSilently() {
         TestSocket socket = new TestSocket(URI.create("ws://localhost:" + port + "/ws"), json);
         sockets.add(socket);
         return socket;

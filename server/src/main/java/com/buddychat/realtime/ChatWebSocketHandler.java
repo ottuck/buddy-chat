@@ -22,7 +22,9 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * {@code /ws}. Browsers cannot put headers on a WebSocket, so the Firebase ID token arrives as the
- * first message instead of in the URL (where it would end up in logs).
+ * first message instead of in the URL (where it would end up in logs). The server speaks first
+ * ({@code hello}) once it is reading: a frame the client sends straight after the upgrade can
+ * otherwise be dropped before this handler subscribes (seen on Linux/epoll).
  *
  * <p>Events from one connection are handled one at a time ({@code concatMap}), so a sender's
  * messages are stored in the order they were sent.
@@ -66,8 +68,6 @@ class ChatWebSocketHandler implements WebSocketHandler {
         log.debug("[{}] opened", session.getId());
 
         Flux<String> inbound = session.receive()
-                .doOnSubscribe(sub -> log.debug("[{}] receiving", session.getId()))
-                .doOnNext(message -> log.trace("[{}] frame {}", session.getId(), message.getType()))
                 .filter(message -> message.getType() == WebSocketMessage.Type.TEXT)
                 .map(WebSocketMessage::getPayloadAsText);
 
@@ -119,9 +119,11 @@ class ChatWebSocketHandler implements WebSocketHandler {
                 .then();
 
         Sinks.Empty<Void> outboundDone = Sinks.empty();
-        Flux<WebSocketMessage> events = outboundSource
-                .asMono()
-                .flatMapMany(source -> source)
+        // Mono.when below subscribes to the input (receive) before this output, so hello is only
+        // sent once incoming frames are being read.
+        Flux<WebSocketMessage> events = Flux.concat(
+                        Mono.just(new ServerEvent.Hello()),
+                        outboundSource.asMono().flatMapMany(source -> source))
                 .map(event -> session.textMessage(json.writeValueAsString(event)))
                 .doFinally(signal -> outboundDone.tryEmitEmpty());
         Flux<WebSocketMessage> pings = Flux.interval(properties.pingInterval(), properties.pingInterval())

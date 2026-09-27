@@ -8,6 +8,7 @@ import org.jspecify.annotations.Nullable;
 /** Messages the server sends over the WebSocket. */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
+    @JsonSubTypes.Type(value = ServerEvent.Hello.class, name = "hello"),
     @JsonSubTypes.Type(value = ServerEvent.Ready.class, name = "ready"),
     @JsonSubTypes.Type(value = ServerEvent.Ack.class, name = "ack"),
     @JsonSubTypes.Type(value = ServerEvent.NewMessage.class, name = "message"),
@@ -16,6 +17,12 @@ import org.jspecify.annotations.Nullable;
     @JsonSubTypes.Type(value = ServerEvent.Pong.class, name = "pong"),
 })
 public sealed interface ServerEvent {
+
+    /**
+     * First frame on every connection: the server is now reading, so the client may send
+     * {@code auth}. A frame sent before this can be lost during the upgrade.
+     */
+    record Hello() implements ServerEvent {}
 
     record Ready(String userId, String roomId) implements ServerEvent {}
 

@@ -5,6 +5,7 @@ import type { ServerMessage } from './types';
 
 // Server → app events (docs/server-design.md, "WebSocket 프로토콜").
 type ServerEvent =
+  | { type: 'hello' }
   | { type: 'ready'; userId: string; roomId: string }
   | { type: 'ack'; clientMessageId: string; message: ServerMessage }
   | { type: 'message'; message: ServerMessage }
@@ -75,14 +76,7 @@ export class ChatSocket {
     this.ws = ws;
     this.ready = false;
 
-    ws.onopen = async () => {
-      try {
-        ws.send(JSON.stringify({ type: 'auth', token: await idToken() }));
-      } catch {
-        ws.close();
-      }
-    };
-    ws.onmessage = (event) => this.onEvent(JSON.parse(String(event.data)) as ServerEvent);
+    ws.onmessage = (event) => this.onEvent(ws, JSON.parse(String(event.data)) as ServerEvent);
     ws.onclose = () => {
       if (this.ws !== ws) return; // an old socket closing after a reconnect
       this.ws = null;
@@ -92,8 +86,12 @@ export class ChatSocket {
     };
   }
 
-  private onEvent(event: ServerEvent) {
+  private onEvent(ws: WebSocket, event: ServerEvent) {
     switch (event.type) {
+      // The server reads from here on; a message sent right at open can be lost.
+      case 'hello':
+        this.authenticate(ws);
+        break;
       case 'ready':
         this.ready = true;
         this.attempt = 0;
@@ -117,6 +115,14 @@ export class ChatSocket {
           this.listener.onFatal(event.code);
         }
         break;
+    }
+  }
+
+  private async authenticate(ws: WebSocket) {
+    try {
+      ws.send(JSON.stringify({ type: 'auth', token: await idToken() }));
+    } catch {
+      ws.close();
     }
   }
 
