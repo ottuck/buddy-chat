@@ -12,12 +12,17 @@ import com.buddychat.room.Invitation;
 import com.buddychat.room.Room;
 import com.buddychat.room.RoomView;
 import com.buddychat.user.User;
+import com.buddychat.user.UserService;
 import java.net.URI;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import org.bson.Document;
+import org.bson.types.ObjectId;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,6 +34,7 @@ import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
@@ -51,6 +57,9 @@ class BuddyFlowTest {
 
     @Autowired
     JsonMapper json;
+
+    @Autowired
+    UserService userService;
 
     private WebTestClient http;
     private final List<TestSocket> sockets = new ArrayList<>();
@@ -210,6 +219,29 @@ class BuddyFlowTest {
         yuki.expect("message");
         assertThat(yuki.expect("buddy").get("buddy").get("exp").asInt()).isEqualTo(1);
         assertThat(henry.expect("buddy").get("buddy").get("exp").asInt()).isEqualTo(1);
+    }
+
+    @Test
+    void roomsCreatedBeforeBuddyCareStillWork() {
+        // A room as S2–S4 stored it: no care timestamps, no daily EXP counter.
+        Instant bornAt = clock.instant().minus(Duration.ofHours(9));
+        String roomId = new ObjectId().toHexString();
+        User user = userService.getOrCreate("old-timer", "old-timer").block();
+        mongo.getCollection("rooms")
+                .flatMap(rooms -> Mono.from(rooms.insertOne(new Document("_id", new ObjectId(roomId))
+                        .append("memberIds", List.of(user.id()))
+                        .append("memberCount", 1)
+                        .append(
+                                "buddy",
+                                new Document("name", "Mugi").append("exp", 0).append("bornAt", Date.from(bornAt)))
+                        .append("createdAt", Date.from(bornAt)))))
+                .block();
+        userService.assignRoomIfNone(user.id(), roomId).block();
+
+        assertThat(room("old-timer").buddy().hungry()).isTrue();
+        assertThat(care("old-timer", "feed").changed()).isTrue();
+        buddyService.onMessageSent(roomId).block();
+        assertThat(room("old-timer").buddy().exp()).isEqualTo(BuddyRules.FEED_EXP + BuddyRules.MESSAGE_EXP);
     }
 
     // --- helpers ---

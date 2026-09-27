@@ -10,6 +10,7 @@ import org.jspecify.annotations.Nullable;
  * @param lastFedAt null on rooms created before care existed; treated as {@code bornAt}
  * @param lastCleanedAt null on rooms created before care existed; treated as {@code bornAt}
  * @param expDay the day (Asia/Tokyo) {@code messageExpToday} counts for
+ * @param messageExpToday null on rooms created before the daily cap existed
  */
 public record Buddy(
         String name,
@@ -18,7 +19,7 @@ public record Buddy(
         @Nullable Instant lastFedAt,
         @Nullable Instant lastCleanedAt,
         @Nullable String expDay,
-        int messageExpToday) {
+        @Nullable Integer messageExpToday) {
 
     public static final int MAX_NAME_LENGTH = 12;
 
