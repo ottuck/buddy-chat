@@ -53,6 +53,31 @@ class MeControllerTest {
     }
 
     @Test
+    void aGuestPicksANameAndKeepsItAfterLinkingGoogle() {
+        me("uid-guest", null);
+
+        MeController.MeResponse renamed = rename("uid-guest", "  하늘 ")
+                .expectStatus()
+                .isOk()
+                .expectBody(MeController.MeResponse.class)
+                .returnResult()
+                .getResponseBody();
+        assertThat(renamed.displayName()).isEqualTo("하늘");
+
+        // After linking, the same uid arrives with a Google name; the chosen one stays.
+        assertThat(me("uid-guest", "Sky Kim").displayName()).isEqualTo("하늘");
+    }
+
+    @Test
+    void rejectsBlankOrLongNames() {
+        me("uid-guest", null);
+        rename("uid-guest", "   ").expectStatus().isBadRequest();
+        rename("uid-guest", null).expectStatus().isBadRequest();
+        rename("uid-guest", "가".repeat(21)).expectStatus().isBadRequest();
+        rename("uid-guest", "가".repeat(20)).expectStatus().isOk();
+    }
+
+    @Test
     void concurrentFirstCallsCreateOnlyOneUser() {
         List<String> ids = Flux.range(0, 8)
                 .parallel()
@@ -64,6 +89,14 @@ class MeControllerTest {
 
         assertThat(ids).hasSize(8).containsOnly(ids.getFirst());
         assertThat(users.count().block()).isEqualTo(1);
+    }
+
+    private WebTestClient.ResponseSpec rename(String uid, String name) {
+        return client.mutateWith(mockJwt().jwt(jwt -> jwt.subject(uid)))
+                .patch()
+                .uri("/api/me")
+                .bodyValue(java.util.Collections.singletonMap("displayName", name))
+                .exchange();
     }
 
     private MeController.MeResponse me(String uid, String name) {
