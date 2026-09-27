@@ -11,7 +11,7 @@
 
 - `app/` — Expo(React Native) + TypeScript + Expo Router. iOS / Web / Android 공용 코드.
 - `server/` — Java 25, Spring Boot 4.1 + WebFlux + Reactive MongoDB. 패키지는 기능 모듈(`auth`, `user`, `room`, `chat`, `buddy`, `realtime`).
-- `infra/` — Azure Terraform(Container Apps, DocumentDB). ur-manager와 ACR·tfstate Storage만 공유
+- `infra/` — Azure Terraform(Container App, DocumentDB). ur-manager의 ACR·Container Apps 환경·tfstate Storage를 읽어서 씀
 - `docs/` — 기획과 설계 문서
 - `.github/workflows/ci.yml` — app(lint / typecheck / format), server(spotless / test)
 - `.github/workflows/deploy.yml` — main에서 CI 통과 후 서버를 Azure Container Apps에 배포

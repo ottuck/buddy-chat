@@ -163,12 +163,14 @@ iPhone / Web ──HTTPS·WSS──▶ Azure Container Apps (Spring WebFlux, Doc
 - **Redis는 쓰지 않는다.** 레플리카가 1개라 세션·presence·typing은 프로세스 메모리로 충분하다. 수평 확장이
   필요해지면 `RoomHub.publish` 뒤에 Redis Pub/Sub을 둔다.
 - **Blob Storage는 쓰지 않는다.** 사진 첨부가 MVP 밖이다. 나중에 넣으면 바이너리는 Blob, 메타데이터만 DB.
-- **ur-manager와 공유하는 것은 Container Registry(`acurmanagerur26jp01`, 이미지 `buddy-chat/server`)와 tfstate
-  Storage Account(`sturmanagerur26jp01`, buddy-chat 전용 container `buddy-chat-tfstate`)뿐이다.** Resource Group
-  (`rg-buddy-chat-prod`), Container Apps 환경·앱, DocumentDB, Managed Identity, 배포 권한은 전부 buddy-chat 것이다.
-  buddy-chat을 destroy해도 ur-manager에 영향이 없다.
-- **Terraform**(`infra/`): RG, DocumentDB(free tier) + 방화벽, Log Analytics, Container Apps
-  환경·앱, 이미지 pull용 identity(공유 ACR에 AcrPull), 배포용 identity. 재현 가능한 배포에 필요한 만큼만.
+- **ur-manager와 공유하는 것은 Container Registry(`acurmanagerur26jp01`, 이미지 `buddy-chat/server`), Container Apps
+  환경(`cae-ur-manager-prod`), tfstate Storage Account(`sturmanagerur26jp01`, buddy-chat 전용 container
+  `buddy-chat-tfstate`)다.** 구독에 리전당 Container Apps 환경이 하나만 허용되고 Japan East는 ur-manager가 쓰고 있다.
+  셋 다 ur-manager Terraform 소유이고 buddy-chat Terraform은 `data`로 읽기만 한다. 같은 환경의 앱은 VNet과 로그
+  대상(ur-manager의 Log Analytics)을 공유한다. Resource Group(`rg-buddy-chat-prod`), Container App, DocumentDB,
+  Managed Identity, secret, 배포 권한은 전부 buddy-chat 것이다. buddy-chat을 destroy해도 ur-manager에 영향이 없다.
+- **Terraform**(`infra/`): RG, DocumentDB(free tier) + 방화벽, Container App, 이미지 pull용 identity(공유 ACR에
+  AcrPull), 배포용 identity. 재현 가능한 배포에 필요한 만큼만.
 - **배포**(`.github/workflows/deploy.yml`): main에서 CI가 통과하면 buddy-chat 전용 배포 identity로 OIDC 로그인
   (저장된 비밀 없음) → 이미지 빌드·push → `az containerapp update` → health 확인. 권한은 공유 ACR에 AcrPush,
   buddy-chat Container App에 Contributor뿐이다. 이미지 태그는 `server/` 트리 해시라서 앱만 바뀐 push는
@@ -177,8 +179,6 @@ iPhone / Web ──HTTPS·WSS──▶ Azure Container Apps (Spring WebFlux, Doc
   고객의 Azure 리소스에서도 네트워크상으로는 닿는다. Container Apps(consumption)는 나가는 IP가 고정이 아니어서
   좁힐 방법이 마땅치 않다. 접속에는 비밀번호(32자, Terraform이 만들어 Container App secret으로만 전달)와 TLS가
   필요하다. 사용자가 늘거나 민감한 데이터가 생기면 VNet 통합 + Private Endpoint로 바꾼다.
-- **Log Analytics 하루 0.5GB는 무료 한도가 아니라 비용 폭주를 막는 상한이다.** 넘으면 그날 로그 수집이 멈춘다.
-  수집량은 GB당 과금되고(무료 할당은 청구 계정 기준), 평소 서버 로그는 이보다 훨씬 적다.
 - tfstate(`buddy-chat-tfstate`)는 비공개 container다. 계정 단위로 공개 접근과 shared key가 꺼져 있어 Entra RBAC로만
   읽는다. state에 DB 비밀번호가 들어 있다. 단, 같은 Storage Account를 쓰는 ur-manager 배포 principal도 계정 범위의
   Blob 권한이 있어 읽을 수 있다(공유의 대가, 필요하면 그쪽 권한을 container 범위로 좁힌다).

@@ -1,6 +1,7 @@
 # buddy-chat production (docs/server-design.md, 인프라).
-# Shared with ur-manager: the container registry and the tfstate storage account only.
-# Everything that runs buddy-chat, and every identity and permission, is buddy-chat's own.
+# Shared with ur-manager, and only read here (ur-manager's Terraform owns them): the container
+# registry, the Container Apps environment, and the tfstate storage account. buddy-chat's container
+# app, database, identities and permissions are its own.
 
 locals {
   name       = "buddy-chat"
@@ -10,6 +11,13 @@ locals {
 
 data "azurerm_container_registry" "shared" {
   name                = "acurmanagerur26jp01"
+  resource_group_name = "rg-ur-manager-prod"
+}
+
+# The subscription allows one environment per region, and Japan East's is ur-manager's. Apps in it
+# share its network and log destination; nothing here changes the environment itself.
+data "azurerm_container_app_environment" "shared" {
+  name                = "cae-ur-manager-prod"
   resource_group_name = "rg-ur-manager-prod"
 }
 
@@ -64,24 +72,6 @@ locals {
 
 # --- Server: Azure Container Apps ---
 
-resource "azurerm_log_analytics_workspace" "prod" {
-  name                = "log-${local.name}-prod"
-  resource_group_name = azurerm_resource_group.prod.name
-  location            = azurerm_resource_group.prod.location
-  sku                 = "PerGB2018"
-  retention_in_days   = 30
-  daily_quota_gb      = 0.5
-  tags                = local.tags
-}
-
-resource "azurerm_container_app_environment" "prod" {
-  name                       = "cae-${local.name}-prod"
-  resource_group_name        = azurerm_resource_group.prod.name
-  location                   = azurerm_resource_group.prod.location
-  log_analytics_workspace_id = azurerm_log_analytics_workspace.prod.id
-  tags                       = local.tags
-}
-
 # The app pulls its image with this identity.
 resource "azurerm_user_assigned_identity" "app" {
   name                = "id-${local.name}-prod"
@@ -99,7 +89,7 @@ resource "azurerm_role_assignment" "app_pull" {
 resource "azurerm_container_app" "server" {
   name                         = "ca-${local.name}-prod"
   resource_group_name          = azurerm_resource_group.prod.name
-  container_app_environment_id = azurerm_container_app_environment.prod.id
+  container_app_environment_id = data.azurerm_container_app_environment.shared.id
   revision_mode                = "Single"
   tags                         = local.tags
 
@@ -182,11 +172,11 @@ resource "azurerm_user_assigned_identity" "deploy" {
 }
 
 resource "azurerm_federated_identity_credential" "deploy_main" {
-  name                = "github-main"
-  parent_id           = azurerm_user_assigned_identity.deploy.id
-  audience            = ["api://AzureADTokenExchange"]
-  issuer              = "https://token.actions.githubusercontent.com"
-  subject             = "repo:${var.github_repository}:ref:refs/heads/main"
+  name      = "github-main"
+  parent_id = azurerm_user_assigned_identity.deploy.id
+  audience  = ["api://AzureADTokenExchange"]
+  issuer    = "https://token.actions.githubusercontent.com"
+  subject   = "repo:${var.github_repository}:ref:refs/heads/main"
 }
 
 # On the shared registry, only pushing images.
