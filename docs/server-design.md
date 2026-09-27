@@ -67,6 +67,7 @@ rooms        { _id, memberIds [1..2], memberCount, createdAt,
 messages     { _id, roomId, senderId?, type (TEXT | SYSTEM | BUDDY_EVENT), text?, buddyEvent?, actorId?,
                clientMessageId, createdAt }
 invitations  { _id, roomId, code (unique), createdBy, createdAt, expiresAt, usedAt?, usedBy? }
+reads        { _id: "<roomId>:<userId>", roomId, userId, messageId, updatedAt }
 ```
 
 - **Buddy는 room에 embed한다.** room과 1:1로 생성·삭제되고 항상 같이 읽는다. 밥주기·청소를 room 문서
@@ -103,30 +104,37 @@ invitations  { _id, roomId, code (unique), createdBy, createdAt, expiresAt, used
 client → server
   { type: "auth", token }
   { type: "send", clientMessageId, text }
-  { type: "typing", typing: true|false }
-  { type: "read", messageId }
+  { type: "typing", typing: true|false }          입력 중이면 3초마다 다시 보낸다
+  { type: "read", messageId }                     화면에 보이는 가장 최근 상대 메시지(또는 Buddy 이벤트)
   { type: "ping" }
 
 server → client
   { type: "hello" }                               연결됨, 이제 auth를 보내도 됨
-  { type: "ready" }                               인증 완료
+  { type: "ready", userId, roomId, online, reads } 인증 완료. online: 지금 접속한 다른 멤버,
+                                                  reads: 멤버별 마지막으로 읽은 메시지 id
   { type: "ack", clientMessageId, message }       내 메시지 저장 완료(재전송이어도 같은 응답)
   { type: "message", message }                    상대 메시지, Buddy 이벤트
   { type: "member", userId, displayName }         친구가 초대를 수락함(solo → duo)
   { type: "buddy", buddy }                         Buddy 상태 변경(돌봄, 경험치)
-  { type: "typing", userId, typing }
-  { type: "presence", userId, online }
-  { type: "read", userId, messageId }
+  { type: "typing", userId, typing }              다른 멤버에게만. 6초 동안 다시 안 오면 앱이 지운다
+  { type: "presence", userId, online }            그 사용자의 첫 연결이 열리거나 마지막 연결이 닫힐 때
+  { type: "read", userId, messageId }             읽음 위치가 앞으로 움직였을 때만
   { type: "error", code }
   { type: "pong" }
 ```
 
 - 에러 코드: `UNAUTHORIZED`(토큰 불량·첫 메시지가 auth가 아님), `AUTH_TIMEOUT`, `ROOM_NOT_FOUND`(room 없음) → 연결 종료.
-  `INVALID_MESSAGE`(빈 문자열·2000자 초과, `clientMessageId` 포함), `INVALID_EVENT`(읽을 수 없는 메시지) → 연결 유지.
+  `INVALID_MESSAGE`(빈 문자열·2000자 초과, `clientMessageId` 포함), `INVALID_EVENT`(읽을 수 없는 메시지),
+  `INVALID_REQUEST`(다른 room이나 없는 메시지를 읽음 처리) → 연결 유지.
 - 연결은 인증 시점의 room에 묶인다. 초대를 수락해 room이 바뀌면 앱이 다시 연결한다.
 - 한 연결의 이벤트는 순서대로 처리한다(보낸 순서 = 저장 순서).
 - 재연결하면 클라이언트는 마지막으로 받은 메시지 이후를 REST로 채우고, ack 못 받은 메시지를 같은 `clientMessageId`로 다시 보낸다.
 - 세션·presence·typing은 서버 메모리에만 둔다(§65.7). 재배포하면 사라지는 것을 전제로 한다.
+  presence는 연결에서 계산한다(한 사람이 기기 여러 대로 접속해도 하나로 본다). 한 room의 입장·퇴장은 순서대로
+  처리해서 online/offline 이벤트 순서가 뒤바뀌지 않는다.
+- 읽음은 `reads` 컬렉션에 멤버별로 저장하고 앞으로만 움직인다: `messageId < 새 id` 조건부 upsert. 이미 같거나
+  더 뒤면 upsert가 같은 `_id`에 걸려(중복 키) 아무것도 바뀌지 않는다. ObjectId 16진 문자열은 시간순으로 정렬된다.
+  앱은 상대가 읽은 위치 이하인 내 메시지 중 가장 최근 것에 "읽음"을 표시한다.
 - Container Apps의 유휴 연결 타임아웃 때문에 서버가 25초마다 ping 프레임을 보낸다.
 
 ## 마일스톤

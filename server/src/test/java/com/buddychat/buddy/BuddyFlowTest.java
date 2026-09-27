@@ -305,7 +305,7 @@ class BuddyFlowTest {
     }
 
     private TestSocket connect(String uid) {
-        TestSocket socket = new TestSocket(URI.create("ws://localhost:" + port + "/ws"), json);
+        TestSocket socket = new TestSocket(URI.create("ws://localhost:" + port + "/ws"), json).ignoring("presence");
         sockets.add(socket);
         socket.expect("hello");
         socket.send(Map.of("type", "auth", "token", token(uid))).expect("ready");

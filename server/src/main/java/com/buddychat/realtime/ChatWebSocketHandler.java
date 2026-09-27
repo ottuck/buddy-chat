@@ -86,7 +86,9 @@ class ChatWebSocketHandler implements WebSocketHandler {
                         return reject(preAuth, outboundSource, "UNAUTHORIZED");
                     }
                     return authenticate(auth.token())
-                            .flatMapMany(user -> {
+                            .zipWhen(user -> chatService.readMarks(user.roomId()))
+                            .flatMapMany(authenticated -> {
+                                User user = authenticated.getT1();
                                 RoomHub.Connection connection = new RoomHub.Connection(user.id(), user.roomId());
                                 // Loses only if the auth deadline already rejected this socket.
                                 if (outboundSource
@@ -94,13 +96,15 @@ class ChatWebSocketHandler implements WebSocketHandler {
                                         .isFailure()) {
                                     return Flux.empty();
                                 }
-                                hub.join(connection);
+                                hub.join(
+                                        connection,
+                                        online -> new ServerEvent.Ready(
+                                                user.id(), user.roomId(), online, authenticated.getT2()));
                                 log.debug(
                                         "[{}] authenticated user {} in room {}",
                                         session.getId(),
                                         user.id(),
                                         user.roomId());
-                                connection.emit(new ServerEvent.Ready(user.id(), user.roomId()));
                                 // Hunger or poops since anyone last looked go to the whole room.
                                 Mono<Void> noticeBuddy = buddyService
                                         .observe(user.roomId())
@@ -173,6 +177,27 @@ class ChatWebSocketHandler implements WebSocketHandler {
                                 result.created() ? buddyService.onMessageSent(connection.roomId) : Mono.<Void>empty())
                         .onErrorResume(ApiException.class, e -> {
                             connection.emit(new ServerEvent.Error(e.code(), send.clientMessageId()));
+                            return Mono.empty();
+                        })
+                        .then();
+            case ClientEvent.Typing typing -> {
+                // Not stored: the others see it only while it keeps being repeated.
+                hub.publishToOthers(connection.roomId, new ServerEvent.Typing(user.id(), typing.typing()), user.id());
+                yield Mono.empty();
+            }
+            case ClientEvent.Read read ->
+                chatService
+                        .markRead(user, read.messageId())
+                        .doOnNext(moved -> {
+                            if (moved) {
+                                hub.publish(
+                                        connection.roomId,
+                                        new ServerEvent.Read(user.id(), read.messageId()),
+                                        connection);
+                            }
+                        })
+                        .onErrorResume(ApiException.class, e -> {
+                            connection.emit(new ServerEvent.Error(e.code(), null));
                             return Mono.empty();
                         })
                         .then();

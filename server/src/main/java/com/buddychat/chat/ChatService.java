@@ -8,12 +8,14 @@ import com.buddychat.user.User;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import org.bson.types.ObjectId;
 import org.jspecify.annotations.Nullable;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -97,6 +99,45 @@ public class ChatService {
                     List<Message> page = hasMore ? found.subList(0, limit) : found;
                     return new MessagePage(forward ? page.reversed() : page, hasMore);
                 });
+    }
+
+    /**
+     * Records that the user has read their room up to {@code messageId}. Emits true when that moved
+     * their read mark forward, false when it was already there or further (an older or repeated
+     * read, or a race with another of their devices).
+     */
+    public Mono<Boolean> markRead(User user, String messageId) {
+        String roomId = user.roomId();
+        if (roomId == null) return Mono.error(new ApiException(HttpStatus.NOT_FOUND, "ROOM_NOT_FOUND"));
+        if (messageId == null || !ObjectId.isValid(messageId)) return Mono.error(invalid());
+        String id = ReadMark.key(roomId, user.id());
+        return mongo.exists(
+                        query(where("_id")
+                                .is(new ObjectId(messageId))
+                                .and("roomId")
+                                .is(roomId)),
+                        Message.class)
+                .flatMap(exists -> {
+                    if (!exists) return Mono.error(invalid());
+                    // Only a newer id matches. If none does, the upsert tries to insert the same _id
+                    // and hits the existing mark: nothing to move. Hex ObjectIds sort like time.
+                    return mongo.upsert(
+                                    query(where("_id").is(id).and("messageId").lt(messageId)),
+                                    new Update()
+                                            .set("roomId", roomId)
+                                            .set("userId", user.id())
+                                            .set("messageId", messageId)
+                                            .set("updatedAt", Instant.now(clock)),
+                                    ReadMark.class)
+                            .thenReturn(true)
+                            .onErrorResume(DuplicateKeyException.class, e -> Mono.just(false));
+                });
+    }
+
+    /** Each member's read mark in the room: user id → newest message id they have read. */
+    public Mono<Map<String, String>> readMarks(String roomId) {
+        return mongo.find(query(where("roomId").is(roomId)), ReadMark.class)
+                .collectMap(ReadMark::userId, ReadMark::messageId);
     }
 
     private static ObjectId objectId(String cursor) {

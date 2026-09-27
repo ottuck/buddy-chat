@@ -30,7 +30,9 @@ class MessageIndexes implements ApplicationRunner {
                                 .on("roomId", Sort.Direction.ASC)
                                 .on("senderId", Sort.Direction.ASC)
                                 .on("clientMessageId", Sort.Direction.ASC)
-                                .unique()))
+                                .unique()),
+                        // Read marks of a room, sent when a member connects.
+                        mongo.indexOps(ReadMark.class).createIndex(new Index().on("roomId", Sort.Direction.ASC)))
                 .block();
     }
 }
