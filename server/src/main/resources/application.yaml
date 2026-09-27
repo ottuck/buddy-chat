@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: buddy-chat-server
+
+buddychat:
+  firebase:
+    # Public project id (also in the app's firebase config). Tokens must be issued for it.
+    project-id: ${FIREBASE_PROJECT_ID:buddy-chat-67e35}
+  cors:
+    # Expo web dev servers. Native apps don't send an Origin, so they are unaffected.
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:8081,http://localhost:8082,http://localhost:8083}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health

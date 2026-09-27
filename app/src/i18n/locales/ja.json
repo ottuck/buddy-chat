@@ -1,5 +1,93 @@
 {
-  "home": {
-    "tagline": "おしゃべりが主役。Buddy がちょっと楽しくしてくれる。"
+  "common": {
+    "close": "閉じる",
+    "retry": "もう一度",
+    "cancel": "キャンセル"
+  },
+  "errors": {
+    "loadFailed": "サーバーに接続できませんでした。",
+    "unknown": "うまくいきませんでした。もう一度お試しください。",
+    "NETWORK": "サーバーにつながりません。通信環境を確認してください。",
+    "ROOM_FULL": "このルームはもう2人そろっています。",
+    "INVITATION_NOT_FOUND": "このコードの招待が見つかりません。",
+    "INVITATION_EXPIRED": "招待の期限が切れています。新しいコードをもらってください。",
+    "INVITATION_USED": "この招待はもう使われています。新しいコードをもらってください。",
+    "ALREADY_MEMBER": "すでにこのルームに参加しています。",
+    "ALREADY_IN_ROOM": "ほかのルームで誰かとおしゃべり中です。"
+  },
+  "signIn": {
+    "tagline": "好きな人とおしゃべりしながら、小さなBuddyをいっしょに育てよう。",
+    "google": "Googleで続ける",
+    "devGuest": "ゲストで続ける（開発用）",
+    "nativeNotReady": "iPhoneでのログインはアプリ版で使えるようになります。",
+    "error": "ログインできませんでした。もう一度お試しください。"
+  },
+  "welcome": {
+    "title": "新しいBuddyが生まれそう！",
+    "subtitle": "名前をつけてあげよう。友だちはいつでも招待できます。",
+    "namePlaceholder": "Buddyの名前",
+    "startSolo": "ひとりではじめる",
+    "haveCode": "招待コードを持っている"
+  },
+  "join": {
+    "title": "コードで参加",
+    "hint": "友だちからもらった8文字のコードを入力してください。",
+    "submit": "参加する",
+    "leaveTitle": "いまのBuddyとお別れしますか？",
+    "leaveMessage": "このルームに参加すると、いま育てているBuddyとそのトークは消えてしまいます。",
+    "leaveConfirm": "参加する"
+  },
+  "chat": {
+    "composerPlaceholder": "メッセージ",
+    "send": "送信",
+    "connecting": "接続中…",
+    "retry": "送信失敗・タップで再送",
+    "guestName": "ゲスト",
+    "typing": "入力中…",
+    "read": "既読",
+    "online": "オンライン",
+    "offline": "オフライン"
+  },
+  "invite": {
+    "button": "友だちを招待",
+    "title": "友だちを招待",
+    "hint": "このコードを送ってください。友だちはログイン後に入力します。",
+    "expires": "{{time}}まで有効・1回だけ使えます",
+    "share": "コードを送る",
+    "shareMessage": "buddy-chatでいっしょにBuddyを育てよう！招待コード: {{code}}"
+  },
+  "buddy": {
+    "level": "Lv.{{level}}",
+    "open": "{{buddy}}を見る",
+    "stage": {
+      "EGG": "たまご",
+      "BABY": "ベビー",
+      "CHILD": "こども",
+      "ADULT": "おとな"
+    },
+    "exp": "けいけんち",
+    "fullness": "おなか",
+    "hungry": "はらぺこ",
+    "full": "まんぷく",
+    "cleanliness": "きれいさ",
+    "clean": "きれい",
+    "feed": "ごはん",
+    "cleanUp": "おそうじ",
+    "growthHint": "おしゃべりしたりお世話したりするほど、大きくなります。",
+    "peckish": "ちょっと小腹"
+  },
+  "buddyEvent": {
+    "HUNGRY": "{{buddy}}がおなかをすかせています 🍚",
+    "FED": "{{actor}}が{{buddy}}にごはんをあげました",
+    "POOPED": "{{buddy}}がうんちをしました 💩",
+    "CLEANED": "{{actor}}が{{buddy}}のうんちを片付けました",
+    "EVOLVED": "{{buddy}}が進化しました！✨"
+  },
+  "settings": {
+    "title": "設定",
+    "profile": "プロフィール",
+    "guest": "ゲスト",
+    "signOut": "ログアウト",
+    "joinWithCode": "招待コードで参加"
   }
 }

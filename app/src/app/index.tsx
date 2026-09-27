@@ -1,45 +1,115 @@
-import { useTheme } from 'expo-router';
-import { useTranslation } from 'react-i18next';
-import { StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
+import { useState } from 'react';
+import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-// Web shows the same mobile layout, centered and capped at this width (docs/project-plan.md §10).
-const MAX_CONTENT_WIDTH = 560;
+import { BuddySheet } from '@/features/buddy/components/buddy-sheet';
+import { useBuddy } from '@/features/buddy/use-buddy';
+import { ChatHeader } from '@/features/chat/components/chat-header';
+import { MessageComposer } from '@/features/chat/components/message-composer';
+import { MessageList } from '@/features/chat/components/message-list';
+import { useChat } from '@/features/chat/use-chat';
+import { InviteSheet } from '@/features/room/components/invite-sheet';
+import type { Me, Room } from '@/features/room/api';
+import { useReadyRoom } from '@/features/room/room-provider';
+import { MAX_CONTENT_WIDTH, useColors } from '@/theme';
 
-export default function HomeScreen() {
-  const { colors } = useTheme();
-  const { t } = useTranslation();
+export default function ChatRoute() {
+  const { me, room, reload, refreshRoom } = useReadyRoom();
+  // Keyed by room: joining another room starts over with a new connection and timeline.
+  return (
+    <ChatScreen
+      key={room.id}
+      me={me}
+      room={room}
+      onRoomLost={reload}
+      onMemberJoined={refreshRoom}
+    />
+  );
+}
+
+type ChatScreenProps = {
+  me: Me;
+  room: Room;
+  onRoomLost: () => void;
+  onMemberJoined: () => void;
+};
+
+function ChatScreen({ me, room, onRoomLost, onMemberJoined }: ChatScreenProps) {
+  const colors = useColors();
+  const insets = useSafeAreaInsets();
+  const { buddy, busy, setBuddy, feed, clean } = useBuddy(room.buddy);
+  const { messages, status, online, typing, reads, send, retry, loadOlder, notifyTyping } = useChat(
+    {
+      myId: me.id,
+      onRoomLost,
+      onMemberJoined,
+      onBuddy: setBuddy,
+    },
+  );
+  const [buddyOpen, setBuddyOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const partner = room.members.find((member) => member.id !== me.id);
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
-      <View style={styles.container}>
-        <Text style={[styles.title, { color: colors.text }]}>buddy-chat</Text>
-        <Text style={[styles.subtitle, { color: colors.text }]}>{t('home.tagline')}</Text>
-      </View>
+    <SafeAreaView edges={['top']} style={[styles.screen, { backgroundColor: colors.background }]}>
+      {/*
+        The composer already pads for the home indicator, so the keyboard offset subtracts it.
+        Expo Go has no react-native-keyboard-controller; switch to it once we use dev builds.
+      */}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={-insets.bottom}
+        style={styles.column}
+      >
+        <ChatHeader
+          partnerName={partner ? (partner.displayName ?? '') : null}
+          partnerOnline={partner ? online.includes(partner.id) : false}
+          partnerTyping={partner ? typing.includes(partner.id) : false}
+          connected={status === 'online'}
+          buddy={buddy}
+          onPressBuddy={() => setBuddyOpen(true)}
+          onPressInvite={() => setInviteOpen(true)}
+          onPressSettings={() => router.push('/settings')}
+        />
+        <View style={styles.list}>
+          <MessageList
+            messages={messages}
+            myId={me.id}
+            members={room.members}
+            buddyName={buddy.name}
+            partnerReadId={partner ? reads[partner.id] : undefined}
+            onRetry={retry}
+            onLoadOlder={loadOlder}
+          />
+        </View>
+        <MessageComposer onSend={send} onTyping={notifyTyping} />
+      </KeyboardAvoidingView>
+
+      <BuddySheet
+        visible={buddyOpen}
+        buddy={buddy}
+        busy={busy}
+        onClose={() => setBuddyOpen(false)}
+        onFeed={feed}
+        onClean={clean}
+      />
+      <InviteSheet visible={inviteOpen} onClose={() => setInviteOpen(false)} />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  screen: {
     flex: 1,
     alignItems: 'center',
   },
-  container: {
+  column: {
     flex: 1,
     width: '100%',
     maxWidth: MAX_CONTENT_WIDTH,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingHorizontal: 16,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-  },
-  subtitle: {
-    fontSize: 16,
-    opacity: 0.7,
+  list: {
+    flex: 1,
   },
 });
