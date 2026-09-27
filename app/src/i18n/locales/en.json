@@ -20,7 +20,7 @@
     "google": "Continue with Google",
     "error": "Couldn’t sign in. Please try again.",
     "startNow": "Start now",
-    "noAccountNeeded": "No account needed to start"
+    "noAccountNeeded": "No account needed. Guests can use buddy-chat for 30 days, and linking an account keeps everything."
   },
   "welcome": {
     "title": "A new buddy is about to hatch!",
@@ -101,7 +101,7 @@
     "changeName": "Change name",
     "account": "Account",
     "guestTitle": "Using as a guest",
-    "guestBody": "Link an account to keep your buddy and messages if you change devices or clear your browser data.",
+    "guestBody": "Guests can use buddy-chat for 30 days. Link a Google account to keep your buddy and messages after that, or on a new device.",
     "linkGoogle": "Link Google account",
     "linkNotReady": "Linking an account in the app is coming soon.",
     "linkedGoogle": "Linked to Google",
@@ -121,5 +121,12 @@
     "placeholder": "Name",
     "next": "Next",
     "save": "Save"
+  },
+  "guest": {
+    "expiring_one": "{{count}} day left as a guest",
+    "expiring_other": "{{count}} days left as a guest",
+    "link": "Link account",
+    "daysLeft_one": "{{count}} day left",
+    "daysLeft_other": "{{count}} days left"
   }
 }

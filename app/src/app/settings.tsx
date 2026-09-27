@@ -6,6 +6,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { PageTitle } from '@/components/page-title';
 import { isCancelledSignIn, signOut, switchAccount } from '@/features/auth/actions';
 import { useAuth } from '@/features/auth/auth-provider';
+import { useGuestDaysLeft } from '@/features/auth/guest-expiry';
 import {
   GoogleAccountInUseError,
   googleSignInSupported,
@@ -26,6 +27,7 @@ export default function SettingsScreen() {
   const { state } = useRoom();
   const me = state.status === 'ready' ? state.me : null;
   const guest = !!user?.isAnonymous;
+  const daysLeft = useGuestDaysLeft(user);
 
   // A guest who signs out can never come back to this account; say so first.
   const onSignOut = async () => {
@@ -64,7 +66,7 @@ export default function SettingsScreen() {
           </Pressable>
         </View>
 
-        <AccountCard guest={guest} email={user?.email ?? null} />
+        <AccountCard guest={guest} daysLeft={daysLeft} email={user?.email ?? null} />
 
         {state.status === 'ready' ? <RoomCard room={state.room} myId={state.me.id} /> : null}
 
@@ -97,7 +99,15 @@ export default function SettingsScreen() {
 
 // Guests can keep everything by linking an account: the Firebase uid stays the same, so nothing
 // moves on the server. Offered here rather than at the start, once there is something to keep.
-function AccountCard({ guest, email }: { guest: boolean; email: string | null }) {
+function AccountCard({
+  guest,
+  daysLeft,
+  email,
+}: {
+  guest: boolean;
+  daysLeft: number | null;
+  email: string | null;
+}) {
   const colors = useColors();
   const { t } = useTranslation();
   const [busy, setBusy] = useState(false);
@@ -137,7 +147,10 @@ function AccountCard({ guest, email }: { guest: boolean; email: string | null })
       <Text style={[styles.label, { color: colors.textMuted }]}>{t('settings.account')}</Text>
       {guest ? (
         <>
-          <Text style={[styles.name, { color: colors.text }]}>{t('settings.guestTitle')}</Text>
+          <Text style={[styles.name, { color: colors.text }]}>
+            {t('settings.guestTitle')}
+            {daysLeft !== null ? ` · ${t('guest.daysLeft', { count: daysLeft })}` : ''}
+          </Text>
           <Text
             lineBreakStrategyIOS="hangul-word"
             style={[styles.email, { color: colors.textMuted }]}

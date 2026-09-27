@@ -4,6 +4,9 @@ import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PageTitle } from '@/components/page-title';
+import { useAuth } from '@/features/auth/auth-provider';
+import { GuestExpiryBanner } from '@/features/auth/components/guest-expiry-banner';
+import { useGuestDaysLeft } from '@/features/auth/guest-expiry';
 import { BuddySheet } from '@/features/buddy/components/buddy-sheet';
 import { useBuddy } from '@/features/buddy/use-buddy';
 import { ChatHeader } from '@/features/chat/components/chat-header';
@@ -45,6 +48,8 @@ function ChatScreen({ me, room, onRoomLost, onMembersChanged }: ChatScreenProps)
   const chat = useChat({ myId: me.id, onRoomLost, onMembersChanged, onBuddy: setBuddy });
   const { messages, status, online, typing, reads, unreadWhileAway } = chat;
   const [buddyOpen, setBuddyOpen] = useState(false);
+  const { user } = useAuth();
+  const guestDaysLeft = useGuestDaysLeft(user);
 
   // Asked here rather than at launch: by now the user knows what the app is for.
   useEffect(() => {
@@ -76,6 +81,7 @@ function ChatScreen({ me, room, onRoomLost, onMembersChanged }: ChatScreenProps)
           onPressInvite={() => setInviteOpen(true)}
           onPressSettings={() => router.push('/settings')}
         />
+        <GuestExpiryBanner daysLeft={guestDaysLeft} onPress={() => router.push('/settings')} />
         <View style={styles.list}>
           {chat.loaded && messages.length === 0 ? (
             <EmptyChat
