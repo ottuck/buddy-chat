@@ -45,3 +45,8 @@ spotless {
         removeUnusedImports()
     }
 }
+
+// A fixed name for the Dockerfile.
+tasks.bootJar {
+    archiveFileName = "app.jar"
+}

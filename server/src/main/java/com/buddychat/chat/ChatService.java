@@ -15,6 +15,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -119,18 +120,22 @@ public class ChatService {
                         Message.class)
                 .flatMap(exists -> {
                     if (!exists) return Mono.error(invalid());
-                    // Only a newer id matches. If none does, the upsert tries to insert the same _id
-                    // and hits the existing mark: nothing to move. Hex ObjectIds sort like time.
-                    return mongo.upsert(
-                                    query(where("_id").is(id).and("messageId").lt(messageId)),
-                                    new Update()
-                                            .set("roomId", roomId)
-                                            .set("userId", user.id())
-                                            .set("messageId", messageId)
-                                            .set("updatedAt", Instant.now(clock)),
-                                    ReadMark.class)
+                    // Only an older mark matches (ids compare in timeline order). With no match the
+                    // upsert tries to insert the same _id and hits a duplicate key. That means the
+                    // mark exists, but not that it is newer: concurrent first reads race to create it,
+                    // and an older one may have won. So try once more against the existing mark.
+                    Query older = query(where("_id").is(id).and("messageId").lt(messageId));
+                    Update mark = new Update()
+                            .set("roomId", roomId)
+                            .set("userId", user.id())
+                            .set("messageId", messageId)
+                            .set("updatedAt", Instant.now(clock));
+                    return mongo.upsert(older, mark, ReadMark.class)
                             .thenReturn(true)
-                            .onErrorResume(DuplicateKeyException.class, e -> Mono.just(false));
+                            .onErrorResume(
+                                    DuplicateKeyException.class,
+                                    e -> mongo.updateFirst(older, mark, ReadMark.class)
+                                            .map(result -> result.getModifiedCount() == 1));
                 });
     }
 

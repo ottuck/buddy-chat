@@ -79,7 +79,13 @@ reads        { _id: "<roomId>:<userId>", roomId, userId, messageId, updatedAt }
 - **히스토리**: `{ roomId: 1, _id: -1 }` 인덱스, `_id < cursor` 커서 페이지네이션.
 - **Buddy 상태는 조회 시점에 계산**: 배고픔·똥은 `lastFedAt`·`lastCleanedAt`과 현재 시각으로 계산한다. 스케줄러 없음.
 - 한 사용자는 room 하나에만 속한다(MVP). `users.roomId`로 찾는다.
-- Azure DocumentDB 호환을 위해 트랜잭션, change stream, aggregation 고급 연산자는 쓰지 않는다.
+- MVP에서는 트랜잭션, change stream, 복잡한 aggregation에 기대지 않는다(DocumentDB가 지원하더라도). 단순함,
+  MongoDB 호환 범위를 좁게 유지하기, 이식성 때문이다. 동시성은 조건부 atomic update와 unique 인덱스로 해결한다.
+- **메시지 순서는 `_id` 하나로 정한다.** 히스토리 페이지네이션, 재연결 catch-up, 앱의 타임라인 정렬, 읽음 위치가
+  모두 `_id` 순서를 쓴다. ObjectId는 대략적인 시간순일 뿐이지만(초 단위 + 프로세스별 random + counter) 한 서버
+  프로세스 안에서는 counter 덕분에 계속 커진다. 레플리카가 1개라 어긋날 수 있는 건 재배포 순간 두 프로세스가 같은
+  초에 만든 메시지뿐이고, 그래도 모든 기능이 같은 순서를 보므로 서로 모순되지 않는다. 정확한 순서가 필요해지면
+  room별 sequence를 도입한다.
 
 ## REST API
 
@@ -125,15 +131,20 @@ server → client
 
 - 에러 코드: `UNAUTHORIZED`(토큰 불량·첫 메시지가 auth가 아님), `AUTH_TIMEOUT`, `ROOM_NOT_FOUND`(room 없음) → 연결 종료.
   `INVALID_MESSAGE`(빈 문자열·2000자 초과, `clientMessageId` 포함), `INVALID_EVENT`(읽을 수 없는 메시지),
-  `INVALID_REQUEST`(다른 room이나 없는 메시지를 읽음 처리) → 연결 유지.
+  `INVALID_REQUEST`(다른 room이나 없는 메시지를 읽음 처리) → 연결 유지. `TOKEN_EXPIRED` → 연결 종료(앱이 재연결).
+- 토큰은 연결할 때 한 번 확인한다. 토큰의 `exp`가 되면 서버가 `TOKEN_EXPIRED`를 보내고 연결을 닫는다. 앱은 재연결하면서
+  Firebase에서 새 토큰을 받아 다시 인증한다. 즉시 폐기(로그아웃·정지) 확인은 하지 않고 토큰 수명(1시간)만큼 늦는 걸 허용한다.
 - 연결은 인증 시점의 room에 묶인다. 초대를 수락해 room이 바뀌면 앱이 다시 연결한다.
 - 한 연결의 이벤트는 순서대로 처리한다(보낸 순서 = 저장 순서).
 - 재연결하면 클라이언트는 마지막으로 받은 메시지 이후를 REST로 채우고, ack 못 받은 메시지를 같은 `clientMessageId`로 다시 보낸다.
 - 세션·presence·typing은 서버 메모리에만 둔다(아래 인프라). 재배포하면 사라지는 것을 전제로 한다.
   presence는 연결에서 계산한다(한 사람이 기기 여러 대로 접속해도 하나로 본다). 한 room의 입장·퇴장은 순서대로
   처리해서 online/offline 이벤트 순서가 뒤바뀌지 않는다.
-- 읽음은 `reads` 컬렉션에 멤버별로 저장하고 앞으로만 움직인다: `messageId < 새 id` 조건부 upsert. 이미 같거나
-  더 뒤면 upsert가 같은 `_id`에 걸려(중복 키) 아무것도 바뀌지 않는다. ObjectId 16진 문자열은 시간순으로 정렬된다.
+- 읽음은 `reads` 컬렉션에 멤버별로 저장하고 앞으로만 움직인다: `messageId < 새 id` 조건부 upsert. 맞는 문서가
+  없으면 upsert가 같은 `_id`로 insert하려다 중복 키에 걸린다. 중복 키는 "이미 있다"는 뜻일 뿐 "더 뒤다"는 뜻이 아니다:
+  첫 읽음이 동시에 오면 더 오래된 쪽이 먼저 insert할 수 있다. 그래서 중복 키면 같은 조건으로 한 번 더(upsert 없이)
+  update한다. 비교는 타임라인과 같은 `_id` 순서다(위 컬렉션
+  참고, 16진 문자열 비교 = ObjectId 비교).
   앱은 상대가 읽은 위치 이하인 내 메시지 중 가장 최근 것에 "읽음"을 표시한다.
 - Container Apps의 유휴 연결 타임아웃 때문에 서버가 25초마다 ping 프레임을 보낸다.
 
@@ -149,17 +160,45 @@ iPhone / Web ──HTTPS·WSS──▶ Azure Container Apps (Spring WebFlux, Doc
   걸림)가 채팅 UX를 해치면 `1`로 올린다. 재배포하면 메모리의 연결·presence·typing이 사라지므로 앱은 재연결을
   전제로 한다. 유휴 연결 타임아웃 때문에 서버가 25초마다 ping을 보낸다.
 - **DB**: Azure DocumentDB. MongoDB 자체가 아니라 MongoDB 호환이므로 CRUD, 인덱스 조회, 커서 페이지네이션,
-  조건부 atomic update, unique 인덱스만 쓴다. 트랜잭션·change stream·고급 aggregation은 쓰지 않는다.
+  조건부 atomic update, unique 인덱스만 쓴다(위 컬렉션 참고).
   README 등에는 "Azure DocumentDB (MongoDB-compatible)"로 적는다. 확인할 것은 마일스톤 S7 참고.
 - **Redis는 쓰지 않는다.** 레플리카가 1개라 세션·presence·typing은 프로세스 메모리로 충분하다. 수평 확장이
   필요해지면 `RoomHub.publish` 뒤에 Redis Pub/Sub을 둔다.
 - **Blob Storage는 쓰지 않는다.** 사진 첨부가 MVP 밖이다. 나중에 넣으면 바이너리는 Blob, 메타데이터만 DB.
-- **Terraform**으로 Resource Group, Container Apps Environment·App, Container Registry, DocumentDB를 관리한다
-  (필요하면 Log Analytics, Budget alert). 재현 가능한 배포에 필요한 만큼만.
-- **배포**: GitHub Actions에서 test → build → Docker 이미지 → ACR → Container Apps.
+- **ur-manager와 공유하는 것은 Container Registry(`acurmanagerur26jp01`, 이미지 `buddy-chat/server`), Container Apps
+  환경(`cae-ur-manager-prod`), tfstate Storage Account(`sturmanagerur26jp01`, buddy-chat 전용 container
+  `buddy-chat-tfstate`)다.** 구독에 리전당 Container Apps 환경이 하나만 허용되고 Japan East는 ur-manager가 쓰고 있다.
+  셋 다 ur-manager Terraform 소유이고 buddy-chat Terraform은 `data`로 읽기만 한다. 같은 환경의 앱은 VNet과 로그
+  대상(ur-manager의 Log Analytics)을 공유한다. Resource Group(`rg-buddy-chat-prod`), Container App, DocumentDB,
+  Managed Identity, secret, 배포 권한은 전부 buddy-chat 것이다. buddy-chat을 destroy해도 ur-manager에 영향이 없다.
+- **Terraform**(`infra/`): RG, DocumentDB(free tier) + 방화벽, Container App, 이미지 pull용 identity(공유 ACR에
+  AcrPull), 배포용 identity. 재현 가능한 배포에 필요한 만큼만.
+- **배포**(`.github/workflows/deploy.yml`): main에서 CI가 통과하면 buddy-chat 전용 배포 identity로 OIDC 로그인
+  (저장된 비밀 없음) → 이미지 빌드·push → `az containerapp update` → health 확인. 권한은 공유 ACR에 AcrPush,
+  buddy-chat Container App에 Contributor뿐이다. 이미지 태그는 `server/` 트리 해시라서 앱만 바뀐 push는
+  재배포하지 않는다(새 리비전은 모든 WebSocket을 끊는다). 이미지는 Terraform이 아니라 이 workflow가 바꾼다.
+- **DocumentDB 방화벽은 MVP용으로 일부러 넓게 열었다**: 포털의 "Azure 서비스 허용"과 같은 0.0.0.0 규칙이라 다른
+  고객의 Azure 리소스에서도 네트워크상으로는 닿는다. Container Apps(consumption)는 나가는 IP가 고정이 아니어서
+  좁힐 방법이 마땅치 않다. 접속에는 비밀번호(32자, Terraform이 만들어 Container App secret으로만 전달)와 TLS가
+  필요하다. 사용자가 늘거나 민감한 데이터가 생기면 VNet 통합 + Private Endpoint로 바꾼다.
+- tfstate(`buddy-chat-tfstate`)는 비공개 container다. 계정 단위로 공개 접근과 shared key가 꺼져 있어 Entra RBAC로만
+  읽는다. state에 DB 비밀번호가 들어 있다. 단, 같은 Storage Account를 쓰는 ur-manager 배포 principal도 계정 범위의
+  Blob 권한이 있어 읽을 수 있다(공유의 대가, 필요하면 그쪽 권한을 container 범위로 좁힌다).
 - **리전**: 일본 사용자 우선이라 Japan East(서비스별 지원·무료 조건은 만들 때 확인).
 - 쓰지 않는 것: Redis, Blob Storage, VM, self-hosted MongoDB, MongoDB Atlas, Cosmos DB for MongoDB, Firestore,
   Kafka, Kubernetes/AKS.
+
+### 공유 인프라 이름 (정책만 정함, 적용은 나중에)
+
+개인 Azure 구독을 여러 사이드 프로젝트가 같이 쓰고 앞으로 더 늘어난다. 지금 공유 중인 ACR·Container Apps 환경·tfstate
+Storage는 이름이 ur-manager에 묶여 있어(`cae-ur-manager-prod` 안에 buddy-chat이 들어가 있는 식) 실제 역할과 어긋난다.
+
+- 공유 리소스: `<type>-personal-<env>-<region>` — 예: `cae-personal-prod-jpe`, `log-personal-prod-jpe`, ACR은 `acrpersonal…`
+  (ACR·Storage는 하이픈 불가, 전역 고유)
+- 프로젝트 전용 리소스: `<type>-<project>-<env>` — 예: `ca-buddy-chat-prod`, `id-buddy-chat-prod`, `ca-ur-manager-prod`
+- 지금은 이름을 바꾸지 않는다. Azure 리소스는 이름을 바꾸려면 대개 새로 만들고 옮겨야 한다(환경은 새 환경 생성 → 앱 이동).
+  S7 뒤 별도 인프라 정리 작업으로, 공유 리소스를 한 번에 맞출 필요 없이 하나씩 옮긴다. 공유 리소스는 별도 Terraform
+  (공용 state)이 소유하고, 각 프로젝트는 `data`로 읽는 구조는 그대로 둔다.
 
 ## 마일스톤
 
@@ -169,8 +208,12 @@ iPhone / Web ──HTTPS·WSS──▶ Azure Container Apps (Spring WebFlux, Doc
 4. **S4 앱 연결**: 목업을 서버 데이터로 교체, 재연결
 5. **S5 Buddy**: 서버 규칙, 밥주기·청소(동시성), 타임라인 이벤트, 메시지 EXP 하루 상한
 6. **S6 Presence·Typing·Read**
-7. **S7 배포**: Container Apps, DocumentDB, Terraform. DocumentDB에서 확인할 것: unique 인덱스가 null/없는
-   필드(Buddy 이벤트의 `senderId`)를 MongoDB처럼 하나의 값으로 다루는지, `$or` 조건부 update가 같은지
+7. **S7 배포**: Container Apps, DocumentDB, Terraform. 배포 후 확인할 것:
+   - WebSocket을 15분 이상 유지: 25초 ping이 계속되고, 그 뒤 메시지를 보내고 받는다. 일반 HTTP 요청 timeout(240초)이나
+     유휴 timeout이 업그레이드된 연결에 어떻게 적용되는지 문서로 가정하지 않고 실제로 본다.
+   - 아이폰 백그라운드 → 포그라운드 → 재연결(2026-09-27 확인: 웹에서 보낸 메시지를 복귀 즉시 받음), 토큰 만료 뒤 재연결
+   - DocumentDB: unique 인덱스가 null/없는 필드(Buddy 이벤트의 `senderId`)를 MongoDB처럼 하나의 값으로 다루는지,
+     `$or` 조건부 update, 중복 키 upsert(읽음 위치)가 같은지
 8. **S8 Push**: FCM / APNs. 상대가 오프라인일 때 상대 메시지만 알린다(Buddy 알림 없음).
    iOS는 결국 APNs를 거치므로 `expo-notifications`로 할지 FCM으로 할지 이때 정한다. 개발용 빌드와
    Apple Developer Program이 필요하다. Firebase Admin SDK는 이때 도입한다.

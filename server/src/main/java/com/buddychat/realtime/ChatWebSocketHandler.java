@@ -5,6 +5,8 @@ import com.buddychat.chat.ChatService;
 import com.buddychat.common.ApiException;
 import com.buddychat.user.User;
 import com.buddychat.user.UserService;
+import java.time.Duration;
+import java.time.Instant;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +17,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.socket.WebSocketHandler;
 import org.springframework.web.reactive.socket.WebSocketMessage;
 import org.springframework.web.reactive.socket.WebSocketSession;
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
@@ -34,6 +37,8 @@ import tools.jackson.databind.json.JsonMapper;
 class ChatWebSocketHandler implements WebSocketHandler {
 
     private static final Logger log = LoggerFactory.getLogger(ChatWebSocketHandler.class);
+    // Firebase tokens always carry exp (1 hour); this only bounds a token without one.
+    private static final Duration MAX_SESSION = Duration.ofHours(1);
 
     private final ReactiveJwtDecoder jwtDecoder;
     private final UserService userService;
@@ -86,9 +91,10 @@ class ChatWebSocketHandler implements WebSocketHandler {
                         return reject(preAuth, outboundSource, "UNAUTHORIZED");
                     }
                     return authenticate(auth.token())
-                            .zipWhen(user -> chatService.readMarks(user.roomId()))
+                            .zipWhen(signedIn ->
+                                    chatService.readMarks(signedIn.user().roomId()))
                             .flatMapMany(authenticated -> {
-                                User user = authenticated.getT1();
+                                User user = authenticated.getT1().user();
                                 RoomHub.Connection connection = new RoomHub.Connection(user.id(), user.roomId());
                                 // Loses only if the auth deadline already rejected this socket.
                                 if (outboundSource
@@ -110,10 +116,19 @@ class ChatWebSocketHandler implements WebSocketHandler {
                                         .observe(user.roomId())
                                         .onErrorResume(e -> Mono.empty())
                                         .then();
+                                // The token was checked once, at connect. When it expires the socket
+                                // closes; the app reconnects with a fresh one. (Not a timeout on the
+                                // input, which would drop the socket before the error is written.)
+                                Disposable expiry = Mono.delay(untilExpiry(authenticated.getT1()))
+                                        .subscribe(tick -> {
+                                            connection.emit(new ServerEvent.Error("TOKEN_EXPIRED", null));
+                                            connection.complete();
+                                        });
                                 return noticeBuddy
                                         .thenMany(rest.skip(1))
                                         .concatMap(text -> onEvent(connection, user, text))
                                         .doFinally(signal -> {
+                                            expiry.dispose();
                                             hub.leave(connection);
                                             connection.complete();
                                         });
@@ -149,13 +164,22 @@ class ChatWebSocketHandler implements WebSocketHandler {
         return Mono.when(input, output, authDeadline);
     }
 
-    private Mono<User> authenticate(String token) {
+    private record SignedIn(User user, @Nullable Instant expiresAt) {}
+
+    private Mono<SignedIn> authenticate(String token) {
         return jwtDecoder
                 .decode(token)
-                .flatMap(userService::current)
-                .flatMap(user -> user.roomId() == null
-                        ? Mono.error(new ApiException(HttpStatus.CONFLICT, "ROOM_NOT_FOUND"))
-                        : Mono.just(user));
+                .flatMap(jwt -> userService
+                        .current(jwt)
+                        .flatMap(user -> user.roomId() == null
+                                ? Mono.error(new ApiException(HttpStatus.CONFLICT, "ROOM_NOT_FOUND"))
+                                : Mono.just(new SignedIn(user, jwt.getExpiresAt()))));
+    }
+
+    private static Duration untilExpiry(SignedIn signedIn) {
+        if (signedIn.expiresAt() == null) return MAX_SESSION;
+        Duration left = Duration.between(Instant.now(), signedIn.expiresAt());
+        return left.isNegative() ? Duration.ZERO : left;
     }
 
     private Mono<Void> onEvent(RoomHub.Connection connection, User user, String text) {

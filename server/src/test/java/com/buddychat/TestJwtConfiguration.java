@@ -28,6 +28,8 @@ public class TestJwtConfiguration {
         return token -> {
             // "slow-…" tokens take a while to verify, like the first check that fetches Google's keys.
             Duration delay = token.startsWith("slow-") ? Duration.ofMillis(3500) : Duration.ZERO;
+            // "short-…" tokens expire 2 seconds after they are checked.
+            Duration lifetime = token.startsWith("short-") ? Duration.ofSeconds(2) : Duration.ofHours(1);
             int bar = token.indexOf('~');
             if (bar < 0) return Mono.error(new BadJwtException("invalid test token"));
             return Mono.just(Jwt.withTokenValue(token)
@@ -35,7 +37,7 @@ public class TestJwtConfiguration {
                             .subject(token.substring(0, bar))
                             .claim("name", token.substring(bar + 1))
                             .issuedAt(Instant.now())
-                            .expiresAt(Instant.now().plusSeconds(3600))
+                            .expiresAt(Instant.now().plus(lifetime))
                             .build())
                     .delayElement(delay);
         };

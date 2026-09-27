@@ -238,6 +238,15 @@ class ChatFlowTest {
     }
 
     @Test
+    void closesTheConnectionWhenItsTokenExpires() {
+        createRoom("short-henry");
+        TestSocket socket = connect("short-henry");
+
+        assertThat(socket.expect("error").get("code").asString()).isEqualTo("TOKEN_EXPIRED");
+        assertThat(socket.awaitClosed()).isTrue();
+    }
+
+    @Test
     void userWithoutRoomCannotConnect() {
         TestSocket socket = open().send(Map.of("type", "auth", "token", token("loner")));
 
