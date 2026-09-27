@@ -57,7 +57,7 @@ Yuki:  니가 치워
 
 | 영역 | 포함 | 상태 |
 | --- | --- | --- |
-| 인증 | 로그인, 로그아웃, 프로필(표시 이름) | Google(web)·게스트(개발용) 됨. **Apple 로그인은 필수**(소셜 로그인을 넣으면 App Store 규정상 함께 제공) — 개발용 빌드부터 |
+| 인증 | 로그인, 로그아웃, 프로필(표시 이름) | Google(web)·게스트(개발용) 됨. iOS에서도 Google 로그인을 주 로그인으로 제공하므로 App Store Guideline 4.8에 맞춰 **Sign in with Apple을 함께 제공**한다 — 개발용 빌드부터 |
 | Room | 만들기, solo, 초대 코드, 참가, 최대 2명 | 됨. 나가기는 아직 없음 |
 | Chat | 실시간 텍스트, 히스토리·페이지네이션, 재연결, 중복 방지, 읽음, 입력 중, 접속 표시 | 됨 |
 | Chat | 푸시 알림 | S8 |
@@ -86,5 +86,5 @@ Buddy 때문에 가끔 웃긴 상황이 생긴다.
 ## 포트폴리오로서
 
 poke-chat(Express + Socket.IO, 익명 글로벌 채팅, 프로토타입)을 새로 설계한 프로젝트다. 보여줄 것: Spring WebFlux로
-장시간 연결을 다루는 reactive 서버, WebSocket, 재연결과 멱등성, 트랜잭션 없는 동시성(조건부 update + unique 인덱스),
+장시간 연결을 다루는 reactive 서버, WebSocket, 재연결과 멱등성, 트랜잭션에 기대지 않는 동시성(조건부 update + unique 인덱스),
 presence, 푸시, 모바일 생명주기, 크로스플랫폼. README에서 poke-chat → buddy-chat Before / After를 보여줄 수 있다.

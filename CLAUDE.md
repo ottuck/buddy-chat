@@ -69,8 +69,8 @@
   사용자 식별은 항상 토큰의 `sub`(uid). 클라이언트가 보낸 id를 믿지 않는다.
 - 문서에 필드를 추가하면 기존 문서에는 그 필드가 없다. 새 필드는 nullable(래퍼 타입)로 두고 없는 경우를 처리한다.
 - 인덱스는 auto index creation 대신 모듈별 `*Indexes` 클래스에서 명시적으로 만든다.
-- Azure DocumentDB(MongoDB 호환)를 전제로, 트랜잭션·change stream·고급 aggregation은 쓰지 않는다.
-  동시성은 조건부 atomic update와 unique 인덱스로 해결한다.
+- 운영 DB는 Azure DocumentDB(MongoDB 호환). 트랜잭션·change stream·복잡한 aggregation에 기대지 않는다(지원 여부와 별개로
+  단순함과 호환 범위 때문). 동시성은 조건부 atomic update와 unique 인덱스로 해결한다. 메시지 순서는 `_id` 하나로 정한다.
 - 모듈끼리는 service로만 호출한다. 다른 모듈의 repository를 직접 쓰지 않는다.
 - 동시성·멱등성·권한은 테스트로 보여준다(초대 경쟁, 메시지 중복, 동시 밥주기·청소, 남의 room 접근, 읽음 위치).
 

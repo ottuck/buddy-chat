@@ -79,7 +79,13 @@ reads        { _id: "<roomId>:<userId>", roomId, userId, messageId, updatedAt }
 - **히스토리**: `{ roomId: 1, _id: -1 }` 인덱스, `_id < cursor` 커서 페이지네이션.
 - **Buddy 상태는 조회 시점에 계산**: 배고픔·똥은 `lastFedAt`·`lastCleanedAt`과 현재 시각으로 계산한다. 스케줄러 없음.
 - 한 사용자는 room 하나에만 속한다(MVP). `users.roomId`로 찾는다.
-- Azure DocumentDB 호환을 위해 트랜잭션, change stream, aggregation 고급 연산자는 쓰지 않는다.
+- MVP에서는 트랜잭션, change stream, 복잡한 aggregation에 기대지 않는다(DocumentDB가 지원하더라도). 단순함,
+  MongoDB 호환 범위를 좁게 유지하기, 이식성 때문이다. 동시성은 조건부 atomic update와 unique 인덱스로 해결한다.
+- **메시지 순서는 `_id` 하나로 정한다.** 히스토리 페이지네이션, 재연결 catch-up, 앱의 타임라인 정렬, 읽음 위치가
+  모두 `_id` 순서를 쓴다. ObjectId는 대략적인 시간순일 뿐이지만(초 단위 + 프로세스별 random + counter) 한 서버
+  프로세스 안에서는 counter 덕분에 계속 커진다. 레플리카가 1개라 어긋날 수 있는 건 재배포 순간 두 프로세스가 같은
+  초에 만든 메시지뿐이고, 그래도 모든 기능이 같은 순서를 보므로 서로 모순되지 않는다. 정확한 순서가 필요해지면
+  room별 sequence를 도입한다.
 
 ## REST API
 
@@ -125,7 +131,9 @@ server → client
 
 - 에러 코드: `UNAUTHORIZED`(토큰 불량·첫 메시지가 auth가 아님), `AUTH_TIMEOUT`, `ROOM_NOT_FOUND`(room 없음) → 연결 종료.
   `INVALID_MESSAGE`(빈 문자열·2000자 초과, `clientMessageId` 포함), `INVALID_EVENT`(읽을 수 없는 메시지),
-  `INVALID_REQUEST`(다른 room이나 없는 메시지를 읽음 처리) → 연결 유지.
+  `INVALID_REQUEST`(다른 room이나 없는 메시지를 읽음 처리) → 연결 유지. `TOKEN_EXPIRED` → 연결 종료(앱이 재연결).
+- 토큰은 연결할 때 한 번 확인한다. 토큰의 `exp`가 되면 서버가 `TOKEN_EXPIRED`를 보내고 연결을 닫는다. 앱은 재연결하면서
+  Firebase에서 새 토큰을 받아 다시 인증한다. 즉시 폐기(로그아웃·정지) 확인은 하지 않고 토큰 수명(1시간)만큼 늦는 걸 허용한다.
 - 연결은 인증 시점의 room에 묶인다. 초대를 수락해 room이 바뀌면 앱이 다시 연결한다.
 - 한 연결의 이벤트는 순서대로 처리한다(보낸 순서 = 저장 순서).
 - 재연결하면 클라이언트는 마지막으로 받은 메시지 이후를 REST로 채우고, ack 못 받은 메시지를 같은 `clientMessageId`로 다시 보낸다.
@@ -133,7 +141,8 @@ server → client
   presence는 연결에서 계산한다(한 사람이 기기 여러 대로 접속해도 하나로 본다). 한 room의 입장·퇴장은 순서대로
   처리해서 online/offline 이벤트 순서가 뒤바뀌지 않는다.
 - 읽음은 `reads` 컬렉션에 멤버별로 저장하고 앞으로만 움직인다: `messageId < 새 id` 조건부 upsert. 이미 같거나
-  더 뒤면 upsert가 같은 `_id`에 걸려(중복 키) 아무것도 바뀌지 않는다. ObjectId 16진 문자열은 시간순으로 정렬된다.
+  더 뒤면 upsert가 같은 `_id`에 걸려(중복 키) 아무것도 바뀌지 않는다. 비교는 타임라인과 같은 `_id` 순서다(위 컬렉션
+  참고, 16진 문자열 비교 = ObjectId 비교).
   앱은 상대가 읽은 위치 이하인 내 메시지 중 가장 최근 것에 "읽음"을 표시한다.
 - Container Apps의 유휴 연결 타임아웃 때문에 서버가 25초마다 ping 프레임을 보낸다.
 
@@ -149,7 +158,7 @@ iPhone / Web ──HTTPS·WSS──▶ Azure Container Apps (Spring WebFlux, Doc
   걸림)가 채팅 UX를 해치면 `1`로 올린다. 재배포하면 메모리의 연결·presence·typing이 사라지므로 앱은 재연결을
   전제로 한다. 유휴 연결 타임아웃 때문에 서버가 25초마다 ping을 보낸다.
 - **DB**: Azure DocumentDB. MongoDB 자체가 아니라 MongoDB 호환이므로 CRUD, 인덱스 조회, 커서 페이지네이션,
-  조건부 atomic update, unique 인덱스만 쓴다. 트랜잭션·change stream·고급 aggregation은 쓰지 않는다.
+  조건부 atomic update, unique 인덱스만 쓴다(위 컬렉션 참고).
   README 등에는 "Azure DocumentDB (MongoDB-compatible)"로 적는다. 확인할 것은 마일스톤 S7 참고.
 - **Redis는 쓰지 않는다.** 레플리카가 1개라 세션·presence·typing은 프로세스 메모리로 충분하다. 수평 확장이
   필요해지면 `RoomHub.publish` 뒤에 Redis Pub/Sub을 둔다.
@@ -178,8 +187,12 @@ iPhone / Web ──HTTPS·WSS──▶ Azure Container Apps (Spring WebFlux, Doc
 4. **S4 앱 연결**: 목업을 서버 데이터로 교체, 재연결
 5. **S5 Buddy**: 서버 규칙, 밥주기·청소(동시성), 타임라인 이벤트, 메시지 EXP 하루 상한
 6. **S6 Presence·Typing·Read**
-7. **S7 배포**: Container Apps, DocumentDB, Terraform. DocumentDB에서 확인할 것: unique 인덱스가 null/없는
-   필드(Buddy 이벤트의 `senderId`)를 MongoDB처럼 하나의 값으로 다루는지, `$or` 조건부 update가 같은지
+7. **S7 배포**: Container Apps, DocumentDB, Terraform. 배포 후 확인할 것:
+   - WebSocket을 15분 이상 유지: 25초 ping이 계속되고, 그 뒤 메시지를 보내고 받는다. 일반 HTTP 요청 timeout(240초)이나
+     유휴 timeout이 업그레이드된 연결에 어떻게 적용되는지 문서로 가정하지 않고 실제로 본다.
+   - 아이폰 백그라운드 → 포그라운드 → 재연결, 토큰 만료 뒤 재연결
+   - DocumentDB: unique 인덱스가 null/없는 필드(Buddy 이벤트의 `senderId`)를 MongoDB처럼 하나의 값으로 다루는지,
+     `$or` 조건부 update, 중복 키 upsert(읽음 위치)가 같은지
 8. **S8 Push**: FCM / APNs. 상대가 오프라인일 때 상대 메시지만 알린다(Buddy 알림 없음).
    iOS는 결국 APNs를 거치므로 `expo-notifications`로 할지 FCM으로 할지 이때 정한다. 개발용 빌드와
    Apple Developer Program이 필요하다. Firebase Admin SDK는 이때 도입한다.
