@@ -66,17 +66,18 @@
     "hungry": "배고파요",
     "full": "배불러요",
     "cleanliness": "청결",
-    "dirty": "더러워요",
     "clean": "깨끗해요",
     "feed": "밥주기",
     "cleanUp": "청소하기",
-    "growthHint": "대화하고 돌봐줄수록 Buddy가 성장해요."
+    "growthHint": "대화하고 돌봐줄수록 Buddy가 성장해요.",
+    "peckish": "조금 출출해요"
   },
   "buddyEvent": {
     "HUNGRY": "{{buddy}}가 배고파졌어요 🍚",
     "FED": "{{actor}}님이 {{buddy}}에게 밥을 줬어요",
     "POOPED": "{{buddy}}가 💩을 쌌어요",
-    "CLEANED": "{{actor}}님이 {{buddy}}의 💩을 치웠어요"
+    "CLEANED": "{{actor}}님이 {{buddy}}의 💩을 치웠어요",
+    "EVOLVED": "{{buddy}}가 진화했어요! ✨"
   },
   "settings": {
     "title": "설정",

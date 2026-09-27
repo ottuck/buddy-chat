@@ -34,6 +34,7 @@
 - `features/chat/use-chat.ts`: 타임라인 상태. 재연결하면 놓친 메시지를 `after`로 채우고, ack 못 받은 메시지를 같은
   `clientMessageId`로 다시 보낸다. 서버 에러 코드의 문구는 `errors.*` 번역 키로 보여준다.
 - web은 Node에서 미리 렌더링되므로 모듈 최상위에서 `window`에 접근하지 않는다.
+- Buddy 상태(레벨, 배고픔, 똥, 돌볼 수 있는지)는 서버가 계산한 `BuddyView`를 그대로 보여준다. 앱에서 규칙을 다시 계산하지 않는다.
 
 ## Auth
 
@@ -55,6 +56,7 @@
 - reactive chain 안에서 blocking I/O를 하지 않는다. 앱 시작 시 인덱스 생성처럼 트래픽 전 1회성 작업만 예외.
 - Firebase ID token은 Admin SDK가 아니라 Spring Security reactive JWT로 검증한다(`auth/FirebaseJwtConfig`).
   사용자 식별은 항상 토큰의 `sub`(uid). 클라이언트가 보낸 id를 믿지 않는다.
+- 문서에 필드를 추가하면 기존 문서에는 그 필드가 없다. 새 필드는 nullable(래퍼 타입)로 두고 없는 경우를 처리한다.
 - 인덱스는 auto index creation 대신 모듈별 `*Indexes` 클래스에서 명시적으로 만든다.
 - Azure DocumentDB(MongoDB 호환)를 전제로, 트랜잭션·change stream·고급 aggregation은 쓰지 않는다.
   동시성은 조건부 atomic update와 unique 인덱스로 해결한다.

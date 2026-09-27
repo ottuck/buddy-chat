@@ -66,17 +66,18 @@
     "hungry": "Hungry",
     "full": "Full",
     "cleanliness": "Cleanliness",
-    "dirty": "Needs cleaning",
     "clean": "Clean",
     "feed": "Feed",
     "cleanUp": "Clean up",
-    "growthHint": "The more you chat and take care of it, the more it grows."
+    "growthHint": "The more you chat and take care of it, the more it grows.",
+    "peckish": "Could eat"
   },
   "buddyEvent": {
     "HUNGRY": "{{buddy}} is hungry 🍚",
     "FED": "{{actor}} fed {{buddy}}",
     "POOPED": "{{buddy}} pooped 💩",
-    "CLEANED": "{{actor}} cleaned up after {{buddy}}"
+    "CLEANED": "{{actor}} cleaned up after {{buddy}}",
+    "EVOLVED": "{{buddy}} evolved! ✨"
   },
   "settings": {
     "title": "Settings",

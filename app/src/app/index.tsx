@@ -38,12 +38,13 @@ type ChatScreenProps = {
 function ChatScreen({ me, room, onRoomLost, onMemberJoined }: ChatScreenProps) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { buddy, busy, setBuddy, feed, clean } = useBuddy(room.buddy);
   const { messages, status, send, retry, loadOlder } = useChat({
     myId: me.id,
     onRoomLost,
     onMemberJoined,
+    onBuddy: setBuddy,
   });
-  const { buddy, feed, clean } = useBuddy(room.buddy);
   const [buddyOpen, setBuddyOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const partner = room.members.find((member) => member.id !== me.id);
@@ -83,6 +84,7 @@ function ChatScreen({ me, room, onRoomLost, onMemberJoined }: ChatScreenProps) {
       <BuddySheet
         visible={buddyOpen}
         buddy={buddy}
+        busy={busy}
         onClose={() => setBuddyOpen(false)}
         onFeed={feed}
         onClean={clean}

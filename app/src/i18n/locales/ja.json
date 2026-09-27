@@ -66,17 +66,18 @@
     "hungry": "はらぺこ",
     "full": "まんぷく",
     "cleanliness": "きれいさ",
-    "dirty": "よごれてる",
     "clean": "きれい",
     "feed": "ごはん",
     "cleanUp": "おそうじ",
-    "growthHint": "おしゃべりしたりお世話したりするほど、大きくなります。"
+    "growthHint": "おしゃべりしたりお世話したりするほど、大きくなります。",
+    "peckish": "ちょっと小腹"
   },
   "buddyEvent": {
     "HUNGRY": "{{buddy}}がおなかをすかせています 🍚",
     "FED": "{{actor}}が{{buddy}}にごはんをあげました",
     "POOPED": "{{buddy}}がうんちをしました 💩",
-    "CLEANED": "{{actor}}が{{buddy}}のうんちを片付けました"
+    "CLEANED": "{{actor}}が{{buddy}}のうんちを片付けました",
+    "EVOLVED": "{{buddy}}が進化しました！✨"
   },
   "settings": {
     "title": "設定",

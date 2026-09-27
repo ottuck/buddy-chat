@@ -1,10 +1,10 @@
+import type { BuddyView } from '@/features/buddy/api';
 import { api } from '@/lib/api';
 
 // Shapes returned by the server (server/src/main/java/com/buddychat/room/RoomView.java).
 export type Me = { id: string; displayName: string | null; roomId: string | null };
 export type RoomMember = { id: string; displayName: string | null };
-export type ServerBuddy = { name: string; exp: number; bornAt: string };
-export type Room = { id: string; members: RoomMember[]; buddy: ServerBuddy; createdAt: string };
+export type Room = { id: string; members: RoomMember[]; buddy: BuddyView; createdAt: string };
 export type Invitation = { code: string; expiresAt: string };
 
 export const fetchMe = () => api<Me>('/api/me');

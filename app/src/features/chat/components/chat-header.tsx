@@ -3,21 +3,14 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ProgressBar } from '@/components/progress-bar';
 import { BuddyAvatar } from '@/features/buddy/components/buddy-avatar';
-import {
-  type Buddy,
-  canClean,
-  canFeed,
-  levelOf,
-  levelProgress,
-  stageOf,
-} from '@/features/buddy/rules';
+import type { BuddyView } from '@/features/buddy/api';
 import { useColors } from '@/theme';
 
 type Props = {
   // null in a solo room: an invite button takes the partner's place.
   partnerName: string | null;
   connected: boolean;
-  buddy: Buddy;
+  buddy: BuddyView;
   onPressBuddy: () => void;
   onPressInvite: () => void;
   onPressSettings: () => void;
@@ -33,7 +26,6 @@ export function ChatHeader({
 }: Props) {
   const colors = useColors();
   const { t } = useTranslation();
-  const level = levelOf(buddy.exp);
 
   return (
     <View style={[styles.container, { borderColor: colors.border }]}>
@@ -83,16 +75,16 @@ export function ChatHeader({
           { backgroundColor: colors.surface, opacity: pressed ? 0.7 : 1 },
         ]}
       >
-        <BuddyAvatar stage={stageOf(level)} size={18} />
+        <BuddyAvatar stage={buddy.stage} size={18} />
         <Text style={[styles.buddyName, { color: colors.text }]} numberOfLines={1}>
           {buddy.name}
         </Text>
         <Text style={[styles.buddyLevel, { color: colors.textMuted }]}>
-          {t('buddy.level', { level })}
+          {t('buddy.level', { level: buddy.level })}
         </Text>
-        <ProgressBar progress={levelProgress(buddy.exp)} />
-        {canFeed(buddy) ? <Text style={styles.status}>🍚</Text> : null}
-        {canClean(buddy) ? <Text style={styles.status}>💩</Text> : null}
+        <ProgressBar progress={buddy.levelProgress} />
+        {buddy.hungry ? <Text style={styles.status}>🍚</Text> : null}
+        {buddy.poops > 0 ? <Text style={styles.status}>{'💩'.repeat(buddy.poops)}</Text> : null}
       </Pressable>
     </View>
   );

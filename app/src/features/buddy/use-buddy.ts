@@ -1,16 +1,29 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 
-import { type Buddy, clean, feed } from './rules';
+import { type BuddyView, cleanBuddy, feedBuddy } from './api';
 
-// Name and EXP come from the server. Hunger and cleanliness are still local placeholders (a bit
-// hungry, just pooped) until the server owns buddy care (docs/server-design.md, S5).
-export function useBuddy({ name, exp }: { name: string; exp: number }) {
-  const [buddy, setBuddy] = useState<Buddy>({ name, exp, fullness: 55, cleanliness: 30 });
+// The room's buddy, kept current by care responses and the socket's `buddy` events. The timeline
+// events (FED, CLEANED, …) arrive through the chat as messages.
+export function useBuddy(initial: BuddyView) {
+  const [buddy, setBuddy] = useState(initial);
+  const [busy, setBusy] = useState(false);
+
+  const run = useCallback(async (action: typeof feedBuddy) => {
+    setBusy(true);
+    try {
+      setBuddy((await action()).buddy);
+    } catch (e) {
+      console.warn('buddy care failed', e);
+    } finally {
+      setBusy(false);
+    }
+  }, []);
 
   return {
     buddy,
-    // The rules ignore care the buddy does not need.
-    feed: () => setBuddy(feed),
-    clean: () => setBuddy(clean),
+    busy,
+    setBuddy,
+    feed: () => run(feedBuddy),
+    clean: () => run(cleanBuddy),
   };
 }

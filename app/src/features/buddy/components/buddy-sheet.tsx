@@ -5,20 +5,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ProgressBar } from '@/components/progress-bar';
 import { MAX_CONTENT_WIDTH, useColors } from '@/theme';
 
-import {
-  type Buddy,
-  EXP_PER_LEVEL,
-  canClean,
-  canFeed,
-  levelOf,
-  levelProgress,
-  stageOf,
-} from '../rules';
+import type { BuddyView } from '../api';
 import { BuddyAvatar } from './buddy-avatar';
+
+const MAX_POOPS = 3; // server: BuddyRules.MAX_POOPS
 
 type Props = {
   visible: boolean;
-  buddy: Buddy;
+  buddy: BuddyView;
+  // A care request is in flight.
+  busy: boolean;
   onClose: () => void;
   onFeed: () => void;
   onClean: () => void;
@@ -26,12 +22,10 @@ type Props = {
 
 // Buddy detail: stats and the two care actions (docs/project-plan.md §32). A native page sheet on
 // iOS, so it can be swiped down.
-export function BuddySheet({ visible, buddy, onClose, onFeed, onClean }: Props) {
+export function BuddySheet({ visible, buddy, busy, onClose, onFeed, onClean }: Props) {
   const colors = useColors();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const level = levelOf(buddy.exp);
-  const stage = stageOf(level);
 
   return (
     <Modal
@@ -49,29 +43,35 @@ export function BuddySheet({ visible, buddy, onClose, onFeed, onClean }: Props) 
           </View>
 
           <View style={styles.hero}>
-            <BuddyAvatar stage={stage} size={96} />
+            <BuddyAvatar stage={buddy.stage} size={96} />
             <Text style={[styles.name, { color: colors.text }]}>{buddy.name}</Text>
             <Text style={[styles.subtitle, { color: colors.textMuted }]}>
-              {t(`buddy.stage.${stage}`)} · {t('buddy.level', { level })}
+              {t(`buddy.stage.${buddy.stage}`)} · {t('buddy.level', { level: buddy.level })}
             </Text>
           </View>
 
           <View style={[styles.card, { backgroundColor: colors.surface }]}>
             <Stat
               label={t('buddy.exp')}
-              value={`${buddy.exp % EXP_PER_LEVEL} / ${EXP_PER_LEVEL}`}
-              progress={levelProgress(buddy.exp)}
+              value={`${Math.round(buddy.levelProgress * 100)}%`}
+              progress={buddy.levelProgress}
             />
             <Stat
               label={t('buddy.fullness')}
-              value={canFeed(buddy) ? t('buddy.hungry') : t('buddy.full')}
+              value={
+                buddy.hungry
+                  ? t('buddy.hungry')
+                  : buddy.canFeed
+                    ? t('buddy.peckish')
+                    : t('buddy.full')
+              }
               progress={buddy.fullness / 100}
               color={colors.fullness}
             />
             <Stat
               label={t('buddy.cleanliness')}
-              value={canClean(buddy) ? t('buddy.dirty') : t('buddy.clean')}
-              progress={buddy.cleanliness / 100}
+              value={buddy.poops > 0 ? '💩'.repeat(buddy.poops) : t('buddy.clean')}
+              progress={1 - buddy.poops / MAX_POOPS}
               color={colors.cleanliness}
             />
           </View>
@@ -81,13 +81,13 @@ export function BuddySheet({ visible, buddy, onClose, onFeed, onClean }: Props) 
               label={t('buddy.feed')}
               emoji="🍚"
               onPress={onFeed}
-              disabled={!canFeed(buddy)}
+              disabled={busy || !buddy.canFeed}
             />
             <CareButton
               label={t('buddy.cleanUp')}
               emoji="🧹"
               onPress={onClean}
-              disabled={!canClean(buddy)}
+              disabled={busy || !buddy.canClean}
             />
           </View>
 

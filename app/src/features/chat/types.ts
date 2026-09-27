@@ -1,4 +1,4 @@
-export type BuddyEvent = 'HUNGRY' | 'FED' | 'POOPED' | 'CLEANED';
+export type BuddyEvent = 'HUNGRY' | 'FED' | 'POOPED' | 'CLEANED' | 'EVOLVED';
 
 // As the server sends it (server/src/main/java/com/buddychat/chat/Message.java).
 export type ServerMessage = {

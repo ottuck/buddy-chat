@@ -2,6 +2,8 @@ import { randomUUID } from 'expo-crypto';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 
+import type { BuddyView } from '@/features/buddy/api';
+
 import { fetchNewer, fetchNewest, fetchOlder } from './api';
 import { ChatSocket, type ConnectionStatus } from './socket';
 import { fromServer, type Message, type ServerMessage } from './types';
@@ -31,9 +33,10 @@ type Options = {
   // The server no longer knows this user's room (e.g. it changed on another device).
   onRoomLost: () => void;
   onMemberJoined: () => void;
+  onBuddy: (buddy: BuddyView) => void;
 };
 
-export function useChat({ myId, onRoomLost, onMemberJoined }: Options) {
+export function useChat({ myId, onRoomLost, onMemberJoined, onBuddy }: Options) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [status, setStatus] = useState<ConnectionStatus>('connecting');
   const [hasOlder, setHasOlder] = useState(false);
@@ -44,6 +47,8 @@ export function useChat({ myId, onRoomLost, onMemberJoined }: Options) {
   onRoomLostRef.current = onRoomLost;
   const onMemberJoinedRef = useRef(onMemberJoined);
   onMemberJoinedRef.current = onMemberJoined;
+  const onBuddyRef = useRef(onBuddy);
+  onBuddyRef.current = onBuddy;
 
   const apply = useCallback((incoming: ServerMessage[]) => {
     setMessages((prev) => merge(prev, incoming));
@@ -89,6 +94,7 @@ export function useChat({ myId, onRoomLost, onMemberJoined }: Options) {
       onMessage: (message) => apply([message]),
       onSendFailed: (clientMessageId) => markStatus(clientMessageId, 'failed'),
       onMemberJoined: () => onMemberJoinedRef.current(),
+      onBuddy: (buddy) => onBuddyRef.current(buddy),
       onFatal: () => onRoomLostRef.current(),
     });
     socketRef.current = socket;

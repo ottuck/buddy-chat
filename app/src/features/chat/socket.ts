@@ -1,3 +1,4 @@
+import type { BuddyView } from '@/features/buddy/api';
 import { idToken } from '@/lib/api';
 import { wsUrl } from '@/lib/api-url';
 
@@ -10,6 +11,7 @@ type ServerEvent =
   | { type: 'ack'; clientMessageId: string; message: ServerMessage }
   | { type: 'message'; message: ServerMessage }
   | { type: 'member'; userId: string; displayName: string | null }
+  | { type: 'buddy'; buddy: BuddyView }
   | { type: 'error'; code: string; clientMessageId: string | null }
   | { type: 'pong' };
 
@@ -23,6 +25,8 @@ export type SocketListener = {
   onMessage: (message: ServerMessage) => void;
   // A friend joined this room; the room's member list is out of date.
   onMemberJoined: () => void;
+  // The buddy changed (someone cared for it, or chatting gave it EXP).
+  onBuddy: (buddy: BuddyView) => void;
   onSendFailed: (clientMessageId: string, code: string) => void;
   // The server refused the connection for a reason reconnecting will not fix (e.g. no room).
   onFatal: (code: string) => void;
@@ -103,6 +107,9 @@ export class ChatSocket {
         break;
       case 'message':
         this.listener.onMessage(event.message);
+        break;
+      case 'buddy':
+        this.listener.onBuddy(event.buddy);
         break;
       case 'member':
         this.listener.onMemberJoined();
