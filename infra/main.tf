@@ -139,6 +139,14 @@ resource "azurerm_container_app" "server" {
         name  = "SPRING_MONGODB_DATABASE"
         value = "buddychat"
       }
+      dynamic "env" {
+        # Testing only: fewer EXP per level so evolutions come after a few messages.
+        for_each = var.buddy_exp_per_level == null ? [] : [var.buddy_exp_per_level]
+        content {
+          name  = "BUDDYCHAT_BUDDY_EXPPERLEVEL"
+          value = tostring(env.value)
+        }
+      }
       env {
         # The web app, custom domains, and local Expo web dev servers (which may use this server too).
         name = "CORS_ALLOWED_ORIGINS"

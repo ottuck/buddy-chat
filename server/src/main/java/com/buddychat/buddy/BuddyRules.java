@@ -11,7 +11,9 @@ import java.time.ZoneId;
  */
 public final class BuddyRules {
 
-    public static final int EXP_PER_LEVEL = 20;
+    public static final int DEFAULT_EXP_PER_LEVEL = 20;
+    // Set once at startup from BuddyProperties (lowered while testing evolutions).
+    private static volatile int expPerLevel = DEFAULT_EXP_PER_LEVEL;
     public static final int FEED_EXP = 2;
     public static final int CLEAN_EXP = 2;
     public static final int MESSAGE_EXP = 1;
@@ -37,8 +39,17 @@ public final class BuddyRules {
 
     private BuddyRules() {}
 
+    public static int expPerLevel() {
+        return expPerLevel;
+    }
+
+    static void useExpPerLevel(int value) {
+        if (value < 1) throw new IllegalArgumentException("EXP per level must be at least 1");
+        expPerLevel = value;
+    }
+
     public static int level(int exp) {
-        return exp / EXP_PER_LEVEL + 1;
+        return exp / expPerLevel + 1;
     }
 
     public static Stage stage(int level) {

@@ -258,7 +258,9 @@ Storage는 이름이 ur-manager에 묶여 있어(`cae-ur-manager-prod` 안에 bu
   조회 시점에 계산한다. 앱은 서버가 계산한 `BuddyView`(level, stage, fullness, poops, canFeed, canClean)를 그대로 보여준다.
 - **배고픔**: 밥을 먹은 뒤 12시간에 걸쳐 100 → 0. 80 미만이면 밥을 줄 수 있고, 30 이하면 "배고파요".
 - **똥**: 청소 뒤 6시간마다 하나, 최대 3개. 있으면 청소할 수 있다.
-- **경험치**: 밥 +2, 청소 +2, 메시지 +1(room당 하루 50까지, 일본 시간 기준). 레벨당 20.
+- **경험치**: 밥 +2, 청소 +2, 메시지 +1(room당 하루 50까지, 일본 시간 기준). 레벨당 20
+  (`buddychat.buddy.exp-per-level`). **테스트 기간에는 Azure에서 1**(Terraform `buddy_exp_per_level`)이라 메시지 1개면 아기,
+  4개면 어린이, 9개면 어른이 된다. 출시 전에 변수를 null로 돌린다.
   단계: 알(Lv1) → 아기(Lv2) → 어린이(Lv5) → 어른(Lv10). 죽지 않는다.
 - **타임라인 이벤트**: `FED`, `CLEANED`(누가 했는지 포함), `EVOLVED`는 일어날 때, `HUNGRY`, `POOPED`는 누군가
   앱을 열거나(`GET /api/rooms/me`) 연결할 때 기록한다. 원인 시각으로 만든 키(`buddy:hungry:<lastFedAt>` 등)가

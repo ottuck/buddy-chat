@@ -49,7 +49,13 @@ public class BuddyService {
     private final RoomHub hub;
     private final Clock clock;
 
-    BuddyService(ReactiveMongoTemplate mongo, ChatService chatService, RoomHub hub, Clock clock) {
+    BuddyService(
+            ReactiveMongoTemplate mongo,
+            ChatService chatService,
+            RoomHub hub,
+            Clock clock,
+            BuddyProperties properties) {
+        BuddyRules.useExpPerLevel(properties.expPerLevel());
         this.mongo = mongo;
         this.chatService = chatService;
         this.hub = hub;

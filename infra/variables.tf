@@ -42,3 +42,10 @@ variable "web_custom_domains" {
   type    = list(string)
   default = ["buddy.pokepidia.com"]
 }
+
+# While testing, evolutions after a few messages (1 EXP per level: baby after 1 message, adult
+# after 9). Set to null before launch to use the server default (20).
+variable "buddy_exp_per_level" {
+  type    = number
+  default = 1
+}
