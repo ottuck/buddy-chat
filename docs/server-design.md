@@ -167,14 +167,21 @@ iPhone / Web ──HTTPS·WSS──▶ Azure Container Apps (Spring WebFlux, Doc
   Storage Account(`sturmanagerur26jp01`, buddy-chat 전용 container `buddy-chat-tfstate`)뿐이다.** Resource Group
   (`rg-buddy-chat-prod`), Container Apps 환경·앱, DocumentDB, Managed Identity, 배포 권한은 전부 buddy-chat 것이다.
   buddy-chat을 destroy해도 ur-manager에 영향이 없다.
-- **Terraform**(`infra/`): RG, DocumentDB(free tier) + 방화벽, Log Analytics(하루 0.5GB 상한), Container Apps
+- **Terraform**(`infra/`): RG, DocumentDB(free tier) + 방화벽, Log Analytics, Container Apps
   환경·앱, 이미지 pull용 identity(공유 ACR에 AcrPull), 배포용 identity. 재현 가능한 배포에 필요한 만큼만.
 - **배포**(`.github/workflows/deploy.yml`): main에서 CI가 통과하면 buddy-chat 전용 배포 identity로 OIDC 로그인
   (저장된 비밀 없음) → 이미지 빌드·push → `az containerapp update` → health 확인. 권한은 공유 ACR에 AcrPush,
   buddy-chat Container App에 Contributor뿐이다. 이미지 태그는 `server/` 트리 해시라서 앱만 바뀐 push는
   재배포하지 않는다(새 리비전은 모든 WebSocket을 끊는다). 이미지는 Terraform이 아니라 이 workflow가 바꾼다.
-- **DocumentDB 방화벽**: 포털의 "Azure 서비스 허용"과 같은 0.0.0.0 규칙. Container Apps(consumption)는 나가는 IP가
-  고정이 아니다. 접속에는 비밀번호와 TLS가 필요하다. 비밀번호는 Terraform이 만들어 Container App secret으로 넣는다.
+- **DocumentDB 방화벽은 MVP용으로 일부러 넓게 열었다**: 포털의 "Azure 서비스 허용"과 같은 0.0.0.0 규칙이라 다른
+  고객의 Azure 리소스에서도 네트워크상으로는 닿는다. Container Apps(consumption)는 나가는 IP가 고정이 아니어서
+  좁힐 방법이 마땅치 않다. 접속에는 비밀번호(32자, Terraform이 만들어 Container App secret으로만 전달)와 TLS가
+  필요하다. 사용자가 늘거나 민감한 데이터가 생기면 VNet 통합 + Private Endpoint로 바꾼다.
+- **Log Analytics 하루 0.5GB는 무료 한도가 아니라 비용 폭주를 막는 상한이다.** 넘으면 그날 로그 수집이 멈춘다.
+  수집량은 GB당 과금되고(무료 할당은 청구 계정 기준), 평소 서버 로그는 이보다 훨씬 적다.
+- tfstate(`buddy-chat-tfstate`)는 비공개 container다. 계정 단위로 공개 접근과 shared key가 꺼져 있어 Entra RBAC로만
+  읽는다. state에 DB 비밀번호가 들어 있다. 단, 같은 Storage Account를 쓰는 ur-manager 배포 principal도 계정 범위의
+  Blob 권한이 있어 읽을 수 있다(공유의 대가, 필요하면 그쪽 권한을 container 범위로 좁힌다).
 - **리전**: 일본 사용자 우선이라 Japan East(서비스별 지원·무료 조건은 만들 때 확인).
 - 쓰지 않는 것: Redis, Blob Storage, VM, self-hosted MongoDB, MongoDB Atlas, Cosmos DB for MongoDB, Firestore,
   Kafka, Kubernetes/AKS.
