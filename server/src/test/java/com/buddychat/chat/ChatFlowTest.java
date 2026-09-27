@@ -29,7 +29,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-        properties = {"buddychat.realtime.auth-timeout=3s", "logging.level.com.buddychat.realtime=DEBUG"})
+        properties = {"buddychat.realtime.auth-timeout=3s", "logging.level.com.buddychat.realtime=TRACE"})
 @Import({TestcontainersConfiguration.class, TestJwtConfiguration.class})
 class ChatFlowTest {
 

@@ -66,6 +66,8 @@ class ChatWebSocketHandler implements WebSocketHandler {
         log.debug("[{}] opened", session.getId());
 
         Flux<String> inbound = session.receive()
+                .doOnSubscribe(sub -> log.debug("[{}] receiving", session.getId()))
+                .doOnNext(message -> log.trace("[{}] frame {}", session.getId(), message.getType()))
                 .filter(message -> message.getType() == WebSocketMessage.Type.TEXT)
                 .map(WebSocketMessage::getPayloadAsText);
 
