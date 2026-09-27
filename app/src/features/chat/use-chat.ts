@@ -51,6 +51,8 @@ export function useChat({ myId, onRoomLost, onMembersChanged, onBuddy }: Options
   // User id → newest message id they have read.
   const [reads, setReads] = useState<Record<string, string>>({});
   const [active, setActive] = useState(AppState.currentState === 'active');
+  // Newest message id when the app last went to the background, to count what arrived since.
+  const [awaySince, setAwaySince] = useState<string | undefined>(undefined);
   const typingTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
   const typingSentAt = useRef(0);
   const readSent = useRef<string | undefined>(undefined);
@@ -159,6 +161,7 @@ export function useChat({ myId, onRoomLost, onMembersChanged, onBuddy }: Options
 
     const subscription = AppState.addEventListener('change', (state) => {
       setActive(state === 'active');
+      if (state !== 'active') setAwaySince(messagesRef.current.find((m) => m.id)?.id ?? '');
       if (state === 'active') {
         socket.resume();
         socket.reconnectNow();
@@ -247,5 +250,23 @@ export function useChat({ myId, onRoomLost, onMembersChanged, onBuddy }: Options
     }
   }, [apply, hasOlder]);
 
-  return { messages, status, online, typing, reads, send, retry, loadOlder, notifyTyping };
+  // Others' messages that arrived while the app was in the background (a hidden browser tab).
+  const unreadWhileAway = active
+    ? 0
+    : messages.filter(
+        (m) => m.type === 'TEXT' && m.senderId !== myId && m.id && m.id > (awaySince ?? ''),
+      ).length;
+
+  return {
+    messages,
+    status,
+    online,
+    typing,
+    reads,
+    unreadWhileAway,
+    send,
+    retry,
+    loadOlder,
+    notifyTyping,
+  };
 }

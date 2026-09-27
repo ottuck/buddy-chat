@@ -40,15 +40,15 @@ function ChatScreen({ me, room, onRoomLost, onMembersChanged }: ChatScreenProps)
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { buddy, busy, setBuddy, feed, clean } = useBuddy(room.buddy);
-  const { messages, status, online, typing, reads, send, retry, loadOlder, notifyTyping } = useChat(
-    {
-      myId: me.id,
-      onRoomLost,
-      onMembersChanged,
-      onBuddy: setBuddy,
-    },
-  );
+  const chat = useChat({ myId: me.id, onRoomLost, onMembersChanged, onBuddy: setBuddy });
+  const { messages, status, online, typing, reads, unreadWhileAway } = chat;
   const [buddyOpen, setBuddyOpen] = useState(false);
+
+  // Web has no push notifications: a hidden tab shows new messages in its title instead.
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    document.title = unreadWhileAway > 0 ? `(${unreadWhileAway}) buddy-chat` : 'buddy-chat';
+  }, [unreadWhileAway]);
 
   // Asked here rather than at launch: by now the user knows what the app is for.
   useEffect(() => {
@@ -85,11 +85,11 @@ function ChatScreen({ me, room, onRoomLost, onMembersChanged }: ChatScreenProps)
             members={room.members}
             buddyName={buddy.name}
             partnerReadId={partner ? reads[partner.id] : undefined}
-            onRetry={retry}
-            onLoadOlder={loadOlder}
+            onRetry={chat.retry}
+            onLoadOlder={chat.loadOlder}
           />
         </View>
-        <MessageComposer onSend={send} onTyping={notifyTyping} />
+        <MessageComposer onSend={chat.send} onTyping={chat.notifyTyping} />
       </KeyboardAvoidingView>
 
       <BuddySheet
