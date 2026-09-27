@@ -67,6 +67,7 @@ public class RoomService {
     /**
      * Adds a member in one conditional update: only if the room still has a free slot and the
      * user is not already in it. Of any number of concurrent joins, at most the free slots succeed.
+     * A user who is already a member counts as joined (an earlier accept got this far, then failed).
      */
     Mono<Boolean> join(String roomId, String userId) {
         return mongo.updateFirst(
@@ -78,7 +79,10 @@ public class RoomService {
                                 .ne(userId)),
                         new Update().push("memberIds", userId).inc("memberCount", 1),
                         Room.class)
-                .map(result -> result.getModifiedCount() == 1);
+                .flatMap(result -> result.getModifiedCount() == 1
+                        ? Mono.just(true)
+                        : mongo.exists(
+                                query(where("_id").is(roomId).and("memberIds").is(userId)), Room.class));
     }
 
     /** Deletes a room only while the given user is still its only member. */

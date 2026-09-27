@@ -66,6 +66,10 @@ class InvitationService {
     /**
      * Joins the invitation's room. A user who already has a solo room must confirm leaving it
      * ({@code leaveCurrentRoom}); that room and its buddy are deleted (docs/server-design.md).
+     *
+     * <p>The steps are separate updates (no transactions). If one fails midway, the same user
+     * accepting the same code again picks up where it stopped instead of being told the code is
+     * used, so a half-done accept never leaves a ghost member holding the room's last slot.
      */
     Mono<RoomView> accept(User user, String rawCode, boolean leaveCurrentRoom) {
         String code = rawCode.trim().toUpperCase(Locale.ROOT);
@@ -74,11 +78,15 @@ class InvitationService {
                 .findByCode(code)
                 .switchIfEmpty(Mono.error(new ApiException(HttpStatus.NOT_FOUND, "INVITATION_NOT_FOUND")))
                 .flatMap(invitation -> {
-                    if (invitation.usedAt() != null) return Mono.error(invitationUsed());
-                    if (!invitation.expiresAt().isAfter(now))
-                        return Mono.error(new ApiException(HttpStatus.GONE, "INVITATION_EXPIRED"));
-                    if (invitation.roomId().equals(user.roomId()))
+                    boolean resuming = user.id().equals(invitation.usedBy());
+                    if (invitation.roomId().equals(user.roomId())) {
+                        // Only the old solo room's deletion can be missing, and nobody sees that room.
+                        if (resuming) return joined(invitation, user);
                         return Mono.error(new ApiException(HttpStatus.CONFLICT, "ALREADY_MEMBER"));
+                    }
+                    if (!resuming && invitation.usedAt() != null) return Mono.error(invitationUsed());
+                    if (!resuming && !invitation.expiresAt().isAfter(now))
+                        return Mono.error(new ApiException(HttpStatus.GONE, "INVITATION_EXPIRED"));
                     return checkCanLeaveCurrentRoom(user, leaveCurrentRoom)
                             .then(claim(invitation, user, now))
                             .then(joinOrRelease(invitation, user))
@@ -87,11 +95,16 @@ class InvitationService {
                                     user.roomId() == null
                                             ? Mono.<Void>empty()
                                             : roomService.deleteIfSolo(user.roomId(), user.id()))
-                            .then(roomService.findById(invitation.roomId()))
-                            .flatMap(roomService::toView)
-                            .doOnNext(room -> hub.publish(
-                                    room.id(), new ServerEvent.MemberJoined(user.id(), user.displayName()), null));
+                            .then(joined(invitation, user));
                 });
+    }
+
+    private Mono<RoomView> joined(Invitation invitation, User user) {
+        return roomService
+                .findById(invitation.roomId())
+                .flatMap(roomService::toView)
+                .doOnNext(room ->
+                        hub.publish(room.id(), new ServerEvent.MemberJoined(user.id(), user.displayName()), null));
     }
 
     private Mono<Void> checkCanLeaveCurrentRoom(User user, boolean leaveCurrentRoom) {
@@ -105,18 +118,21 @@ class InvitationService {
         });
     }
 
-    // Marks the invitation used; only one of several concurrent accepts can do this.
+    // Marks the invitation used; only one of several concurrent accepts can do this. The user who
+    // already claimed it may claim it again, to finish an accept that failed midway.
     private Mono<Void> claim(Invitation invitation, User user, Instant now) {
         return mongo.updateFirst(
                         query(where("_id")
                                 .is(invitation.id())
-                                .and("usedAt")
-                                .is(null)
-                                .and("expiresAt")
-                                .gt(now)),
+                                .orOperator(
+                                        where("usedAt")
+                                                .is(null)
+                                                .and("expiresAt")
+                                                .gt(now),
+                                        where("usedBy").is(user.id()))),
                         new Update().set("usedAt", now).set("usedBy", user.id()),
                         Invitation.class)
-                .flatMap(result -> result.getModifiedCount() == 1 ? Mono.<Void>empty() : Mono.error(invitationUsed()));
+                .flatMap(result -> result.getMatchedCount() == 1 ? Mono.<Void>empty() : Mono.error(invitationUsed()));
     }
 
     // The room can still be full when another code for it was accepted at the same moment. Then

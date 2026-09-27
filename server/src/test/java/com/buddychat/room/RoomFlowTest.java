@@ -18,7 +18,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.web.reactive.server.EntityExchangeResult;
 import org.springframework.test.web.reactive.server.WebTestClient;
@@ -179,6 +181,60 @@ class RoomFlowTest {
     }
 
     @Test
+    void acceptThatFailedAfterJoiningCanBeFinishedByAcceptingAgain() {
+        RoomView henrysRoom = createRoom("henry", "Mugi");
+        RoomView yukisRoom = createRoom("yuki", "Pico");
+        String code = invite("henry");
+        // State left by an accept that failed right after joining: the code is used and yuki
+        // holds the last slot, but yuki's user still points at the old room.
+        String yuki = userId("yuki");
+        mongo.updateFirst(
+                        Query.query(Criteria.where("code").is(code)),
+                        new Update().set("usedAt", Instant.now()).set("usedBy", yuki),
+                        Invitation.class)
+                .block();
+        mongo.updateFirst(
+                        Query.query(Criteria.where("_id").is(henrysRoom.id())),
+                        new Update().push("memberIds", yuki).inc("memberCount", 1),
+                        Room.class)
+                .block();
+
+        RoomView joined = accept("yuki", code, true)
+                .expectStatus()
+                .isOk()
+                .expectBody(RoomView.class)
+                .returnResult()
+                .getResponseBody();
+
+        assertThat(joined.id()).isEqualTo(henrysRoom.id());
+        assertThat(joined.members()).extracting(RoomView.Member::displayName).containsExactly("henry", "yuki");
+        assertThat(rooms.findById(henrysRoom.id()).block().memberCount()).isEqualTo(2);
+        assertThat(rooms.existsById(yukisRoom.id()).block()).isFalse();
+        assertThat(get("yuki", "/api/rooms/me")
+                        .expectStatus()
+                        .isOk()
+                        .expectBody(RoomView.class)
+                        .returnResult()
+                        .getResponseBody()
+                        .id())
+                .isEqualTo(henrysRoom.id());
+        // Still single use for anyone else.
+        assertError(accept("mika", code, false), HttpStatus.GONE, "INVITATION_USED");
+    }
+
+    @Test
+    void acceptThatFailedAfterMovingSucceedsWhenAcceptedAgain() {
+        RoomView henrysRoom = createRoom("henry", "Mugi");
+        String code = invite("henry");
+        accept("yuki", code, false).expectStatus().isOk();
+
+        // A retry whose first attempt actually finished (e.g. the response was lost).
+        accept("yuki", code, false).expectStatus().isOk();
+
+        assertThat(rooms.findById(henrysRoom.id()).block().memberCount()).isEqualTo(2);
+    }
+
+    @Test
     void memberOfADuoRoomCannotJoinAnother() {
         createRoom("henry", "Mugi");
         accept("yuki", invite("henry"), false).expectStatus().isOk();
@@ -229,6 +285,12 @@ class RoomFlowTest {
     }
 
     // --- helpers ---
+
+    private String userId(String uid) {
+        return mongo.findOne(Query.query(Criteria.where("firebaseUid").is(uid)), User.class)
+                .block()
+                .id();
+    }
 
     private RoomView createRoom(String uid, String buddyName) {
         return post(uid, "/api/rooms", Map.of("buddyName", buddyName))
