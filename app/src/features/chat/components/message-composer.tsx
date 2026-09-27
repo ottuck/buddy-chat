@@ -13,9 +13,10 @@ type Props = {
   onSend: (text: string) => void;
   // Called on every change with whether there is something typed (drives "typing…").
   onTyping: (hasDraft: boolean) => void;
+  onFocusChange?: (focused: boolean) => void;
 };
 
-export function MessageComposer({ onSend, onTyping }: Props) {
+export function MessageComposer({ onSend, onTyping, onFocusChange }: Props) {
   const colors = useColors();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -50,8 +51,14 @@ export function MessageComposer({ onSend, onTyping }: Props) {
         placeholderTextColor={colors.textMuted}
         multiline
         {...webSingleRow}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
+        onFocus={() => {
+          setFocused(true);
+          onFocusChange?.(true);
+        }}
+        onBlur={() => {
+          setFocused(false);
+          onFocusChange?.(false);
+        }}
         style={[
           styles.input,
           {
@@ -116,6 +123,8 @@ const styles = StyleSheet.create({
     // A fixed line height: with "normal", a single line overflowed the box by a pixel on the web
     // and showed a scrollbar.
     lineHeight: 20,
+    // With outline-style auto, Chrome draws its focus ring whatever the width; solid and 0 draw nothing.
+    outlineStyle: 'solid',
     outlineWidth: 0,
   },
   sendButton: {

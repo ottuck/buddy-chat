@@ -5,6 +5,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { PageTitle } from '@/components/page-title';
+import { BuddyAvatar } from '@/features/buddy/components/buddy-avatar';
 import { Button } from '@/components/button';
 import { isCancelledSignIn, signInAsGuest } from '@/features/auth/actions';
 import { googleSignInSupported, signInWithGoogle } from '@/features/auth/google-sign-in';
@@ -39,7 +40,7 @@ export default function SignInScreen() {
       <PageTitle />
       <View style={styles.column}>
         <View style={styles.hero}>
-          <Text style={styles.egg}>🥚</Text>
+          <BuddyAvatar stage="EGG" size={80} />
           <Text style={[styles.title, { color: colors.text }]}>buddy-chat</Text>
           <Text
             lineBreakStrategyIOS="hangul-word"
@@ -90,10 +91,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-  },
-  egg: {
-    fontSize: 72,
-    lineHeight: 86,
   },
   title: {
     fontSize: 28,

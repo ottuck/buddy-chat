@@ -1,6 +1,15 @@
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import {
+  type FlatList,
+  Keyboard,
+  KeyboardAvoidingView,
+  LayoutAnimation,
+  Platform,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PageTitle } from '@/components/page-title';
@@ -8,11 +17,13 @@ import { useAuth } from '@/features/auth/auth-provider';
 import { GuestExpiryBanner } from '@/features/auth/components/guest-expiry-banner';
 import { useGuestDaysLeft } from '@/features/auth/guest-expiry';
 import { BuddySheet } from '@/features/buddy/components/buddy-sheet';
+import { BuddyStage } from '@/features/buddy/components/buddy-stage';
 import { useBuddy } from '@/features/buddy/use-buddy';
 import { ChatHeader } from '@/features/chat/components/chat-header';
 import { MessageComposer } from '@/features/chat/components/message-composer';
 import { EmptyChat } from '@/features/chat/components/empty-chat';
 import { MessageList } from '@/features/chat/components/message-list';
+import type { Message } from '@/features/chat/types';
 import { useChat } from '@/features/chat/use-chat';
 import { registerForPush } from '@/features/notifications/push';
 import { InviteSheet } from '@/features/room/components/invite-sheet';
@@ -58,6 +69,25 @@ function ChatScreen({ me, room, onRoomLost, onMembersChanged }: ChatScreenProps)
   const [inviteOpen, setInviteOpen] = useState(false);
   const partner = room.members.find((member) => member.id !== me.id);
 
+  // The buddy's stage takes about a third of the screen, and folds into one row while typing or
+  // reading back through older messages, so the chat keeps its room (docs/product.md, 핵심 경험).
+  const { height: windowHeight } = useWindowDimensions();
+  const stageHeight = Math.round(Math.min(280, Math.max(180, windowHeight * 0.3)));
+  const [typingMessage, setTypingMessage] = useState(false);
+  const [readingBack, setReadingBack] = useState(false);
+  const stageOpen = !typingMessage && !readingBack;
+  const listRef = useRef<FlatList<Message>>(null);
+  const animateStage = () => {
+    if (Platform.OS === 'ios') LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+  };
+  const expandStage = () => {
+    animateStage();
+    Keyboard.dismiss();
+    listRef.current?.scrollToOffset({ offset: 0, animated: true });
+    setTypingMessage(false);
+    setReadingBack(false);
+  };
+
   return (
     <SafeAreaView edges={['top']} style={[styles.screen, { backgroundColor: colors.background }]}>
       {/* Web has no push notifications: a hidden tab counts new messages in its title instead. */}
@@ -76,17 +106,24 @@ function ChatScreen({ me, room, onRoomLost, onMembersChanged }: ChatScreenProps)
           partnerOnline={partner ? online.includes(partner.id) : false}
           partnerTyping={partner ? typing.includes(partner.id) : false}
           connected={status === 'online'}
-          buddy={buddy}
-          onPressBuddy={() => setBuddyOpen(true)}
           onPressInvite={() => setInviteOpen(true)}
           onPressSettings={() => router.push('/settings')}
         />
         <GuestExpiryBanner daysLeft={guestDaysLeft} onPress={() => router.push('/settings')} />
+        <BuddyStage
+          buddy={buddy}
+          busy={busy}
+          expanded={stageOpen}
+          height={stageHeight}
+          onExpand={expandStage}
+          onFeed={feed}
+          onClean={clean}
+          onOpenDetail={() => setBuddyOpen(true)}
+        />
         <View style={styles.list}>
           {chat.loaded && messages.length === 0 ? (
             <EmptyChat
               buddyName={buddy.name}
-              stage={buddy.stage}
               partnerName={partner ? (partner.displayName ?? '') : null}
               onInvite={() => setInviteOpen(true)}
             />
@@ -99,10 +136,23 @@ function ChatScreen({ me, room, onRoomLost, onMembersChanged }: ChatScreenProps)
               partnerReadId={partner ? reads[partner.id] : undefined}
               onRetry={chat.retry}
               onLoadOlder={chat.loadOlder}
+              listRef={listRef}
+              onReadingBack={(value) => {
+                if (value === readingBack) return;
+                animateStage();
+                setReadingBack(value);
+              }}
             />
           )}
         </View>
-        <MessageComposer onSend={chat.send} onTyping={chat.notifyTyping} />
+        <MessageComposer
+          onSend={chat.send}
+          onTyping={chat.notifyTyping}
+          onFocusChange={(focused) => {
+            animateStage();
+            setTypingMessage(focused);
+          }}
+        />
       </KeyboardAvoidingView>
 
       <BuddySheet
