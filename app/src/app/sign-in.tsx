@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { PageTitle } from '@/components/page-title';
 import { Button } from '@/components/button';
 import { isCancelledSignIn, signInAsGuest } from '@/features/auth/actions';
 import { googleSignInSupported, signInWithGoogle } from '@/features/auth/google-sign-in';
@@ -35,6 +36,7 @@ export default function SignInScreen() {
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.background }]}>
+      <PageTitle />
       <View style={styles.column}>
         <View style={styles.hero}>
           <Text style={styles.egg}>🥚</Text>

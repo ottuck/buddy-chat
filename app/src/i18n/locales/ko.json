@@ -46,7 +46,9 @@
     "typing": "입력 중…",
     "read": "읽음",
     "online": "접속 중",
-    "offline": "접속 안 함"
+    "offline": "접속 안 함",
+    "emptySolo": "{{buddy}}가 태어났어요!\n친구를 초대해서 같이 키워 볼까요?",
+    "emptyDuo": "{{partner}}님과 함께하게 됐어요.\n첫 메시지를 보내 보세요."
   },
   "invite": {
     "button": "친구 초대",

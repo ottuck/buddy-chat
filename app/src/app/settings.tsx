@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { PageTitle } from '@/components/page-title';
 import { signOut } from '@/features/auth/actions';
 import { useAuth } from '@/features/auth/auth-provider';
 import { leaveRoom, type Room } from '@/features/room/api';
@@ -24,6 +25,7 @@ export default function SettingsScreen() {
       style={{ backgroundColor: colors.background }}
       contentContainerStyle={styles.content}
     >
+      <PageTitle title={t('settings.title')} />
       <View style={styles.column}>
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
           <Text style={[styles.label, { color: colors.textMuted }]}>{t('settings.profile')}</Text>

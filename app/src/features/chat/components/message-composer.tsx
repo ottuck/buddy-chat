@@ -105,6 +105,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: StyleSheet.hairlineWidth,
     fontSize: 16,
+    // A fixed line height: with "normal", a single line overflowed the box by a pixel on the web
+    // and showed a scrollbar.
+    lineHeight: 20,
   },
   sendButton: {
     width: 40,

@@ -37,7 +37,4 @@ i18n.use(initReactI18next).init({
   interpolation: { escapeValue: false }, // React already escapes.
 });
 
-// Web: the page is rendered at build time in English; tell the browser the language actually used.
-if (typeof document !== 'undefined') document.documentElement.lang = i18n.language;
-
 export default i18n;

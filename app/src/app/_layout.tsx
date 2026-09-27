@@ -3,7 +3,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useColorScheme } from 'react-native';
+import { Platform, useColorScheme } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import '@/i18n';
@@ -35,13 +35,18 @@ export default function RootLayout() {
 function RootNavigator() {
   const { user, initializing } = useAuth();
   const { state, reload } = useRoom();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const signedIn = !!user;
   const settled = !initializing && (!signedIn || state.status !== 'loading');
 
   useEffect(() => {
     if (settled) SplashScreen.hideAsync();
   }, [settled]);
+
+  // Web: the page is rendered at build time in English; tell the browser the language in use.
+  useEffect(() => {
+    if (Platform.OS === 'web') document.documentElement.lang = i18n.language;
+  }, [i18n.language]);
 
   if (initializing) return null;
   if (signedIn && state.status === 'loading') return <StatusScreen loading />;

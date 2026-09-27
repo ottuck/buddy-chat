@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { PageTitle } from '@/components/page-title';
 import { Button } from '@/components/button';
 import { createRoom } from '@/features/room/api';
 import { errorMessage } from '@/features/room/error-message';
@@ -35,6 +36,7 @@ export default function WelcomeScreen() {
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.background }]}>
+      <PageTitle />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.column}

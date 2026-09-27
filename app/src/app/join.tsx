@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { PageTitle } from '@/components/page-title';
 import { Button } from '@/components/button';
 import { acceptInvitation } from '@/features/room/api';
 import { errorMessage } from '@/features/room/error-message';
@@ -55,6 +56,7 @@ export default function JoinScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
+      <PageTitle title={t('join.title')} />
       <View style={styles.column}>
         <Text style={[styles.hint, { color: colors.textMuted }]}>{t('join.hint')}</Text>
         <TextInput

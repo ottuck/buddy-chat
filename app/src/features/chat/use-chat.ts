@@ -45,6 +45,8 @@ export function useChat({ myId, onRoomLost, onMembersChanged, onBuddy }: Options
   const [messages, setMessages] = useState<Message[]>([]);
   const [status, setStatus] = useState<ConnectionStatus>('connecting');
   const [hasOlder, setHasOlder] = useState(false);
+  // The first page has arrived; before that an empty timeline means "not loaded yet".
+  const [loaded, setLoaded] = useState(false);
   // Other members connected right now, and who of them is typing.
   const [online, setOnline] = useState<string[]>([]);
   const [typing, setTyping] = useState<string[]>([]);
@@ -101,6 +103,7 @@ export function useChat({ myId, onRoomLost, onMembersChanged, onBuddy }: Options
         const page = await fetchNewest();
         apply(page.messages);
         setHasOlder(page.hasMore);
+        setLoaded(true);
       } else {
         for (;;) {
           const page = await fetchNewer(after);
@@ -264,6 +267,7 @@ export function useChat({ myId, onRoomLost, onMembersChanged, onBuddy }: Options
     typing,
     reads,
     unreadWhileAway,
+    loaded,
     send,
     retry,
     loadOlder,
