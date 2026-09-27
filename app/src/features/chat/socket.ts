@@ -17,6 +17,7 @@ type ServerEvent =
   | { type: 'ack'; clientMessageId: string; message: ServerMessage }
   | { type: 'message'; message: ServerMessage }
   | { type: 'member'; userId: string; displayName: string | null }
+  | { type: 'left'; userId: string }
   | { type: 'buddy'; buddy: BuddyView }
   | { type: 'presence'; userId: string; online: boolean }
   | { type: 'typing'; userId: string; typing: boolean }
@@ -33,8 +34,8 @@ export type SocketListener = {
   onReady: (online: string[], reads: Record<string, string>) => void;
   onAck: (clientMessageId: string, message: ServerMessage) => void;
   onMessage: (message: ServerMessage) => void;
-  // A friend joined this room; the room's member list is out of date.
-  onMemberJoined: () => void;
+  // A friend joined or left this room; the room's member list is out of date.
+  onMembersChanged: () => void;
   // The buddy changed (someone cared for it, or chatting gave it EXP).
   onBuddy: (buddy: BuddyView) => void;
   onPresence: (userId: string, online: boolean) => void;
@@ -56,6 +57,8 @@ export class ChatSocket {
   private ws: WebSocket | null = null;
   private ready = false;
   private stopped = false;
+  // Closed on purpose while the app is in the background; resume() reconnects.
+  private paused = false;
   private attempt = 0;
   private retryTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -73,9 +76,28 @@ export class ChatSocket {
     this.ws = null;
   }
 
+  // The app went to the background: disconnect so the others see it offline right away, instead of
+  // after the OS suspends it and the server notices. Unread messages then come as push notifications.
+  pause() {
+    if (this.stopped || this.paused) return;
+    this.paused = true;
+    this.clearRetry();
+    this.ws?.close();
+    this.ws = null;
+    this.ready = false;
+    this.listener.onStatus('offline');
+  }
+
+  resume() {
+    if (this.stopped || !this.paused) return;
+    this.paused = false;
+    this.attempt = 0;
+    this.connect();
+  }
+
   // E.g. when the app returns to the foreground: skip the backoff wait.
   reconnectNow() {
-    if (this.stopped || this.ws) return;
+    if (this.stopped || this.paused || this.ws) return;
     this.clearRetry();
     this.connect();
   }
@@ -145,7 +167,8 @@ export class ChatSocket {
         this.listener.onRead(event.userId, event.messageId);
         break;
       case 'member':
-        this.listener.onMemberJoined();
+      case 'left':
+        this.listener.onMembersChanged();
         break;
       case 'error':
         if (event.clientMessageId) {
@@ -167,7 +190,7 @@ export class ChatSocket {
   }
 
   private scheduleRetry() {
-    if (this.stopped) return;
+    if (this.stopped || this.paused) return;
     const delay = Math.min(1000 * 2 ** this.attempt, MAX_BACKOFF_MS);
     this.attempt += 1;
     this.retryTimer = setTimeout(() => this.connect(), delay);

@@ -139,6 +139,11 @@ resource "azurerm_container_app" "server" {
         name  = "SPRING_MONGODB_DATABASE"
         value = "buddychat"
       }
+      env {
+        # The web app, custom domains, and local Expo web dev servers (which may use this server too).
+        name  = "CORS_ALLOWED_ORIGINS"
+        value = join(",", concat(["https://${azurerm_static_web_app.web.default_host_name}"], var.web_origins))
+      }
 
       startup_probe {
         transport               = "HTTP"
@@ -190,6 +195,25 @@ resource "azurerm_role_assignment" "deploy_push" {
 # Updating buddy-chat's container app, and nothing else.
 resource "azurerm_role_assignment" "deploy_app" {
   scope                = azurerm_container_app.server.id
+  role_definition_name = "Contributor"
+  principal_id         = azurerm_user_assigned_identity.deploy.principal_id
+}
+
+# --- Web app: Azure Static Web Apps (Free), the Expo web export ---
+
+# Static Web Apps take only a few regions for their metadata; the files are served worldwide.
+resource "azurerm_static_web_app" "web" {
+  name                = "stapp-${local.name}-prod"
+  resource_group_name = azurerm_resource_group.prod.name
+  location            = "eastasia"
+  sku_tier            = "Free"
+  sku_size            = "Free"
+  tags                = local.tags
+}
+
+# The deploy workflow reads the site's deployment token with this, so no token is stored in GitHub.
+resource "azurerm_role_assignment" "deploy_web" {
+  scope                = azurerm_static_web_app.web.id
   role_definition_name = "Contributor"
   principal_id         = azurerm_user_assigned_identity.deploy.principal_id
 }

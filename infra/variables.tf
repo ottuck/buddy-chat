@@ -29,3 +29,9 @@ variable "initial_image_tag" {
   type    = string
   default = "initial"
 }
+
+# Other origins the web app is served from (custom domains), plus local Expo web dev servers.
+variable "web_origins" {
+  type    = list(string)
+  default = ["http://localhost:8081", "http://localhost:8082", "http://localhost:8083"]
+}

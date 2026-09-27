@@ -49,6 +49,17 @@ export function MessageList({
       onEndReached={onLoadOlder}
       onEndReachedThreshold={0.5}
       renderItem={({ item, index }) => {
+        if (item.type === 'SYSTEM') {
+          return (
+            <View style={styles.spaced}>
+              <BuddyEventRow
+                label={t(`systemEvent.${item.event}`, {
+                  name: item.actorName ?? t('chat.guestName'),
+                })}
+              />
+            </View>
+          );
+        }
         if (item.type === 'BUDDY_EVENT') {
           return (
             <View style={styles.spaced}>

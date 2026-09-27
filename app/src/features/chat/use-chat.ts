@@ -1,6 +1,6 @@
 import { randomUUID } from 'expo-crypto';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState } from 'react-native';
+import { AppState, Platform } from 'react-native';
 
 import type { BuddyView } from '@/features/buddy/api';
 
@@ -36,11 +36,12 @@ type Options = {
   myId: string;
   // The server no longer knows this user's room (e.g. it changed on another device).
   onRoomLost: () => void;
-  onMemberJoined: () => void;
+  // A friend joined or left: the room's members changed.
+  onMembersChanged: () => void;
   onBuddy: (buddy: BuddyView) => void;
 };
 
-export function useChat({ myId, onRoomLost, onMemberJoined, onBuddy }: Options) {
+export function useChat({ myId, onRoomLost, onMembersChanged, onBuddy }: Options) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [status, setStatus] = useState<ConnectionStatus>('connecting');
   const [hasOlder, setHasOlder] = useState(false);
@@ -58,8 +59,8 @@ export function useChat({ myId, onRoomLost, onMemberJoined, onBuddy }: Options) 
   const socketRef = useRef<ChatSocket | null>(null);
   const onRoomLostRef = useRef(onRoomLost);
   onRoomLostRef.current = onRoomLost;
-  const onMemberJoinedRef = useRef(onMemberJoined);
-  onMemberJoinedRef.current = onMemberJoined;
+  const onMembersChangedRef = useRef(onMembersChanged);
+  onMembersChangedRef.current = onMembersChanged;
   const onBuddyRef = useRef(onBuddy);
   onBuddyRef.current = onBuddy;
 
@@ -149,7 +150,7 @@ export function useChat({ myId, onRoomLost, onMemberJoined, onBuddy }: Options) 
           (prev[userId] ?? '') >= messageId ? prev : { ...prev, [userId]: messageId },
         ),
       onSendFailed: (clientMessageId) => markStatus(clientMessageId, 'failed'),
-      onMemberJoined: () => onMemberJoinedRef.current(),
+      onMembersChanged: () => onMembersChangedRef.current(),
       onBuddy: (buddy) => onBuddyRef.current(buddy),
       onFatal: () => onRoomLostRef.current(),
     });
@@ -158,7 +159,13 @@ export function useChat({ myId, onRoomLost, onMemberJoined, onBuddy }: Options) 
 
     const subscription = AppState.addEventListener('change', (state) => {
       setActive(state === 'active');
-      if (state === 'active') socket.reconnectNow();
+      if (state === 'active') {
+        socket.resume();
+        socket.reconnectNow();
+      } else if (state === 'background' && Platform.OS !== 'web') {
+        // Web has no push notifications, so a hidden tab stays connected.
+        socket.pause();
+      }
     });
     const timers = typingTimers.current;
     return () => {

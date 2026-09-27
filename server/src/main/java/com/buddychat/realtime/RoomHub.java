@@ -78,6 +78,20 @@ public class RoomHub {
         });
     }
 
+    /**
+     * Ends the user's connections in the room, after sending them {@code last}. For a user who is no
+     * longer a member: their other devices must stop receiving the room's events.
+     */
+    public void disconnect(String roomId, String userId, ServerEvent last) {
+        Set<Connection> connections = rooms.get(roomId);
+        if (connections == null) return;
+        for (Connection connection : connections) {
+            if (!connection.userId.equals(userId)) continue;
+            connection.emit(last);
+            connection.complete();
+        }
+    }
+
     /** Sends to every connection in the room except {@code except} (usually the sender's). */
     public void publish(String roomId, ServerEvent event, @Nullable Connection except) {
         Set<Connection> connections = rooms.get(roomId);

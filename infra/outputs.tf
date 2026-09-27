@@ -14,3 +14,7 @@ output "deploy_client_id" {
 output "tenant_id" {
   value = azurerm_user_assigned_identity.deploy.tenant_id
 }
+
+output "web_url" {
+  value = "https://${azurerm_static_web_app.web.default_host_name}"
+}

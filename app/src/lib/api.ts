@@ -40,5 +40,6 @@ export async function api<T>(
     const body = (await response.json().catch(() => null)) as { code?: string } | null;
     throw new ApiError(response.status, body?.code ?? 'UNKNOWN');
   }
+  if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
 }

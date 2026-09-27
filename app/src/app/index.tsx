@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -9,6 +9,7 @@ import { ChatHeader } from '@/features/chat/components/chat-header';
 import { MessageComposer } from '@/features/chat/components/message-composer';
 import { MessageList } from '@/features/chat/components/message-list';
 import { useChat } from '@/features/chat/use-chat';
+import { registerForPush } from '@/features/notifications/push';
 import { InviteSheet } from '@/features/room/components/invite-sheet';
 import type { Me, Room } from '@/features/room/api';
 import { useReadyRoom } from '@/features/room/room-provider';
@@ -23,7 +24,7 @@ export default function ChatRoute() {
       me={me}
       room={room}
       onRoomLost={reload}
-      onMemberJoined={refreshRoom}
+      onMembersChanged={refreshRoom}
     />
   );
 }
@@ -32,10 +33,10 @@ type ChatScreenProps = {
   me: Me;
   room: Room;
   onRoomLost: () => void;
-  onMemberJoined: () => void;
+  onMembersChanged: () => void;
 };
 
-function ChatScreen({ me, room, onRoomLost, onMemberJoined }: ChatScreenProps) {
+function ChatScreen({ me, room, onRoomLost, onMembersChanged }: ChatScreenProps) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { buddy, busy, setBuddy, feed, clean } = useBuddy(room.buddy);
@@ -43,11 +44,16 @@ function ChatScreen({ me, room, onRoomLost, onMemberJoined }: ChatScreenProps) {
     {
       myId: me.id,
       onRoomLost,
-      onMemberJoined,
+      onMembersChanged,
       onBuddy: setBuddy,
     },
   );
   const [buddyOpen, setBuddyOpen] = useState(false);
+
+  // Asked here rather than at launch: by now the user knows what the app is for.
+  useEffect(() => {
+    registerForPush().catch((e) => console.warn('push registration failed', e));
+  }, []);
   const [inviteOpen, setInviteOpen] = useState(false);
   const partner = room.members.find((member) => member.id !== me.id);
 

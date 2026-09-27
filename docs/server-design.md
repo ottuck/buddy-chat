@@ -53,7 +53,8 @@ com.buddychat
  ├ room       Room, Invitation, 멤버 관리
  ├ chat       Message, 히스토리 조회
  ├ buddy      Buddy 규칙과 상태 변경
- └ realtime   WebSocket handler, 세션 레지스트리(메모리), 이벤트 전달
+ ├ realtime   WebSocket handler, 세션 레지스트리(메모리), 이벤트 전달
+ └ notification  푸시 토큰, 새 메시지 알림(Expo 푸시 서비스)
 ```
 
 모듈끼리는 service를 통해서만 호출한다. 다른 모듈의 repository를 직접 쓰지 않는다.
@@ -64,10 +65,11 @@ com.buddychat
 users        { _id, firebaseUid (unique), displayName, roomId?, createdAt }
 rooms        { _id, memberIds [1..2], memberCount, createdAt,
                buddy { name, exp, bornAt, lastFedAt?, lastCleanedAt?, expDay?, messageExpToday? } }
-messages     { _id, roomId, senderId?, type (TEXT | SYSTEM | BUDDY_EVENT), text?, buddyEvent?, actorId?,
+messages     { _id, roomId, senderId?, type (TEXT | SYSTEM | BUDDY_EVENT), text?, buddyEvent?, systemEvent?, actorId?,
                clientMessageId, createdAt }
 invitations  { _id, roomId, code (unique), createdBy, createdAt, expiresAt, usedAt?, usedBy? }
 reads        { _id: "<roomId>:<userId>", roomId, userId, messageId, updatedAt }
+push_tokens  { _id: <Expo push token>, userId, updatedAt }
 ```
 
 - **Buddy는 room에 embed한다.** room과 1:1로 생성·삭제되고 항상 같이 읽는다. 밥주기·청소를 room 문서
@@ -98,7 +100,10 @@ reads        { _id: "<roomId>:<userId>", roomId, userId, messageId, updatedAt }
 | GET | `/api/rooms/me` | 내 room, 멤버, Buddy 상태 |
 | POST | `/api/rooms/me/invitations` | 초대 코드 발급 |
 | POST | `/api/invitations/{code}/accept` | 초대 수락 → room 참가 |
+| POST | `/api/rooms/me/leave` | room 나가기 → 204(아래 Room 규칙) |
 | GET | `/api/rooms/me/messages?before=&after=&limit=` | 타임라인(최신순, limit ≤ 50). `before`: 이전 페이지, `after`: 재연결 후 놓친 메시지. 응답 `{ messages, hasMore }` |
+| POST | `/api/me/push-tokens` | 이 기기의 Expo 푸시 토큰 등록 `{ token }` → 204. 다른 사용자가 갖고 있던 토큰이면 이쪽으로 옮긴다 |
+| DELETE | `/api/me/push-tokens/{token}` | 로그아웃할 때 토큰 삭제(자기 것만) → 204 |
 
 ## WebSocket 프로토콜
 
@@ -121,6 +126,7 @@ server → client
   { type: "ack", clientMessageId, message }       내 메시지 저장 완료(재전송이어도 같은 응답)
   { type: "message", message }                    상대 메시지, Buddy 이벤트
   { type: "member", userId, displayName }         친구가 초대를 수락함(solo → duo)
+  { type: "left", userId }                         친구가 나감(duo → solo). 타임라인에는 SYSTEM MEMBER_LEFT 메시지
   { type: "buddy", buddy }                         Buddy 상태 변경(돌봄, 경험치)
   { type: "typing", userId, typing }              다른 멤버에게만. 6초 동안 다시 안 오면 앱이 지운다
   { type: "presence", userId, online }            그 사용자의 첫 연결이 열리거나 마지막 연결이 닫힐 때
@@ -148,6 +154,19 @@ server → client
   앱은 상대가 읽은 위치 이하인 내 메시지 중 가장 최근 것에 "읽음"을 표시한다.
 - Container Apps의 유휴 연결 타임아웃 때문에 서버가 25초마다 ping 프레임을 보낸다.
 
+## 푸시 알림 (S8)
+
+- **경로**: 앱이 `expo-notifications`로 받은 Expo 푸시 토큰을 등록하고, 서버가 Expo 푸시 API로 보내면 Expo가 APNs(나중에
+  Android는 FCM)로 전달한다. 기기에 네이티브 Firebase SDK가 필요 없다(Firebase는 JS SDK만). APNs 키는 EAS가 관리한다.
+- **무엇을 보내나**: 상대의 새 텍스트 메시지만. 제목은 보낸 사람 이름, 본문은 메시지(180자까지). Buddy 이벤트는 보내지 않는다.
+- **누구에게**: 메시지를 저장하고 **3초 뒤에도 그 메시지까지 읽지 않은** 다른 멤버의 모든 기기. 채팅을 보고 있는 앱은
+  1초 안에 읽음을 보내므로 알림이 가지 않는다. 연결 여부(presence)로 판단하지 않는 이유: iOS가 앱을 멈춘 뒤 서버가
+  끊김을 알아채기까지(ping 실패) 수십 초 동안 "접속 중"으로 보이는 틈이 있다. 읽음 기준이면 그 틈, 백그라운드,
+  숨긴 웹 탭까지 한 규칙으로 처리된다. 메시지 전송(ack)은 알림을 기다리지 않는다.
+- **무효 토큰**: 보낼 때 받는 ticket과 약 15분 뒤 조회하는 receipt에서 `DeviceNotRegistered`면 토큰을 지운다.
+  receipt 확인은 스케줄러 없이 메모리에서 지연 실행하므로 재배포되면 그 사이 것은 빠진다(다음 전송에서 다시 걸린다).
+- 설정: `buddychat.push.grace-period`(3s), `receipt-delay`(15m), `expo-access-token`(Expo의 강화 보안을 켤 때).
+
 ## 인프라 (S7)
 
 ```text
@@ -162,6 +181,13 @@ iPhone / Web ──HTTPS·WSS──▶ Azure Container Apps (Spring WebFlux, Doc
 - **DB**: Azure DocumentDB. MongoDB 자체가 아니라 MongoDB 호환이므로 CRUD, 인덱스 조회, 커서 페이지네이션,
   조건부 atomic update, unique 인덱스만 쓴다(위 컬렉션 참고).
   README 등에는 "Azure DocumentDB (MongoDB-compatible)"로 적는다. 확인할 것은 마일스톤 S7 참고.
+- **웹 앱**: Azure Static Web Apps(Free, `stapp-buddy-chat-prod`)에 `expo export -p web` 결과(정적 파일)를 올린다.
+  무료 플랜: 커스텀 도메인 2개, 자동 갱신 SSL, 전 세계 배포, 앱 250MB. Expo는 route마다 `<route>.html`을 만들고
+  Static Web Apps는 `<route>/index.html`을 찾으므로 `app/scripts/static-web-app-config.mjs`가 export 뒤에 rewrite 규칙을
+  만든다(`pnpm build:web`). `EXPO_PUBLIC_*`(서버 주소, Firebase 웹 설정)는 빌드에 들어가는 공개 값이라 repo variables로 둔다.
+  배포 토큰은 저장하지 않고 배포 identity가 매번 읽는다. 서버 CORS에는 웹 주소와 `web_origins`(커스텀 도메인, 로컬 dev)가 들어간다.
+- **도메인(구매 후)**: 웹 `<domain>` → Static Web Apps 커스텀 도메인, 서버 `api.<domain>` → Container App 커스텀 도메인
+  (managed certificate, 무료). Firebase 콘솔의 승인된 도메인에 웹 도메인을 추가해야 Google 로그인이 된다.
 - **Redis는 쓰지 않는다.** 레플리카가 1개라 세션·presence·typing은 프로세스 메모리로 충분하다. 수평 확장이
   필요해지면 `RoomHub.publish` 뒤에 Redis Pub/Sub을 둔다.
 - **Blob Storage는 쓰지 않는다.** 사진 첨부가 MVP 밖이다. 나중에 넣으면 바이너리는 Blob, 메타데이터만 DB.
@@ -217,6 +243,8 @@ Storage는 이름이 ur-manager에 묶여 있어(`cae-ur-manager-prod` 안에 bu
    - **결과(2026-09-27, PR #4)**: 서버 테스트 58개를 실제 DocumentDB에서 전부 통과. 배포된 서버에서 16분 idle 뒤에도
      WebSocket 유지(240초 요청 timeout은 업그레이드된 연결에 적용되지 않음), 재연결 0.14초, 토큰 만료 시각에
      `TOKEN_EXPIRED` → 새 토큰으로 재연결, 아이폰 백그라운드 복귀 정상. 메시지 전달 30~400ms.
+   - **남은 것(blocker 아님)**: scale-to-zero 뒤 첫 접속 시간. 열린 WebSocket이 있으면 0대로 줄지 않으므로 앱과 웹을 모두
+     닫고 10~20분 뒤 잰다. 불편할 만큼 길면 `minReplicas = 1`을 검토한다. `main` 자동 배포(CI 안의 deploy job)는 확인 완료.
 8. **S8 Push**: FCM / APNs. 상대가 오프라인일 때 상대 메시지만 알린다(Buddy 알림 없음).
    iOS는 결국 APNs를 거치므로 `expo-notifications`로 할지 FCM으로 할지 이때 정한다. 개발용 빌드와
    Apple Developer Program이 필요하다. Firebase Admin SDK는 이때 도입한다.
@@ -244,7 +272,13 @@ Storage는 이름이 ur-manager에 묶여 있어(`cae-ur-manager-prod` 안에 bu
 - 초대 코드: 8자리(헷갈리는 0/O, 1/I/L 제외), 24시간 유효, 한 번만 사용. 대소문자 구분 없음.
 - 이미 solo room이 있는 사람이 초대를 수락하면 `LEAVE_CONFIRMATION_REQUIRED`를 받는다. 앱이 "지금 Buddy는 사라져요"를
   확인받고 `leaveCurrentRoom: true`로 다시 요청하면 참가하고, 기존 solo room과 Buddy는 삭제된다.
-- 다른 멤버가 있는 room에 있는 사람은 다른 room에 참가할 수 없다(`ALREADY_IN_ROOM`). 나가기는 MVP 밖.
+- 다른 멤버가 있는 room에 있는 사람은 다른 room에 참가할 수 없다(`ALREADY_IN_ROOM`). 먼저 나가야 한다.
+- **나가기**(`POST /api/rooms/me/leave`): 2명 room이면 남은 사람이 room과 Buddy를 그대로 갖고, `left` 이벤트와
+  SYSTEM `MEMBER_LEFT` 메시지(text = 나간 사람 이름, 더는 멤버가 아니므로)를 받는다. 혼자 room이면 room·Buddy·기록이
+  지워진다. 나간 사람의 다른 기기 연결은 `ROOM_NOT_FOUND`로 닫힌다. 순서: room에서 빼기(조건부) → 사용자 roomId 비우기
+  (조건부) → 빈 room이면 삭제 + 기록 삭제. 둘이 동시에 나가면 room을 비운 쪽이 지운다. 먼저 나간 쪽의 SYSTEM 메시지가
+  그 뒤에 저장될 수 있어서, 저장 뒤 room이 없으면 기록을 한 번 더 지운다(테스트로 잡은 경쟁). 다시 나가면 중간에 멈춘
+  나가기를 끝낸다. 초대 수락으로 solo room을 떠날 때도 기록을 함께 지운다.
 - 동시성: 초대 사용은 `usedAt: null` 조건부 update, 참가는 `memberCount < 2` 조건부 update로 보장한다.
   같은 room의 서로 다른 코드가 동시에 수락되어 자리가 없으면, 진 쪽의 초대는 사용 처리를 되돌린다.
 - 트랜잭션이 없으므로 초대 사용 → 참가 → 사용자 roomId 변경 → 기존 room 삭제 순서로 처리한다. 중간에 실패하면

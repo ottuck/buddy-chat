@@ -88,6 +88,17 @@
     "profile": "Profile",
     "guest": "Guest",
     "signOut": "Sign out",
-    "joinWithCode": "Join with an invite code"
+    "joinWithCode": "Join with an invite code",
+    "room": "Room",
+    "members": "Members",
+    "since": "Since {{date}}",
+    "leave": "Leave room",
+    "leaveTitle": "Leave this room?",
+    "leaveDuo": "{{buddy}} stays with {{partner}}. You won’t see the conversation anymore.",
+    "leaveSolo": "{{buddy}} and your messages will be deleted. This can’t be undone.",
+    "leaveConfirm": "Leave"
+  },
+  "systemEvent": {
+    "MEMBER_LEFT": "{{name}} left"
   }
 }
