@@ -46,7 +46,9 @@
     "typing": "入力中…",
     "read": "既読",
     "online": "オンライン",
-    "offline": "オフライン"
+    "offline": "オフライン",
+    "emptySolo": "{{buddy}}が生まれました！\n友だちを招待して一緒に育てましょう。",
+    "emptyDuo": "{{partner}}さんと一緒になりました。\n最初のメッセージを送ってみましょう。"
   },
   "invite": {
     "button": "友だちを招待",

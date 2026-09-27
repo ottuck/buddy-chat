@@ -46,7 +46,9 @@
     "typing": "typing…",
     "read": "Read",
     "online": "Online",
-    "offline": "Offline"
+    "offline": "Offline",
+    "emptySolo": "{{buddy}} has hatched!\nInvite a friend to raise it together.",
+    "emptyDuo": "You and {{partner}} are together now.\nSay hello!"
   },
   "invite": {
     "button": "Invite a friend",

@@ -3,10 +3,12 @@ import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { PageTitle } from '@/components/page-title';
 import { BuddySheet } from '@/features/buddy/components/buddy-sheet';
 import { useBuddy } from '@/features/buddy/use-buddy';
 import { ChatHeader } from '@/features/chat/components/chat-header';
 import { MessageComposer } from '@/features/chat/components/message-composer';
+import { EmptyChat } from '@/features/chat/components/empty-chat';
 import { MessageList } from '@/features/chat/components/message-list';
 import { useChat } from '@/features/chat/use-chat';
 import { registerForPush } from '@/features/notifications/push';
@@ -40,14 +42,8 @@ function ChatScreen({ me, room, onRoomLost, onMembersChanged }: ChatScreenProps)
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { buddy, busy, setBuddy, feed, clean } = useBuddy(room.buddy);
-  const { messages, status, online, typing, reads, send, retry, loadOlder, notifyTyping } = useChat(
-    {
-      myId: me.id,
-      onRoomLost,
-      onMembersChanged,
-      onBuddy: setBuddy,
-    },
-  );
+  const chat = useChat({ myId: me.id, onRoomLost, onMembersChanged, onBuddy: setBuddy });
+  const { messages, status, online, typing, reads, unreadWhileAway } = chat;
   const [buddyOpen, setBuddyOpen] = useState(false);
 
   // Asked here rather than at launch: by now the user knows what the app is for.
@@ -59,6 +55,8 @@ function ChatScreen({ me, room, onRoomLost, onMembersChanged }: ChatScreenProps)
 
   return (
     <SafeAreaView edges={['top']} style={[styles.screen, { backgroundColor: colors.background }]}>
+      {/* Web has no push notifications: a hidden tab counts new messages in its title instead. */}
+      <PageTitle count={unreadWhileAway} />
       {/*
         The composer already pads for the home indicator, so the keyboard offset subtracts it.
         Expo Go has no react-native-keyboard-controller; switch to it once we use dev builds.
@@ -79,17 +77,26 @@ function ChatScreen({ me, room, onRoomLost, onMembersChanged }: ChatScreenProps)
           onPressSettings={() => router.push('/settings')}
         />
         <View style={styles.list}>
-          <MessageList
-            messages={messages}
-            myId={me.id}
-            members={room.members}
-            buddyName={buddy.name}
-            partnerReadId={partner ? reads[partner.id] : undefined}
-            onRetry={retry}
-            onLoadOlder={loadOlder}
-          />
+          {chat.loaded && messages.length === 0 ? (
+            <EmptyChat
+              buddyName={buddy.name}
+              stage={buddy.stage}
+              partnerName={partner ? (partner.displayName ?? '') : null}
+              onInvite={() => setInviteOpen(true)}
+            />
+          ) : (
+            <MessageList
+              messages={messages}
+              myId={me.id}
+              members={room.members}
+              buddyName={buddy.name}
+              partnerReadId={partner ? reads[partner.id] : undefined}
+              onRetry={chat.retry}
+              onLoadOlder={chat.loadOlder}
+            />
+          )}
         </View>
-        <MessageComposer onSend={send} onTyping={notifyTyping} />
+        <MessageComposer onSend={chat.send} onTyping={chat.notifyTyping} />
       </KeyboardAvoidingView>
 
       <BuddySheet

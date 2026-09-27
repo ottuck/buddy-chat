@@ -46,7 +46,9 @@
     "typing": "입력 중…",
     "read": "읽음",
     "online": "접속 중",
-    "offline": "접속 안 함"
+    "offline": "접속 안 함",
+    "emptySolo": "{{buddy, 이가}} 태어났어요!\n친구를 초대해서 같이 키워 볼까요?",
+    "emptyDuo": "{{partner}}님과 함께하게 됐어요.\n첫 메시지를 보내 보세요."
   },
   "invite": {
     "button": "친구 초대",
@@ -77,11 +79,11 @@
     "peckish": "조금 출출해요"
   },
   "buddyEvent": {
-    "HUNGRY": "{{buddy}}가 배고파졌어요 🍚",
+    "HUNGRY": "{{buddy, 이가}} 배고파졌어요 🍚",
     "FED": "{{actor}}님이 {{buddy}}에게 밥을 줬어요",
-    "POOPED": "{{buddy}}가 💩을 쌌어요",
+    "POOPED": "{{buddy, 이가}} 💩을 쌌어요",
     "CLEANED": "{{actor}}님이 {{buddy}}의 💩을 치웠어요",
-    "EVOLVED": "{{buddy}}가 진화했어요! ✨"
+    "EVOLVED": "{{buddy, 이가}} 진화했어요! ✨"
   },
   "settings": {
     "title": "설정",
@@ -94,8 +96,8 @@
     "since": "{{date}}부터",
     "leave": "방 나가기",
     "leaveTitle": "방에서 나갈까요?",
-    "leaveDuo": "{{buddy}}는 {{partner}}님과 계속 지내요. 대화 내용도 더 볼 수 없어요.",
-    "leaveSolo": "{{buddy}}와 대화 내용이 모두 사라져요. 되돌릴 수 없어요.",
+    "leaveDuo": "{{buddy, 은는}} {{partner}}님과 계속 지내요. 대화 내용도 더 볼 수 없어요.",
+    "leaveSolo": "{{buddy, 과와}} 대화 내용이 모두 사라져요. 되돌릴 수 없어요.",
     "leaveConfirm": "나가기"
   },
   "systemEvent": {

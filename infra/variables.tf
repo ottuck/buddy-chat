@@ -35,3 +35,10 @@ variable "web_origins" {
   type    = list(string)
   default = ["http://localhost:8081", "http://localhost:8082", "http://localhost:8083"]
 }
+
+# Subdomains serving the web app. Each needs a CNAME to the Static Web App's default host name
+# first. buddy.pokepidia.com is a spare domain for trying the app, not the product's name.
+variable "web_custom_domains" {
+  type    = list(string)
+  default = ["buddy.pokepidia.com"]
+}

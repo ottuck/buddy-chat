@@ -141,8 +141,12 @@ resource "azurerm_container_app" "server" {
       }
       env {
         # The web app, custom domains, and local Expo web dev servers (which may use this server too).
-        name  = "CORS_ALLOWED_ORIGINS"
-        value = join(",", concat(["https://${azurerm_static_web_app.web.default_host_name}"], var.web_origins))
+        name = "CORS_ALLOWED_ORIGINS"
+        value = join(",", concat(
+          ["https://${azurerm_static_web_app.web.default_host_name}"],
+          [for domain in var.web_custom_domains : "https://${domain}"],
+          var.web_origins,
+        ))
       }
 
       startup_probe {
@@ -209,6 +213,11 @@ resource "azurerm_static_web_app" "web" {
   sku_tier            = "Free"
   sku_size            = "Free"
   tags                = local.tags
+
+  lifecycle {
+    # Recorded by the deploy action (Azure/static-web-apps-deploy), not managed here.
+    ignore_changes = [repository_url, repository_branch]
+  }
 }
 
 # The deploy workflow reads the site's deployment token with this, so no token is stored in GitHub.
@@ -216,4 +225,13 @@ resource "azurerm_role_assignment" "deploy_web" {
   scope                = azurerm_static_web_app.web.id
   role_definition_name = "Contributor"
   principal_id         = azurerm_user_assigned_identity.deploy.principal_id
+}
+
+# A custom domain for the web app (a subdomain: its CNAME must point at the default host name
+# before apply, DNS only / not proxied, so Azure can validate it and issue the certificate).
+resource "azurerm_static_web_app_custom_domain" "web" {
+  for_each          = toset(var.web_custom_domains)
+  static_web_app_id = azurerm_static_web_app.web.id
+  domain_name       = each.value
+  validation_type   = "cname-delegation"
 }
