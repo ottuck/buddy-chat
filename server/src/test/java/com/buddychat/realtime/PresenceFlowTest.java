@@ -176,17 +176,23 @@ class PresenceFlowTest {
         User yuki = userService.getOrCreate("yuki", "yuki").block();
 
         // Several devices reporting different points at once; the newest only once, so a mark that
-        // could move backwards would almost surely end on an older one.
-        List<Boolean> moved = Flux.range(0, 24)
-                .parallel(12)
-                .runOn(Schedulers.boundedElastic())
-                .flatMap(i -> chatService.markRead(yuki, ids.get(i == 0 ? ids.size() - 1 : i % (ids.size() - 1))))
-                .sequential()
-                .collectList()
-                .block();
+        // could move backwards would almost surely end on an older one. Repeated from no mark at
+        // all, where the concurrent first writes race to create it (a newer read once lost there).
+        for (int round = 0; round < 30; round++) {
+            mongo.remove(new Query(), "reads").block();
+            List<Boolean> moved = Flux.range(0, 24)
+                    .parallel(12)
+                    .runOn(Schedulers.boundedElastic())
+                    .flatMap(i -> chatService.markRead(yuki, ids.get(i == 0 ? ids.size() - 1 : i % (ids.size() - 1))))
+                    .sequential()
+                    .collectList()
+                    .block();
 
-        assertThat(moved).contains(true);
-        assertThat(chatService.readMarks(yuki.roomId()).block()).containsEntry(yuki.id(), ids.getLast());
+            assertThat(moved).as("round %d", round).contains(true);
+            assertThat(chatService.readMarks(yuki.roomId()).block())
+                    .as("round %d", round)
+                    .containsEntry(yuki.id(), ids.getLast());
+        }
     }
 
     // --- helpers ---
