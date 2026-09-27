@@ -62,11 +62,11 @@ com.buddychat
 
 ```text
 users        { _id, firebaseUid (unique), displayName, roomId?, createdAt }
-rooms        { _id, memberIds [1..2], memberCount, buddy { name, exp, lastFedAt, lastCleanedAt,
-               lastPoopAt, ... }, createdAt, version }
-messages     { _id, roomId, senderId?, type (TEXT | SYSTEM | BUDDY_EVENT), content,
+rooms        { _id, memberIds [1..2], memberCount, createdAt,
+               buddy { name, exp, bornAt, lastFedAt?, lastCleanedAt?, expDay?, messageExpToday? } }
+messages     { _id, roomId, senderId?, type (TEXT | SYSTEM | BUDDY_EVENT), text?, buddyEvent?, actorId?,
                clientMessageId, createdAt }
-invitations  { _id, roomId, code (unique), createdBy, expiresAt, usedAt?, usedBy? }
+invitations  { _id, roomId, code (unique), createdBy, createdAt, expiresAt, usedAt?, usedBy? }
 ```
 
 - **Buddy는 room에 embed한다.** room과 1:1로 생성·삭제되고 항상 같이 읽는다. 밥주기·청소를 room 문서
@@ -117,7 +117,6 @@ server → client
   { type: "typing", userId, typing }
   { type: "presence", userId, online }
   { type: "read", userId, messageId }
-  { type: "buddy", buddy }                        Buddy 상태 변경
   { type: "error", code }
   { type: "pong" }
 ```
@@ -138,7 +137,8 @@ server → client
 4. **S4 앱 연결**: 목업을 서버 데이터로 교체, 재연결
 5. **S5 Buddy**: 서버 규칙, 밥주기·청소(동시성), 타임라인 이벤트, 메시지 EXP 하루 상한
 6. **S6 Presence·Typing·Read**
-7. **S7 배포**: Container Apps, DocumentDB, Terraform
+7. **S7 배포**: Container Apps, DocumentDB, Terraform. DocumentDB에서 확인할 것: unique 인덱스가 null/없는
+   필드(Buddy 이벤트의 `senderId`)를 MongoDB처럼 하나의 값으로 다루는지, `$or` 조건부 update가 같은지
 8. **S8 Push**: FCM / APNs
 
 ## Buddy 규칙 (S5)
@@ -167,8 +167,10 @@ server → client
 - 다른 멤버가 있는 room에 있는 사람은 다른 room에 참가할 수 없다(`ALREADY_IN_ROOM`). 나가기는 MVP 밖.
 - 동시성: 초대 사용은 `usedAt: null` 조건부 update, 참가는 `memberCount < 2` 조건부 update로 보장한다.
   같은 room의 서로 다른 코드가 동시에 수락되어 자리가 없으면, 진 쪽의 초대는 사용 처리를 되돌린다.
-- 트랜잭션이 없으므로 참가 → 사용자 roomId 변경 → 기존 room 삭제 순서로 처리한다. 중간에 실패하면
-  주인 없는 solo room이 남을 수 있지만 사용자에게는 보이지 않는다.
+- 트랜잭션이 없으므로 초대 사용 → 참가 → 사용자 roomId 변경 → 기존 room 삭제 순서로 처리한다. 중간에 실패하면
+  (예: 참가는 됐는데 roomId 변경 실패) 같은 사용자가 같은 코드를 다시 수락했을 때 멈춘 곳부터 이어서 끝낸다.
+  초대의 `usedBy`가 자신이면 사용된 코드여도 통과하고, 이미 멤버면 참가 성공으로 본다. 앱은 에러 뒤 다시
+  시도하기만 하면 된다. 끝내 다시 시도하지 않으면 그 자리는 유령 멤버로 남는다(MVP에서는 감수).
 
 에러 코드(응답 본문 `{ "code": "..." }`, 문구는 앱이 정한다):
 
