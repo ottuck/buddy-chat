@@ -18,9 +18,9 @@
   "signIn": {
     "tagline": "Chat with someone you like, and raise a tiny buddy together.",
     "google": "Continue with Google",
-    "devGuest": "Continue as guest (dev)",
-    "nativeNotReady": "Sign-in on iPhone arrives with the app build.",
-    "error": "Couldn’t sign in. Please try again."
+    "error": "Couldn’t sign in. Please try again.",
+    "startNow": "Start now",
+    "noAccountNeeded": "No account needed to start"
   },
   "welcome": {
     "title": "A new buddy is about to hatch!",
@@ -88,7 +88,6 @@
   "settings": {
     "title": "Settings",
     "profile": "Profile",
-    "guest": "Guest",
     "signOut": "Sign out",
     "joinWithCode": "Join with an invite code",
     "room": "Room",
@@ -98,9 +97,29 @@
     "leaveTitle": "Leave this room?",
     "leaveDuo": "{{buddy}} stays with {{partner}}. You won’t see the conversation anymore.",
     "leaveSolo": "{{buddy}} and your messages will be deleted. This can’t be undone.",
-    "leaveConfirm": "Leave"
+    "leaveConfirm": "Leave",
+    "changeName": "Change name",
+    "account": "Account",
+    "guestTitle": "Using as a guest",
+    "guestBody": "Link an account to keep your buddy and messages if you change devices or clear your browser data.",
+    "linkGoogle": "Link Google account",
+    "linkNotReady": "Linking an account in the app is coming soon.",
+    "linkedGoogle": "Linked to Google",
+    "linkFailed": "Couldn’t link the account. Please try again.",
+    "accountInUseTitle": "This Google account is already in use",
+    "accountInUseMessage": "It already has buddy-chat data. If you switch to it, the buddy and messages from this guest account won’t be available on this device anymore.",
+    "accountInUseConfirm": "Switch",
+    "guestSignOutTitle": "Sign out of your guest account?",
+    "guestSignOutMessage": "You can’t come back to this guest account after signing out. Link an account first to keep your buddy and messages."
   },
   "systemEvent": {
     "MEMBER_LEFT": "{{name}} left"
+  },
+  "name": {
+    "title": "What should we call you?",
+    "subtitle": "Your friend will see this name. You can change it later in settings.",
+    "placeholder": "Name",
+    "next": "Next",
+    "save": "Save"
   }
 }

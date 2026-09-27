@@ -49,26 +49,21 @@ export default function SignInScreen() {
           </Text>
         </View>
 
+        {/* Guest first: nothing stands between opening the app and meeting the buddy. An account
+            can be linked later from settings, keeping everything (docs/product.md). */}
         <View style={styles.actions}>
+          <Button label={t('signIn.startNow')} onPress={() => run(signInAsGuest)} disabled={busy} />
           {googleSignInSupported ? (
             <Button
               label={t('signIn.google')}
               onPress={() => run(signInWithGoogle)}
               disabled={busy}
-            />
-          ) : (
-            <Text style={[styles.notice, { color: colors.textMuted }]}>
-              {t('signIn.nativeNotReady')}
-            </Text>
-          )}
-          {__DEV__ ? (
-            <Button
-              label={t('signIn.devGuest')}
-              onPress={() => run(signInAsGuest)}
-              disabled={busy}
               variant="secondary"
             />
           ) : null}
+          <Text style={[styles.notice, { color: colors.textMuted }]}>
+            {t('signIn.noAccountNeeded')}
+          </Text>
           {busy ? <ActivityIndicator color={colors.accent} /> : null}
           {error ? <Text style={[styles.error, { color: colors.accent }]}>{error}</Text> : null}
         </View>

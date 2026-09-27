@@ -4,10 +4,18 @@ import { signInAnonymously, signOut as firebaseSignOut } from 'firebase/auth';
 import { unregisterPush } from '@/features/notifications/push';
 import { auth } from '@/lib/firebase';
 
-// Development only: lets the app be used in Expo Go before real sign-in works on phones.
-// Requires the Anonymous provider to be enabled in the Firebase console.
+// "Start now": a Firebase anonymous account, so there is a uid for the server like any other
+// sign-in. Google (or Apple) can be linked later without changing it (docs/product.md).
+// Needs the Anonymous provider in the Firebase console, and its automatic clean-up of old
+// anonymous accounts must stay off: it would delete guests along with their buddy.
 export async function signInAsGuest(): Promise<void> {
   await signInAnonymously(auth);
+}
+
+// Leaves the guest account for an existing Google account (see GoogleAccountInUseError).
+export async function switchAccount(switchTo: () => Promise<void>): Promise<void> {
+  await unregisterPush().catch((e) => console.warn('removing the push token failed', e));
+  await switchTo();
 }
 
 export async function signOut(): Promise<void> {

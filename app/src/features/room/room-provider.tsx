@@ -18,6 +18,8 @@ type RoomContextValue = {
   refreshRoom: () => Promise<void>;
   // After creating or joining a room, the screen hands the new room over directly.
   setRoom: (room: Room) => void;
+  // After changing the user's own profile (e.g. their name).
+  setMe: (me: Me) => void;
 };
 
 const RoomContext = createContext<RoomContextValue | null>(null);
@@ -63,6 +65,12 @@ function UserRoomProvider({ signedIn, children }: { signedIn: boolean; children:
     );
   }, []);
 
+  const setMe = useCallback((me: Me) => {
+    setState((prev) =>
+      prev.status === 'none' || prev.status === 'ready' ? { ...prev, me } : prev,
+    );
+  }, []);
+
   const refreshRoom = useCallback(async () => {
     try {
       setRoom(await fetchRoom());
@@ -72,7 +80,7 @@ function UserRoomProvider({ signedIn, children }: { signedIn: boolean; children:
   }, [setRoom]);
 
   return (
-    <RoomContext.Provider value={{ state, reload, refreshRoom, setRoom }}>
+    <RoomContext.Provider value={{ state, reload, refreshRoom, setRoom, setMe }}>
       {children}
     </RoomContext.Provider>
   );

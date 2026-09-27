@@ -17,6 +17,8 @@ public record User(
         @Nullable String roomId,
         Instant createdAt) {
 
+    public static final int MAX_NAME_LENGTH = 20;
+
     static User create(String firebaseUid, @Nullable String displayName, Instant now) {
         return new User(null, firebaseUid, displayName, null, now);
     }

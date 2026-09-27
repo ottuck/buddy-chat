@@ -3,13 +3,16 @@ package com.buddychat.user;
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 import static org.springframework.data.mongodb.core.query.Query.query;
 
+import com.buddychat.common.ApiException;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Collection;
 import org.jspecify.annotations.Nullable;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -58,6 +61,22 @@ public class UserService {
                         Update.update("roomId", roomId),
                         User.class)
                 .map(result -> result.getModifiedCount() == 1);
+    }
+
+    /**
+     * Sets the name others see. Guests (anonymous sign-in) start without one; signing in with
+     * Google only fills it in on the first request, so a name chosen here stays.
+     */
+    public Mono<User> rename(User user, @Nullable String rawName) {
+        String name = rawName == null ? "" : rawName.strip();
+        if (name.isEmpty() || name.codePointCount(0, name.length()) > User.MAX_NAME_LENGTH) {
+            return Mono.error(new ApiException(HttpStatus.BAD_REQUEST, "INVALID_REQUEST"));
+        }
+        return mongo.findAndModify(
+                query(where("_id").is(user.id())),
+                Update.update("displayName", name),
+                FindAndModifyOptions.options().returnNew(true),
+                User.class);
     }
 
     /** Clears the user's room, only if it is still that room (leaving twice is harmless). */
