@@ -222,6 +222,7 @@ export const PROP_PALETTE: Palette = {
   a: '#7FB3D5', // bowl
   r: '#FF6B81', // heart
   y: '#FFD166', // sparkles
+  u: '#F07A4A', // level up
 };
 
 // prettier-ignore
@@ -279,4 +280,14 @@ export const EXCLAIM: Frame = [
   'kk',
   '..',
   'kk',
+];
+
+// "LV ▲" over the buddy's head on a new level.
+// prettier-ignore
+export const LEVEL_UP: Frame = [
+  'u....u...u....u..',
+  'u....u...u...uuu.',
+  'u.....u.u...uuuuu',
+  'u.....u.u....uuu.',
+  'uuuu...u.....uuu.',
 ];

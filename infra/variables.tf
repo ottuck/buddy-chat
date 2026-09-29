@@ -43,11 +43,12 @@ variable "web_custom_domains" {
   default = ["buddy.pokepidia.com"]
 }
 
-# While testing, evolutions after a few messages (1 EXP per level: baby after 1 message, adult
-# after 9). Set to null before launch to use the server default (20).
+# Faster growth than the server default (20) while the app is shown as a portfolio piece: 3 EXP
+# per level, so a visitor chatting alone sees the baby after 3 messages, the child after 12 and the
+# adult after 27 (feeding and cleaning give 2 each). Set to null before a real launch.
 variable "buddy_exp_per_level" {
   type    = number
-  default = 1
+  default = 3
 }
 
 # 1 keeps the server warm (no cold start, billed at the idle rate while unused); 0 scales to zero

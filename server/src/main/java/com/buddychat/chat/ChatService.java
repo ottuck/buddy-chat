@@ -71,7 +71,13 @@ public class ChatService {
      * new; a key recorded before (e.g. the same poop noticed again) completes empty.
      */
     public Mono<Message> recordBuddyEvent(String roomId, String event, @Nullable String actorId, String key) {
-        return messages.insert(Message.buddyEvent(roomId, event, actorId, key, Instant.now(clock)))
+        return recordBuddyEvent(roomId, event, null, actorId, key);
+    }
+
+    /** As above, with a detail kept in {@code text} (the new level for LEVELED_UP). */
+    public Mono<Message> recordBuddyEvent(
+            String roomId, String event, @Nullable String detail, @Nullable String actorId, String key) {
+        return messages.insert(Message.buddyEvent(roomId, event, detail, actorId, key, Instant.now(clock)))
                 .onErrorResume(DuplicateKeyException.class, e -> Mono.empty());
     }
 

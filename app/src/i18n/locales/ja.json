@@ -49,6 +49,7 @@
     "online": "オンライン",
     "offline": "オフライン",
     "emptySolo": "{{buddy}}が生まれました！\n友だちを招待して一緒に育てましょう。",
+    "emptySoloHint": "友だちを待つあいだに、メッセージを送ってみてください。\n{{buddy}}も一緒に育ちます。",
     "emptyDuo": "{{partner}}さんと一緒になりました。\n最初のメッセージを送ってみましょう。"
   },
   "invite": {
@@ -86,6 +87,7 @@
     "FED": "{{actor}}が{{buddy}}にごはんをあげました",
     "POOPED": "{{buddy}}がうんちをしました 💩",
     "CLEANED": "{{actor}}が{{buddy}}のうんちを片付けました",
+    "LEVELED_UP": "{{buddy}}がレベルアップしました！Lv.{{level}} ⬆️",
     "EVOLVED": "{{buddy}}が進化しました！✨"
   },
   "settings": {
@@ -151,7 +153,7 @@
     "startShort": "始める",
     "me": "ソラ",
     "partner": "Yuki",
-    "buddy": "モチ",
+    "buddy": "バディ",
     "lines": {
       "hello": "私たちの卵、いつかえるかな？",
       "talk": "たくさん話すとかえるんだって！",

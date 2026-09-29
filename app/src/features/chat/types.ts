@@ -1,4 +1,4 @@
-export type BuddyEvent = 'HUNGRY' | 'FED' | 'POOPED' | 'CLEANED' | 'EVOLVED';
+export type BuddyEvent = 'HUNGRY' | 'FED' | 'POOPED' | 'CLEANED' | 'LEVELED_UP' | 'EVOLVED';
 export type SystemEvent = 'MEMBER_LEFT';
 
 // As the server sends it (server/src/main/java/com/buddychat/chat/Message.java).
@@ -37,6 +37,8 @@ export type BuddyEventMessage = MessageBase & {
   event: BuddyEvent;
   // Member who triggered the event (FED, CLEANED); absent for events the buddy causes itself.
   actorId?: string;
+  // LEVELED_UP: the level reached (the server sends it as text).
+  level?: number;
 };
 
 // E.g. "Yuki left". The name is kept on the entry: a member who left is no longer in the room.
@@ -69,6 +71,7 @@ export function fromServer(message: ServerMessage): Message | null {
       type: 'BUDDY_EVENT',
       event: message.buddyEvent,
       actorId: message.actorId ?? undefined,
+      level: message.text ? Number(message.text) : undefined,
     };
   }
   if (message.type === 'SYSTEM' && message.systemEvent) {

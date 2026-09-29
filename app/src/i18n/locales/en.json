@@ -49,6 +49,7 @@
     "online": "Online",
     "offline": "Offline",
     "emptySolo": "{{buddy}} has hatched!\nInvite a friend to raise it together.",
+    "emptySoloHint": "While you wait for a friend, try sending a message.\n{{buddy}} grows as you chat.",
     "emptyDuo": "You and {{partner}} are together now.\nSay hello!"
   },
   "invite": {
@@ -86,6 +87,7 @@
     "FED": "{{actor}} fed {{buddy}}",
     "POOPED": "{{buddy}} pooped 💩",
     "CLEANED": "{{actor}} cleaned up after {{buddy}}",
+    "LEVELED_UP": "{{buddy}} leveled up! Lv.{{level}} ⬆️",
     "EVOLVED": "{{buddy}} evolved! ✨"
   },
   "settings": {
@@ -151,7 +153,7 @@
     "startShort": "Start",
     "me": "Sky",
     "partner": "Yuki",
-    "buddy": "Mochi",
+    "buddy": "Buddy",
     "lines": {
       "hello": "When do you think our egg will hatch?",
       "talk": "They say it hatches if we talk a lot!",

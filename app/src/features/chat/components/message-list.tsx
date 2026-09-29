@@ -78,6 +78,7 @@ export function MessageList({
                 label={t(`buddyEvent.${item.event}`, {
                   buddy: buddyName,
                   actor: nameOf(item.actorId),
+                  level: item.level,
                 })}
               />
             </View>

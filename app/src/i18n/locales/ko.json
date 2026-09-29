@@ -49,6 +49,7 @@
     "online": "접속 중",
     "offline": "접속 안 함",
     "emptySolo": "{{buddy, 이가}} 태어났어요!\n친구를 초대해서 같이 키워 볼까요?",
+    "emptySoloHint": "친구를 기다리는 동안 메시지를 남겨 보세요.\n{{buddy}}도 함께 자라요.",
     "emptyDuo": "{{partner}}님과 함께하게 됐어요.\n첫 메시지를 보내 보세요."
   },
   "invite": {
@@ -86,6 +87,7 @@
     "FED": "{{actor}}님이 {{buddy}}에게 밥을 줬어요",
     "POOPED": "{{buddy, 이가}} 💩을 쌌어요",
     "CLEANED": "{{actor}}님이 {{buddy}}의 💩을 치웠어요",
+    "LEVELED_UP": "{{buddy, 이가}} 레벨 업했어요! Lv.{{level}} ⬆️",
     "EVOLVED": "{{buddy, 이가}} 진화했어요! ✨"
   },
   "settings": {
@@ -151,7 +153,7 @@
     "startShort": "시작하기",
     "me": "하늘",
     "partner": "Yuki",
-    "buddy": "모찌",
+    "buddy": "버디",
     "lines": {
       "hello": "우리 알 언제 깨어날까?",
       "talk": "얘기 많이 하면 깬대!",

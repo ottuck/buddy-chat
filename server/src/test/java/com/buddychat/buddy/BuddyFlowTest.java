@@ -192,6 +192,27 @@ class BuddyFlowTest {
     }
 
     @Test
+    void aNewLevelIsInTheTimelineButAnEvolutionIsOneLine() {
+        String roomId = createRoom("henry").id();
+
+        // Level 2 (hatching, an evolution), then level 3 in the same stage.
+        for (int i = 0; i < 2 * BuddyRules.expPerLevel(); i++)
+            buddyService.onMessageSent(roomId).block();
+
+        assertThat(timeline("henry")).containsExactly("EVOLVED", "LEVELED_UP");
+        JsonNode levelUp = http.get()
+                .uri("/api/rooms/me/messages?limit=1")
+                .header("Authorization", "Bearer " + token("henry"))
+                .exchange()
+                .expectBody(JsonNode.class)
+                .returnResult()
+                .getResponseBody()
+                .get("messages")
+                .get(0);
+        assertThat(levelUp.get("text").asString()).isEqualTo("3");
+    }
+
+    @Test
     void partnerSeesCareLive() {
         duoRoom("henry", "yuki");
         clock.advance(Duration.ofHours(9));

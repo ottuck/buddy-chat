@@ -23,6 +23,7 @@ import {
   buddyFrame,
   EXCLAIM,
   HEART,
+  LEVEL_UP,
   POOP,
   type Pose,
   PROP_PALETTE,
@@ -41,7 +42,8 @@ import type { Reaction, ReactionKind } from '../reactions';
 const FLOOR = 22;
 const PROP_SCALE = 3;
 const TICK_MS = 450;
-const FAST_TICK_MS = 150;
+// While evolving the old and new looks swap this fast.
+const FAST_TICK_MS = 90;
 const PET_MS = 1800;
 // Floor kept free at the right end for the tour's egg.
 const EGG_ROOM = 72;
@@ -53,12 +55,22 @@ const REACTION_MS: Record<ReactionKind, number> = {
   fed: 3200,
   cleaned: 1800,
   pooped: 1400,
-  evolved: 3600,
+  levelUp: 1600,
+  evolved: 2600,
 };
 // Of 'fed', the part spent chewing; the rest is a happy heart.
 const CHEW_MS = 2400;
-// Of 'evolved', the part flickering between old and new; the rest shows off the new look.
-const EVOLVE_MS = 2400;
+// Of 'evolved', the transformation (rings of light, old and new looks flickering); the rest shows
+// off the new look with a burst of sparkles.
+const EVOLVE_MS = 1400;
+const GLOW_MS = 450;
+// Where the burst's sparkles fly, from the buddy's middle.
+const BURST = [
+  [-1, -1],
+  [1, -1],
+  [-1, 0.3],
+  [1, 0.3],
+] as const;
 // The web has no native animation driver (it would warn and fall back anyway).
 const NATIVE_DRIVER = Platform.OS !== 'web';
 
@@ -134,11 +146,15 @@ function ExpandedStage({
   onFeed,
   onClean,
   onOpenDetail,
-  reaction,
+  reaction: latest,
   companionEgg,
 }: Props) {
   const colors = useColors();
   const { t } = useTranslation();
+  // The stage mounts again each time it unfolds; what happened before that is not news. Without
+  // this, focusing the composer and leaving it replayed the last evolution every time.
+  const [mountedAfter] = useState(latest?.id);
+  const reaction = latest && latest.id !== mountedAfter ? latest : null;
   const active = useActiveReaction(reaction);
   const evolving = active?.kind === 'evolved' && active.phase === 'main';
   const tick = useTick(evolving ? FAST_TICK_MS : TICK_MS);
@@ -153,6 +169,8 @@ function ExpandedStage({
   const [hop] = useState(() => new Animated.Value(0));
   const [tilt] = useState(() => new Animated.Value(0));
   const [flash] = useState(() => new Animated.Value(0));
+  const [glow] = useState(() => new Animated.Value(0));
+  const [burst] = useState(() => new Animated.Value(0));
 
   const egg = buddy.stage === 'EGG';
   // A reaction wakes a sleeping buddy for a moment.
@@ -160,6 +178,8 @@ function ExpandedStage({
   const idleFrame = buddyFrame(buddy.stage, 'idle');
   const scale = gridScale(height, idleFrame.length);
   const spriteWidth = idleFrame[0].length * scale;
+  const spriteHeight = idleFrame.length * scale;
+  const glowSize = Math.round(spriteWidth * 1.5);
   const bowlWidth = 12 * PROP_SCALE;
   // The walkable strip: right of the bowl, left of the poops.
   const minX = 16 + bowlWidth + 8;
@@ -234,8 +254,9 @@ function ExpandedStage({
     return () => rock.stop();
   }, [egg, tilt]);
 
-  // Movement that goes with a reaction: hops for a message, a shudder while straining, a white
-  // flash while evolving.
+  // Movement that goes with a reaction: hops for a message or a new level, a shudder while
+  // straining. Evolving: rings of light spread from the buddy while it changes, a quick flash as the
+  // new look settles, then a burst of sparkles.
   useEffect(() => {
     if (!reaction) return;
     const jump = (h: number) =>
@@ -250,23 +271,50 @@ function ExpandedStage({
       ]),
       { iterations: 10 },
     );
-    const pulse = Animated.loop(
-      Animated.sequence([
-        Animated.timing(flash, { toValue: 0.85, duration: 150, useNativeDriver: NATIVE_DRIVER }),
-        Animated.timing(flash, { toValue: 0, duration: 250, useNativeDriver: NATIVE_DRIVER }),
+    const transform = Animated.sequence([
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(glow, { toValue: 0, duration: 0, useNativeDriver: NATIVE_DRIVER }),
+          Animated.timing(glow, {
+            toValue: 1,
+            duration: GLOW_MS,
+            easing: Easing.out(Easing.quad),
+            useNativeDriver: NATIVE_DRIVER,
+          }),
+        ]),
+        { iterations: Math.floor(EVOLVE_MS / GLOW_MS) },
+      ),
+      Animated.timing(flash, { toValue: 0.6, duration: 60, useNativeDriver: NATIVE_DRIVER }),
+      Animated.parallel([
+        Animated.timing(flash, { toValue: 0, duration: 260, useNativeDriver: NATIVE_DRIVER }),
+        jump(12),
+        Animated.sequence([
+          Animated.timing(burst, { toValue: 0, duration: 0, useNativeDriver: NATIVE_DRIVER }),
+          Animated.timing(burst, {
+            toValue: 1,
+            duration: 700,
+            easing: Easing.out(Easing.quad),
+            useNativeDriver: NATIVE_DRIVER,
+          }),
+        ]),
       ]),
-      { iterations: 6 },
-    );
+    ]);
     const moves: Partial<Record<ReactionKind, Animated.CompositeAnimation>> = {
       message: Animated.sequence([jump(14), jump(8)]),
       cleaned: jump(10),
       pooped: shake,
-      evolved: pulse,
+      levelUp: Animated.sequence([jump(10), jump(6)]),
+      evolved: transform,
     };
     const move = moves[reaction.kind];
     move?.start();
-    return () => move?.stop();
-  }, [reaction, hop, flash]);
+    return () => {
+      move?.stop();
+      glow.setValue(0);
+      burst.setValue(1);
+      flash.setValue(0);
+    };
+  }, [reaction, hop, flash, glow, burst]);
 
   useEffect(
     () => () => {
@@ -289,7 +337,10 @@ function ExpandedStage({
       : 'happy'
     : active?.kind === 'pooped'
       ? 'strain'
-      : active?.kind === 'cleaned' || (active?.kind === 'evolved' && !evolving) || petted
+      : active?.kind === 'cleaned' ||
+          active?.kind === 'levelUp' ||
+          (active?.kind === 'evolved' && !evolving) ||
+          petted
         ? 'happy'
         : sleeping
           ? 'sleep'
@@ -303,14 +354,15 @@ function ExpandedStage({
                 ? 'blink'
                 : 'idle';
 
-  // While evolving, the old and new looks take turns, faster and faster in feel.
+  // While evolving, the old and new looks take turns quickly.
   const previousStage = STAGE_ORDER[Math.max(0, STAGE_ORDER.indexOf(buddy.stage) - 1)];
   const frame =
     evolving && tick % 2 === 0 ? buddyFrame(previousStage, 'idle') : buddyFrame(buddy.stage, pose);
 
   const showHeart = petted || (eating && active?.phase === 'after');
-  const sparkling =
-    active?.kind === 'cleaned' || (active?.kind === 'evolved' && active.phase === 'after');
+  const sparkling = active?.kind === 'cleaned';
+  const bursting = active?.kind === 'evolved' && active.phase === 'after';
+  const levelingUp = active?.kind === 'levelUp';
 
   const feed = () => {
     if (!buddy.canFeed || busy) return;
@@ -335,7 +387,13 @@ function ExpandedStage({
         <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
           {buddy.name}
         </Text>
-        <Text style={[styles.level, { color: colors.textMuted }]}>
+        <Text
+          style={[
+            styles.level,
+            levelingUp ? styles.levelUp : null,
+            { color: levelingUp ? colors.accent : colors.textMuted },
+          ]}
+        >
           {t('buddy.level', { level: buddy.level })}
         </Text>
         <View style={styles.bar}>
@@ -398,7 +456,29 @@ function ExpandedStage({
           },
         ]}
       >
-        {showHeart ? (
+        {evolving ? (
+          <Animated.View
+            style={[
+              styles.glow,
+              {
+                width: glowSize,
+                height: glowSize,
+                borderRadius: glowSize / 2,
+                left: (spriteWidth - glowSize) / 2,
+                top: (spriteHeight - glowSize) / 2,
+                opacity: glow.interpolate({ inputRange: [0, 1], outputRange: [0.9, 0] }),
+                transform: [
+                  { scale: glow.interpolate({ inputRange: [0, 1], outputRange: [0.3, 1.3] }) },
+                ],
+              },
+            ]}
+          />
+        ) : null}
+        {levelingUp ? (
+          <View style={styles.above}>
+            <PixelSprite frame={LEVEL_UP} palette={PROP_PALETTE} scale={3} />
+          </View>
+        ) : showHeart ? (
           <View style={styles.above}>
             <PixelSprite frame={HEART} palette={PROP_PALETTE} scale={3} />
           </View>
@@ -421,6 +501,38 @@ function ExpandedStage({
             </View>
           </>
         ) : null}
+        {bursting
+          ? BURST.map(([dx, dy], i) => (
+              <Animated.View
+                key={i}
+                style={[
+                  styles.sparkle,
+                  styles.passThrough,
+                  {
+                    left: spriteWidth / 2 - 7,
+                    top: spriteHeight / 2 - 7,
+                    opacity: burst.interpolate({ inputRange: [0, 0.7, 1], outputRange: [1, 1, 0] }),
+                    transform: [
+                      {
+                        translateX: burst.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0, dx * (spriteWidth / 2 + 18)],
+                        }),
+                      },
+                      {
+                        translateY: burst.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0, dy * (spriteHeight / 2 + 12)],
+                        }),
+                      },
+                    ],
+                  },
+                ]}
+              >
+                <PixelSprite frame={SPARKLE} palette={PROP_PALETTE} scale={3} />
+              </Animated.View>
+            ))
+          : null}
         <Pressable
           onPress={pet}
           accessibilityRole="button"
@@ -430,7 +542,7 @@ function ExpandedStage({
         </Pressable>
       </Animated.View>
 
-      {/* The evolution's white flashes, over the whole stage. */}
+      {/* The evolution's quick flash as the new look settles, over the whole stage. */}
       <Animated.View style={[StyleSheet.absoluteFill, styles.flash, { opacity: flash }]} />
     </View>
   );
@@ -523,6 +635,19 @@ const styles = StyleSheet.create({
   },
   sparkle: {
     position: 'absolute',
+  },
+  glow: {
+    position: 'absolute',
+    backgroundColor: 'rgba(255, 244, 196, 0.85)',
+    borderWidth: 4,
+    borderColor: '#FFD166',
+    pointerEvents: 'none',
+  },
+  passThrough: {
+    pointerEvents: 'none',
+  },
+  levelUp: {
+    fontWeight: '700',
   },
   flash: {
     backgroundColor: '#FFFFFF',

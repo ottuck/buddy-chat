@@ -24,7 +24,18 @@ export function EmptyChat({ buddyName, partnerName, onInvite }: Props) {
           ? t('chat.emptySolo', { buddy: buddyName })
           : t('chat.emptyDuo', { partner: partnerName || t('chat.guestName') })}
       </Text>
-      {partnerName === null ? <Button label={t('invite.button')} onPress={onInvite} /> : null}
+      {partnerName === null ? (
+        <>
+          <Button label={t('invite.button')} onPress={onInvite} />
+          {/* Most first visitors come alone; the buddy grows from their own messages too. */}
+          <Text
+            lineBreakStrategyIOS="hangul-word"
+            style={[styles.hint, { color: colors.textMuted }]}
+          >
+            {t('chat.emptySoloHint', { buddy: buddyName })}
+          </Text>
+        </>
+      ) : null}
     </View>
   );
 }
@@ -36,6 +47,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 16,
     paddingHorizontal: 32,
+  },
+  hint: {
+    fontSize: 13,
+    textAlign: 'center',
   },
   text: {
     fontSize: 15,
