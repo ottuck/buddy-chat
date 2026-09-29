@@ -4,6 +4,7 @@ import { ActivityIndicator, Modal, Pressable, Share, StyleSheet, Text, View } fr
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
+import { WebFrame } from '@/components/web-frame';
 import { MAX_CONTENT_WIDTH, useColors } from '@/theme';
 
 import { createInvitation, type Invitation } from '../api';
@@ -24,7 +25,8 @@ export function InviteSheet({ visible, onClose }: Props) {
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      {visible ? <InviteContent onClose={onClose} /> : null}
+      {/* Web shows the sheet in the same frame as the app (components/web-frame.web.tsx). */}
+      <WebFrame>{visible ? <InviteContent onClose={onClose} /> : null}</WebFrame>
     </Modal>
   );
 }

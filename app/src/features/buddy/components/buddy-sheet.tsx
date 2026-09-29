@@ -3,6 +3,7 @@ import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ProgressBar } from '@/components/progress-bar';
+import { WebFrame } from '@/components/web-frame';
 import { MAX_CONTENT_WIDTH, useColors } from '@/theme';
 
 import type { BuddyView } from '../api';
@@ -34,66 +35,69 @@ export function BuddySheet({ visible, buddy, busy, onClose, onFeed, onClean }: P
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <View style={[styles.screen, { backgroundColor: colors.background }]}>
-        <View style={[styles.column, { paddingBottom: 16 + insets.bottom }]}>
-          <View style={styles.topBar}>
-            <Pressable onPress={onClose} accessibilityRole="button" hitSlop={12}>
-              <Text style={[styles.close, { color: colors.accent }]}>{t('common.close')}</Text>
-            </Pressable>
-          </View>
+      {/* Web shows the sheet in the same frame as the app (components/web-frame.web.tsx). */}
+      <WebFrame>
+        <View style={[styles.screen, { backgroundColor: colors.background }]}>
+          <View style={[styles.column, { paddingBottom: 16 + insets.bottom }]}>
+            <View style={styles.topBar}>
+              <Pressable onPress={onClose} accessibilityRole="button" hitSlop={12}>
+                <Text style={[styles.close, { color: colors.accent }]}>{t('common.close')}</Text>
+              </Pressable>
+            </View>
 
-          <View style={styles.hero}>
-            <BuddyAvatar stage={buddy.stage} size={96} />
-            <Text style={[styles.name, { color: colors.text }]}>{buddy.name}</Text>
-            <Text style={[styles.subtitle, { color: colors.textMuted }]}>
-              {t(`buddy.stage.${buddy.stage}`)} · {t('buddy.level', { level: buddy.level })}
-            </Text>
-          </View>
+            <View style={styles.hero}>
+              <BuddyAvatar stage={buddy.stage} size={96} />
+              <Text style={[styles.name, { color: colors.text }]}>{buddy.name}</Text>
+              <Text style={[styles.subtitle, { color: colors.textMuted }]}>
+                {t(`buddy.stage.${buddy.stage}`)} · {t('buddy.level', { level: buddy.level })}
+              </Text>
+            </View>
 
-          <View style={[styles.card, { backgroundColor: colors.surface }]}>
-            <Stat
-              label={t('buddy.exp')}
-              value={`${Math.round(buddy.levelProgress * 100)}%`}
-              progress={buddy.levelProgress}
-            />
-            <Stat
-              label={t('buddy.fullness')}
-              value={
-                buddy.hungry
-                  ? t('buddy.hungry')
-                  : buddy.canFeed
-                    ? t('buddy.peckish')
-                    : t('buddy.full')
-              }
-              progress={buddy.fullness / 100}
-              color={colors.fullness}
-            />
-            <Stat
-              label={t('buddy.cleanliness')}
-              value={buddy.poops > 0 ? '💩'.repeat(buddy.poops) : t('buddy.clean')}
-              progress={1 - buddy.poops / MAX_POOPS}
-              color={colors.cleanliness}
-            />
-          </View>
+            <View style={[styles.card, { backgroundColor: colors.surface }]}>
+              <Stat
+                label={t('buddy.exp')}
+                value={`${Math.round(buddy.levelProgress * 100)}%`}
+                progress={buddy.levelProgress}
+              />
+              <Stat
+                label={t('buddy.fullness')}
+                value={
+                  buddy.hungry
+                    ? t('buddy.hungry')
+                    : buddy.canFeed
+                      ? t('buddy.peckish')
+                      : t('buddy.full')
+                }
+                progress={buddy.fullness / 100}
+                color={colors.fullness}
+              />
+              <Stat
+                label={t('buddy.cleanliness')}
+                value={buddy.poops > 0 ? '💩'.repeat(buddy.poops) : t('buddy.clean')}
+                progress={1 - buddy.poops / MAX_POOPS}
+                color={colors.cleanliness}
+              />
+            </View>
 
-          <View style={styles.actions}>
-            <CareButton
-              label={t('buddy.feed')}
-              emoji="🍚"
-              onPress={onFeed}
-              disabled={busy || !buddy.canFeed}
-            />
-            <CareButton
-              label={t('buddy.cleanUp')}
-              emoji="🧹"
-              onPress={onClean}
-              disabled={busy || !buddy.canClean}
-            />
-          </View>
+            <View style={styles.actions}>
+              <CareButton
+                label={t('buddy.feed')}
+                emoji="🍚"
+                onPress={onFeed}
+                disabled={busy || !buddy.canFeed}
+              />
+              <CareButton
+                label={t('buddy.cleanUp')}
+                emoji="🧹"
+                onPress={onClean}
+                disabled={busy || !buddy.canClean}
+              />
+            </View>
 
-          <Text style={[styles.hint, { color: colors.textMuted }]}>{t('buddy.growthHint')}</Text>
+            <Text style={[styles.hint, { color: colors.textMuted }]}>{t('buddy.growthHint')}</Text>
+          </View>
         </View>
-      </View>
+      </WebFrame>
     </Modal>
   );
 }
