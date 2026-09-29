@@ -31,7 +31,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -150,20 +152,61 @@ class BuddyFlowTest {
     }
 
     @Test
-    void poopsPileUpAndCleaningClearsThemOnce() {
+    void eachTapCleansOnePoopAndTheLastLeavesOneLine() {
         duoRoom("henry", "yuki");
         clock.advance(BuddyRules.poopEvery().multipliedBy(2).plusMinutes(1)); // two poops
-
         assertThat(room("henry").buddy().poops()).isEqualTo(2);
+
+        Care first = care("henry", "clean");
+        room("henry"); // looking again does not bring the cleaned poop back
+        Care second = care("yuki", "clean");
+        Care third = care("henry", "clean");
+
+        assertThat(first.changed()).isTrue();
+        assertThat(first.buddy().poops()).isEqualTo(1);
+        assertThat(second.changed()).isTrue();
+        assertThat(second.buddy().poops()).isZero();
+        assertThat(third.changed()).isFalse();
+        assertThat(room("henry").buddy().exp()).isEqualTo(2 * BuddyRules.CLEAN_EXP);
+        assertThat(timeline("henry")).filteredOn("POOPED"::equals).hasSize(2);
+        assertThat(timeline("henry")).containsOnlyOnce("CLEANED");
+
+        // A clean floor starts over: the next poop comes a full period later.
+        clock.advance(BuddyRules.poopEvery().minusMinutes(1));
+        assertThat(room("henry").buddy().poops()).isZero();
+        clock.advance(Duration.ofMinutes(2));
+        assertThat(room("henry").buddy().poops()).isEqualTo(1);
+    }
+
+    @Test
+    void tapsOnTheSamePoopAtOnceCleanItOnce() {
+        duoRoom("henry", "yuki");
+        clock.advance(BuddyRules.poopEvery().plusMinutes(1)); // one poop
+
         List<Boolean> changed =
                 race(6, i -> care(i % 2 == 0 ? "henry" : "yuki", "clean").changed());
 
         assertThat(changed).containsOnlyOnce(true);
-        BuddyView after = room("henry").buddy();
-        assertThat(after.poops()).isZero();
-        assertThat(after.exp()).isEqualTo(BuddyRules.CLEAN_EXP);
-        assertThat(timeline("henry")).filteredOn("POOPED"::equals).hasSize(2);
-        assertThat(timeline("henry")).containsOnlyOnce("CLEANED");
+        assertThat(room("henry").buddy().exp()).isEqualTo(BuddyRules.CLEAN_EXP);
+    }
+
+    @Test
+    void theTopLevelSaysThanksOnceAndStaysThere() {
+        String roomId = createRoom("henry").id();
+        int almost = (BuddyRules.MAX_LEVEL - 1) * BuddyRules.expPerLevel() - 1;
+        mongo.updateFirst(
+                        Query.query(Criteria.where("_id").is(new ObjectId(roomId))),
+                        new Update().set("buddy.exp", almost),
+                        "rooms")
+                .block();
+
+        buddyService.onMessageSent(roomId).block();
+        buddyService.onMessageSent(roomId).block();
+
+        BuddyView buddy = room("henry").buddy();
+        assertThat(buddy.level()).isEqualTo(BuddyRules.MAX_LEVEL);
+        assertThat(buddy.levelProgress()).isEqualTo(1.0);
+        assertThat(timeline("henry")).containsExactly("MAX_LEVEL");
     }
 
     @Test

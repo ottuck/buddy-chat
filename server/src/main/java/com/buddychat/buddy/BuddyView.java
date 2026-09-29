@@ -22,7 +22,7 @@ public record BuddyView(
                 buddy.exp(),
                 level,
                 BuddyRules.stage(level),
-                (buddy.exp() % BuddyRules.expPerLevel()) / (double) BuddyRules.expPerLevel(),
+                BuddyRules.levelProgress(buddy.exp()),
                 BuddyRules.fullness(buddy, now),
                 BuddyRules.poops(buddy, now),
                 BuddyRules.isHungry(buddy, now),

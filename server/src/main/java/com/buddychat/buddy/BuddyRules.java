@@ -69,8 +69,17 @@ public final class BuddyRules {
         expPerLevel = value;
     }
 
+    // The highest level (docs/product.md, 최고 레벨). EXP keeps counting past it.
+    public static final int MAX_LEVEL = 30;
+
     public static int level(int exp) {
-        return exp / expPerLevel + 1;
+        return Math.min(MAX_LEVEL, exp / expPerLevel + 1);
+    }
+
+    /** How far into the current level, 0..1; full at the highest level. */
+    public static double levelProgress(int exp) {
+        if (level(exp) == MAX_LEVEL) return 1;
+        return (exp % expPerLevel) / (double) expPerLevel;
     }
 
     public static Stage stage(int level) {
@@ -86,9 +95,15 @@ public final class BuddyRules {
         return (int) Math.max(0, 100 - drop);
     }
 
-    public static int poops(Buddy buddy, Instant now) {
+    /** Poops made since the floor was last clean (the first MAX_POOPS count), cleaned or not. */
+    static int poopsMade(Buddy buddy, Instant now) {
         long count = Duration.between(buddy.cleanedAt(), now).dividedBy(poopEvery);
         return (int) Math.min(MAX_POOPS, Math.max(0, count));
+    }
+
+    /** Poops on the floor: made, less those tapped away. */
+    public static int poops(Buddy buddy, Instant now) {
+        return Math.max(0, poopsMade(buddy, now) - buddy.cleaned());
     }
 
     public static boolean canFeed(Buddy buddy, Instant now) {
@@ -106,11 +121,6 @@ public final class BuddyRules {
     /** Feeding is allowed when the last meal was before this (the query form of canFeed). */
     static Instant feedableIfFedBefore(Instant now) {
         return now.minus(fullToEmpty.multipliedBy(100 - FEEDABLE_BELOW).dividedBy(100));
-    }
-
-    /** Cleaning is allowed when the last clean was at or before this (the query form of canClean). */
-    static Instant cleanableIfCleanedBefore(Instant now) {
-        return now.minus(poopEvery);
     }
 
     static String day(Instant now) {
