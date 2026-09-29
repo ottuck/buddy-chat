@@ -11,6 +11,8 @@ import org.springframework.data.mongodb.core.mapping.Document;
  *
  * @param systemEvent for SYSTEM entries, what happened (e.g. MEMBER_LEFT); {@code text} then holds the
  *     actor's name at the time, since they may no longer be a member. Null on entries stored before.
+ * @param text for TEXT, the message; for SYSTEM, the actor's name; for the buddy event LEVELED_UP, the
+ *     new level (e.g. "3"); otherwise null.
  */
 @Document("messages")
 public record Message(
@@ -34,8 +36,9 @@ public record Message(
     }
 
     /** {@code key} makes the event idempotent: recording the same key twice stores it once. */
-    static Message buddyEvent(String roomId, String event, @Nullable String actorId, String key, Instant now) {
-        return new Message(null, roomId, null, Type.BUDDY_EVENT, null, event, null, actorId, key, now);
+    static Message buddyEvent(
+            String roomId, String event, @Nullable String detail, @Nullable String actorId, String key, Instant now) {
+        return new Message(null, roomId, null, Type.BUDDY_EVENT, detail, event, null, actorId, key, now);
     }
 
     static Message system(

@@ -169,15 +169,29 @@ public class BuddyService {
                         load(roomId).map(buddy -> new CareResult(BuddyView.of(buddy, now), false))));
     }
 
-    // After EXP went up by `gain`: celebrate an evolution, then send everyone the new state.
+    // After EXP went up by `gain`: celebrate an evolution, or else a new level, then send everyone the
+    // new state. An evolution is a level-up too; one line in the timeline is enough for it.
     private Mono<BuddyView> grown(String roomId, Buddy after, int gain, Instant now) {
-        BuddyRules.Stage before = BuddyRules.stage(BuddyRules.level(after.exp() - gain));
-        BuddyRules.Stage stage = BuddyRules.stage(BuddyRules.level(after.exp()));
-        Mono<Message> evolved = stage == before
-                ? Mono.empty()
-                : chatService.recordBuddyEvent(roomId, "EVOLVED", null, "buddy:evolved:" + stage);
+        int levelBefore = BuddyRules.level(after.exp() - gain);
+        int level = BuddyRules.level(after.exp());
+        BuddyRules.Stage stage = BuddyRules.stage(level);
+        Mono<Message> event;
+        if (stage != BuddyRules.stage(levelBefore)) {
+            event = chatService.recordBuddyEvent(roomId, "EVOLVED", null, "buddy:evolved:" + stage);
+        } else if (level > levelBefore) {
+            // Keyed by the level and the EXP per level: the same level reached again under another
+            // setting is a new event.
+            event = chatService.recordBuddyEvent(
+                    roomId,
+                    "LEVELED_UP",
+                    String.valueOf(level),
+                    null,
+                    "buddy:level:" + BuddyRules.expPerLevel() + ":" + level);
+        } else {
+            event = Mono.empty();
+        }
         BuddyView view = BuddyView.of(after, now);
-        return evolved.doOnNext(message -> hub.publish(roomId, new ServerEvent.NewMessage(message), null))
+        return event.doOnNext(message -> hub.publish(roomId, new ServerEvent.NewMessage(message), null))
                 .then(Mono.fromRunnable(() -> hub.publish(roomId, new ServerEvent.BuddyUpdated(view), null)))
                 .thenReturn(view);
     }

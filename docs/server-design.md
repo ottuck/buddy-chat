@@ -288,7 +288,8 @@ Storage는 이름이 ur-manager에 묶여 있어(`cae-ur-manager-prod` 안에 bu
 
   하루에 얻을 수 있는 EXP는 메시지 50 + 밥(2.4시간마다 가능) + 청소(6시간마다 가능) 정도라, 기본값이면 부지런한 둘이
   3일쯤 걸려 어른이 된다.
-- **타임라인 이벤트**: `FED`, `CLEANED`(누가 했는지 포함), `EVOLVED`는 일어날 때, `HUNGRY`, `POOPED`는 누군가
+- **타임라인 이벤트**: `FED`, `CLEANED`(누가 했는지 포함), `LEVELED_UP`(`text`에 새 레벨, 단계가 바뀌면 대신 `EVOLVED` 하나만),
+  `EVOLVED`는 일어날 때, `HUNGRY`, `POOPED`는 누군가
   앱을 열거나(`GET /api/rooms/me`) 연결할 때 기록한다. 원인 시각으로 만든 키(`buddy:hungry:<lastFedAt>` 등)가
   메시지 unique 인덱스에 걸려서 여러 번 확인해도 한 번만 남는다. 스케줄러가 없다.
 - **동시성**: 밥주기는 `lastFedAt < 지금 - 2.4h`, 청소는 `lastCleanedAt <= 지금 - 6h` 조건부 update. 둘이 동시에 눌러도
