@@ -112,7 +112,19 @@
     "accountInUseMessage": "このアカウントにはすでに buddy-chat の記録があります。切り替えると、いまゲストで使っている Buddy と会話はこの端末では見られなくなります。",
     "accountInUseConfirm": "切り替える",
     "guestSignOutTitle": "ゲストアカウントからログアウトしますか？",
-    "guestSignOutMessage": "ログアウトすると、このゲストアカウントには戻れません。Buddy と会話を残すには、先にアカウントを連携してください。"
+    "guestSignOutMessage": "ログアウトすると、このゲストアカウントには戻れません。Buddy と会話を残すには、先にアカウントを連携してください。",
+    "notifications": "通知",
+    "notificationsBody": "相手からメッセージが届いたらお知らせします。",
+    "notificationsDenied": "iPhone の設定で buddy-chat の通知がオフになっています。",
+    "openSettings": "設定を開く",
+    "notificationsUnavailable": "この端末では通知を受け取れません。",
+    "deleteAccount": "アカウントを削除",
+    "deleteTitle": "アカウントを削除しますか？",
+    "deleteNoRoom": "名前とアカウントが削除されます。元に戻せません。",
+    "deleteSolo": "{{buddy}}と会話、名前とアカウントがすべて削除されます。元に戻せません。",
+    "deleteDuo": "名前とアカウントが削除され、ルームから退出します。{{buddy}}は{{partner}}さんと一緒に過ごし、やり取りした会話は{{partner}}さんの側に残ります。元に戻せません。",
+    "deleteConfirm": "削除",
+    "deleteFailed": "アカウントを削除できませんでした。もう一度お試しください。"
   },
   "systemEvent": {
     "MEMBER_LEFT": "{{name}}さんが退出しました"

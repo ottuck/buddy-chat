@@ -3,6 +3,7 @@ import {
   type AuthCredential,
   GoogleAuthProvider,
   linkWithPopup,
+  reauthenticateWithPopup,
   signInWithCredential,
   signInWithPopup,
 } from 'firebase/auth';
@@ -45,4 +46,11 @@ export async function linkGoogle(): Promise<void> {
 // can no longer be reached from this device.
 export async function switchToGoogle(credential: AuthCredential): Promise<void> {
   await signInWithCredential(auth, credential);
+}
+
+// Signs in with Google again, just now. Firebase deletes an account only after a recent sign-in.
+export async function reauthenticateGoogle(): Promise<void> {
+  const user = auth.currentUser;
+  if (!user) throw new Error('Not signed in.');
+  await reauthenticateWithPopup(user, new GoogleAuthProvider());
 }

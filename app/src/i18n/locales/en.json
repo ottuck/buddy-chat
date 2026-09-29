@@ -112,7 +112,19 @@
     "accountInUseMessage": "It already has buddy-chat data. If you switch to it, the buddy and messages from this guest account won’t be available on this device anymore.",
     "accountInUseConfirm": "Switch",
     "guestSignOutTitle": "Sign out of your guest account?",
-    "guestSignOutMessage": "You can’t come back to this guest account after signing out. Link an account first to keep your buddy and messages."
+    "guestSignOutMessage": "You can’t come back to this guest account after signing out. Link an account first to keep your buddy and messages.",
+    "notifications": "Notifications",
+    "notificationsBody": "Get notified when your friend sends a message.",
+    "notificationsDenied": "Notifications for buddy-chat are turned off in iPhone Settings.",
+    "openSettings": "Open Settings",
+    "notificationsUnavailable": "This device can’t receive notifications.",
+    "deleteAccount": "Delete account",
+    "deleteTitle": "Delete your account?",
+    "deleteNoRoom": "Your name and account will be deleted. This can’t be undone.",
+    "deleteSolo": "{{buddy}}, your messages, your name and your account will all be deleted. This can’t be undone.",
+    "deleteDuo": "Your name and account will be deleted and you’ll leave the room. {{buddy}} stays with {{partner}}, and the messages you shared stay with {{partner}}. This can’t be undone.",
+    "deleteConfirm": "Delete",
+    "deleteFailed": "Couldn’t delete your account. Please try again."
   },
   "systemEvent": {
     "MEMBER_LEFT": "{{name}} left"

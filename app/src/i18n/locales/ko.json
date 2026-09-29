@@ -112,7 +112,19 @@
     "accountInUseMessage": "이 계정에는 이미 buddy-chat 기록이 있어요. 그 계정으로 전환하면 지금 게스트로 쓰던 Buddy와 대화는 이 기기에서 더는 볼 수 없어요.",
     "accountInUseConfirm": "전환하기",
     "guestSignOutTitle": "게스트 계정에서 로그아웃할까요?",
-    "guestSignOutMessage": "로그아웃하면 이 게스트 계정으로 다시 들어올 수 없어요. Buddy와 대화를 지키려면 먼저 계정을 연결해 주세요."
+    "guestSignOutMessage": "로그아웃하면 이 게스트 계정으로 다시 들어올 수 없어요. Buddy와 대화를 지키려면 먼저 계정을 연결해 주세요.",
+    "notifications": "알림",
+    "notificationsBody": "상대에게서 메시지가 오면 알려줘요.",
+    "notificationsDenied": "iPhone 설정에서 buddy-chat 알림이 꺼져 있어요.",
+    "openSettings": "설정 열기",
+    "notificationsUnavailable": "이 기기에서는 알림을 받을 수 없어요.",
+    "deleteAccount": "계정 삭제",
+    "deleteTitle": "계정을 삭제할까요?",
+    "deleteNoRoom": "이름과 계정이 지워져요. 되돌릴 수 없어요.",
+    "deleteSolo": "{{buddy, 과와}} 대화 내용, 이름과 계정이 모두 지워져요. 되돌릴 수 없어요.",
+    "deleteDuo": "이름과 계정이 지워지고 방에서 나가요. {{buddy, 은는}} {{partner}}님과 계속 지내고, 주고받은 대화는 {{partner}}님에게 남아요. 되돌릴 수 없어요.",
+    "deleteConfirm": "삭제",
+    "deleteFailed": "계정을 삭제하지 못했어요. 다시 시도해 주세요."
   },
   "systemEvent": {
     "MEMBER_LEFT": "{{name}}님이 나갔어요"
