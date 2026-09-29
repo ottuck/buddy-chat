@@ -49,7 +49,7 @@
     "online": "オンライン",
     "offline": "オフライン",
     "emptySolo": "{{buddy}}が生まれました！\n友だちを招待して一緒に育てましょう。",
-    "emptySoloHint": "ひとりでメッセージを送っても、{{buddy}}は育ちます。",
+    "emptySoloHint": "友だちを待つあいだに、メッセージを送ってみてください。\n{{buddy}}も一緒に育ちます。",
     "emptyDuo": "{{partner}}さんと一緒になりました。\n最初のメッセージを送ってみましょう。"
   },
   "invite": {
