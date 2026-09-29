@@ -128,7 +128,7 @@ server → client
   { type: "message", message }                    상대 메시지, Buddy 이벤트
   { type: "member", userId, displayName }         친구가 초대를 수락함(solo → duo)
   { type: "left", userId }                         친구가 나감(duo → solo). 타임라인에는 SYSTEM MEMBER_LEFT 메시지
-  { type: "buddy", buddy }                         Buddy 상태 변경(돌봄, 경험치)
+  { type: "buddy", buddy }                         Buddy 상태 변경(돌봄, 경험치, 새로 알게 된 배고픔·💩)
   { type: "typing", userId, typing }              다른 멤버에게만. 6초 동안 다시 안 오면 앱이 지운다
   { type: "presence", userId, online }            그 사용자의 첫 연결이 열리거나 마지막 연결이 닫힐 때
   { type: "read", userId, messageId }             읽음 위치가 앞으로 움직였을 때만
