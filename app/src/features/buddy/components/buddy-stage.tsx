@@ -134,11 +134,15 @@ function ExpandedStage({
   onFeed,
   onClean,
   onOpenDetail,
-  reaction,
+  reaction: latest,
   companionEgg,
 }: Props) {
   const colors = useColors();
   const { t } = useTranslation();
+  // The stage mounts again each time it unfolds; what happened before that is not news. Without
+  // this, focusing the composer and leaving it replayed the last evolution every time.
+  const [mountedAfter] = useState(latest?.id);
+  const reaction = latest && latest.id !== mountedAfter ? latest : null;
   const active = useActiveReaction(reaction);
   const evolving = active?.kind === 'evolved' && active.phase === 'main';
   const tick = useTick(evolving ? FAST_TICK_MS : TICK_MS);
