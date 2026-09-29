@@ -6,11 +6,13 @@
 
 *Chat with someone you like, and raise a tiny buddy together.*
 
-[웹에서 열어보기](https://buddy.pokepidia.com) · [제품 문서](docs/product.md) · [서버 설계](docs/server-design.md)
+**[👀 로그인 없이 구경하기](https://buddy.pokepidia.com/demo)** · [웹에서 시작하기](https://buddy.pokepidia.com) · [제품 문서](docs/product.md) · [서버 설계](docs/server-design.md)
 
 <br>
 
-<img src="docs/images/chat.png" width="300" alt="Yuki와의 대화. 배고파진 모찌, 💩을 치운 Yuki, 밥을 준 Henry가 대화 사이에 보인다">
+<img src="docs/images/demo.gif" width="300" alt="구경하기 화면. 알이 깨어나 밥을 먹고 💩을 싸고, 친구가 치워 주고, 어린이를 거쳐 꽃이 핀 어른으로 자란다">
+
+<sub>구경하기: 40초 동안 알이 어른이 될 때까지</sub>
 
 </div>
 
