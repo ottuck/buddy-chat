@@ -89,6 +89,11 @@ public class ChatService {
                 mongo.remove(query(where("roomId").is(roomId)), ReadMark.class));
     }
 
+    /** Removes how far the user has read, in any room (account deletion). */
+    public Mono<Void> deleteReadMarksOf(String userId) {
+        return mongo.remove(query(where("userId").is(userId)), ReadMark.class).then();
+    }
+
     /**
      * A page of the user's room timeline, newest first. {@code before} pages back through history;
      * {@code after} fetches what was missed while disconnected (repeat while {@code hasMore}).

@@ -88,6 +88,11 @@ public class UserService {
                 .then();
     }
 
+    /** Removes the user (account deletion). Removing twice is harmless. */
+    public Mono<Void> delete(String userId) {
+        return mongo.remove(query(where("_id").is(userId)), User.class).then();
+    }
+
     public Mono<Void> moveToRoom(String userId, String roomId) {
         return mongo.updateFirst(query(where("_id").is(userId)), Update.update("roomId", roomId), User.class)
                 .then();

@@ -75,6 +75,11 @@ public class NotificationService {
                 .then();
     }
 
+    /** Forgets all of the user's devices (account deletion). */
+    public Mono<Void> forget(String userId) {
+        return mongo.remove(query(where("userId").is(userId)), PushToken.class).then();
+    }
+
     /**
      * After the grace period, notifies the room's other members who have not read the message. Runs
      * on its own: the caller does not wait, and a failure only means a missed notification.
