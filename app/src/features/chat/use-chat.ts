@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Platform } from 'react-native';
 
 import type { BuddyView } from '@/features/buddy/api';
+import { type Reaction, reactionTo } from '@/features/buddy/reactions';
 
 import { fetchNewer, fetchNewest, fetchOlder } from './api';
 import { ChatSocket, type ConnectionStatus } from './socket';
@@ -67,6 +68,10 @@ export function useChat({ myId, onRoomLost, onMembersChanged, onBuddy }: Options
   onMembersChangedRef.current = onMembersChanged;
   const onBuddyRef = useRef(onBuddy);
   onBuddyRef.current = onBuddy;
+  const myIdRef = useRef(myId);
+  myIdRef.current = myId;
+  // The latest live event for the buddy to react to (see reactionTo).
+  const [reaction, setReaction] = useState<Reaction | null>(null);
 
   const apply = useCallback((incoming: ServerMessage[]) => {
     setMessages((prev) => merge(prev, incoming));
@@ -141,6 +146,8 @@ export function useChat({ myId, onRoomLost, onMembersChanged, onBuddy }: Options
         // The message they were typing has arrived.
         if (message.senderId) setTypingOf(message.senderId, false);
         apply([message]);
+        const next = reactionTo(message, myIdRef.current);
+        if (next) setReaction(next);
       },
       onPresence: (userId, isOnline) => {
         setOnline((prev) => {
@@ -267,6 +274,7 @@ export function useChat({ myId, onRoomLost, onMembersChanged, onBuddy }: Options
     typing,
     reads,
     unreadWhileAway,
+    reaction,
     loaded,
     send,
     retry,
