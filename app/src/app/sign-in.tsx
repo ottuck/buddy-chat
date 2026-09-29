@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { FirebaseError } from 'firebase/app';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -54,6 +55,13 @@ export default function SignInScreen() {
             can be linked later from settings, keeping everything (docs/product.md). */}
         <View style={styles.actions}>
           <Button label={t('signIn.startNow')} onPress={() => run(signInAsGuest)} disabled={busy} />
+          {/* A scripted room to watch first, no account needed (app/demo.tsx). */}
+          <Button
+            label={t('signIn.demo')}
+            onPress={() => router.push('/demo')}
+            disabled={busy}
+            variant="secondary"
+          />
           {googleSignInSupported ? (
             <Button
               label={t('signIn.google')}

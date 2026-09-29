@@ -10,7 +10,8 @@ type Props = {
   partnerTyping: boolean;
   connected: boolean;
   onPressInvite: () => void;
-  onPressSettings: () => void;
+  // Absent in the tour, which has no settings.
+  onPressSettings?: () => void;
 };
 
 export function ChatHeader({
@@ -63,15 +64,17 @@ export function ChatHeader({
             {t('chat.connecting')}
           </Text>
         ) : null}
-        <Pressable
-          onPress={onPressSettings}
-          accessibilityRole="button"
-          accessibilityLabel={t('settings.title')}
-          hitSlop={12}
-          style={styles.settingsButton}
-        >
-          <Text style={[styles.settingsIcon, { color: colors.textMuted }]}>⚙︎</Text>
-        </Pressable>
+        {onPressSettings ? (
+          <Pressable
+            onPress={onPressSettings}
+            accessibilityRole="button"
+            accessibilityLabel={t('settings.title')}
+            hitSlop={12}
+            style={styles.settingsButton}
+          >
+            <Text style={[styles.settingsIcon, { color: colors.textMuted }]}>⚙︎</Text>
+          </Pressable>
+        ) : null}
       </View>
     </View>
   );

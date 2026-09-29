@@ -43,6 +43,8 @@ const PROP_SCALE = 3;
 const TICK_MS = 450;
 const FAST_TICK_MS = 150;
 const PET_MS = 1800;
+// Floor kept free at the right end for the tour's egg.
+const EGG_ROOM = 72;
 const SLEEP_FROM = 23;
 const SLEEP_UNTIL = 7;
 // How long each reaction plays.
@@ -72,6 +74,8 @@ type Props = {
   onOpenDetail: () => void;
   // The latest live event to react to.
   reaction: Reaction | null;
+  // An egg resting at the far end: the tour's ending, "yours is next".
+  companionEgg?: boolean;
 };
 
 export function BuddyStage(props: Props) {
@@ -123,7 +127,16 @@ function gridScale(height: number, gridHeight: number): number {
   return Math.max(3, Math.min(5, Math.floor((height - 84) / gridHeight)));
 }
 
-function ExpandedStage({ buddy, busy, height, onFeed, onClean, onOpenDetail, reaction }: Props) {
+function ExpandedStage({
+  buddy,
+  busy,
+  height,
+  onFeed,
+  onClean,
+  onOpenDetail,
+  reaction,
+  companionEgg,
+}: Props) {
   const colors = useColors();
   const { t } = useTranslation();
   const active = useActiveReaction(reaction);
@@ -150,7 +163,7 @@ function ExpandedStage({ buddy, busy, height, onFeed, onClean, onOpenDetail, rea
   const bowlWidth = 12 * PROP_SCALE;
   // The walkable strip: right of the bowl, left of the poops.
   const minX = 16 + bowlWidth + 8;
-  const maxX = Math.max(minX, width - spriteWidth - 16);
+  const maxX = Math.max(minX, width - spriteWidth - 16 - (companionEgg ? EGG_ROOM : 0));
   const eating = active?.kind === 'fed';
   const settled = sleeping || buddy.hungry || egg || eating || evolving;
 
@@ -363,6 +376,12 @@ function ExpandedStage({ buddy, busy, height, onFeed, onClean, onOpenDetail, rea
           <PixelSprite frame={POOP} palette={PROP_PALETTE} scale={PROP_SCALE} />
         </Pressable>
       ))}
+
+      {companionEgg ? (
+        <View style={[styles.poop, { bottom: FLOOR - 2, right: 20 }]}>
+          <PixelSprite frame={buddyFrame('EGG', 'idle')} palette={BUDDY_PALETTE} scale={3} />
+        </View>
+      ) : null}
 
       <Animated.View
         style={[

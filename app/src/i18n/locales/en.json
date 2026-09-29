@@ -20,7 +20,8 @@
     "google": "Continue with Google",
     "error": "Couldn’t sign in. Please try again.",
     "startNow": "Start now",
-    "noAccountNeeded": "No account needed. Guests can use buddy-chat for 30 days, and linking an account keeps everything."
+    "noAccountNeeded": "No account needed. Guests can use buddy-chat for 30 days, and linking an account keeps everything.",
+    "demo": "Take a look first"
   },
   "welcome": {
     "title": "A new buddy is about to hatch!",
@@ -142,5 +143,35 @@
     "link": "Link account",
     "daysLeft_one": "{{count}} day left",
     "daysLeft_other": "{{count}} days left"
+  },
+  "demo": {
+    "title": "Take a look",
+    "badge": "Just looking · nothing is saved",
+    "back": "← Back",
+    "startShort": "Start",
+    "me": "Sky",
+    "partner": "Yuki",
+    "buddy": "Mochi",
+    "lines": {
+      "hello": "When do you think our egg will hatch?",
+      "talk": "They say it hatches if we talk a lot!",
+      "hatched": "Whoa, it hatched!! 🐣",
+      "hungry": "Looks hungry. I’ll feed it",
+      "pooped": "lol it pooped",
+      "cleaned": "Cleaned it up 🧹",
+      "grown": "It’s getting big",
+      "leaves": "It has two leaves now 🌱",
+      "weekend": "Let’s feed it together this weekend too",
+      "ok": "Sure!",
+      "flower": "It bloomed 🌸"
+    },
+    "replies": {
+      "r1": "Oh, I see",
+      "r2": "{{buddy}} seems to like that",
+      "r3": "Haha, right"
+    },
+    "endTitle": "{{buddy}} is all grown up!",
+    "endBody": "Ready to raise your own buddy? Start right away, no sign-up.",
+    "replay": "Watch again"
   }
 }

@@ -20,7 +20,8 @@
     "google": "Google로 계속하기",
     "error": "로그인하지 못했어요. 다시 시도해 주세요.",
     "startNow": "바로 시작하기",
-    "noAccountNeeded": "계정 없이 시작할 수 있어요. 게스트는 30일 동안 쓸 수 있고, 계정을 연결하면 그대로 이어져요."
+    "noAccountNeeded": "계정 없이 시작할 수 있어요. 게스트는 30일 동안 쓸 수 있고, 계정을 연결하면 그대로 이어져요.",
+    "demo": "먼저 구경하기"
   },
   "welcome": {
     "title": "새로운 Buddy가 태어나려고 해요!",
@@ -142,5 +143,35 @@
     "link": "계정 연결",
     "daysLeft_one": "{{count}}일 남음",
     "daysLeft_other": "{{count}}일 남음"
+  },
+  "demo": {
+    "title": "구경하기",
+    "badge": "구경하는 중 · 저장되지 않아요",
+    "back": "← 처음으로",
+    "startShort": "시작하기",
+    "me": "하늘",
+    "partner": "Yuki",
+    "buddy": "모찌",
+    "lines": {
+      "hello": "우리 알 언제 깨어날까?",
+      "talk": "얘기 많이 하면 깬대!",
+      "hatched": "헉 깨어났어!! 🐣",
+      "hungry": "배고픈가 봐. 밥 줄게",
+      "pooped": "ㅋㅋㅋ 똥 쌌어",
+      "cleaned": "내가 치웠다 🧹",
+      "grown": "많이 컸다 ㅎㅎ",
+      "leaves": "잎이 두 장 됐어 🌱",
+      "weekend": "주말에도 같이 밥 주자",
+      "ok": "좋아!",
+      "flower": "꽃 피었다 🌸"
+    },
+    "replies": {
+      "r1": "오 그렇구나 ㅎㅎ",
+      "r2": "{{buddy}}도 좋아하는 것 같아",
+      "r3": "ㅋㅋㅋ 맞아"
+    },
+    "endTitle": "{{buddy, 이가}} 다 자랐어요!",
+    "endBody": "이제 내 Buddy를 키워 볼까요? 로그인 없이 바로 시작해요.",
+    "replay": "다시 보기"
   }
 }
