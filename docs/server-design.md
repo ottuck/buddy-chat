@@ -63,7 +63,7 @@ com.buddychat
 ## 컬렉션
 
 ```text
-users        { _id, firebaseUid (unique), displayName, roomId?, createdAt }
+users        { _id, firebaseUid (unique), displayName, roomId?, createdAt, guest?, lastSeenAt? }
 rooms        { _id, memberIds [1..2], memberCount, createdAt,
                buddy { name, exp, bornAt, lastFedAt?, lastCleanedAt?, expDay?, messageExpToday? } }
 messages     { _id, roomId, senderId?, type (TEXT | SYSTEM | BUDDY_EVENT), text?, buddyEvent?, systemEvent?, actorId?,
@@ -328,6 +328,20 @@ App Store Guideline 5.1.1(v)(앱에서 만든 계정은 앱에서 지울 수 있
 - 앱: Google을 연결한 계정은 먼저 Google로 다시 로그인한다(Firebase는 최근 로그인 뒤에만 계정 삭제를 허용한다. 서버를
   지운 뒤에 물으면 서버 데이터만 사라지고 계정은 남을 수 있다). 그다음 서버 삭제 → Firebase `deleteUser`(로그아웃 된다).
   Admin SDK를 쓰지 않는 원칙(위 Firebase token 검증)대로 Firebase 계정은 앱이 지운다.
+
+## 게스트 정리
+
+Firebase가 30일 지난 익명 계정을 지워도 서버의 사용자·방·메시지는 남는다. 링크를 공개하면 방문자마다 게스트가 생기므로
+서버가 **매주 월요일 04:00(일본 시간)** 정리한다(`account/GuestCleanup`, Spring `@Scheduled`). 서버가 항상 1대 떠 있어서
+가능하다(인프라의 콜드 스타트 결정). 배포 중 2대가 겹쳐 두 번 돌아도 삭제는 여러 번 해도 같다.
+
+- **게스트 판단**: 토큰의 `firebase.sign_in_provider`가 `anonymous`이고 `firebase.identities`가 비어 있으면 게스트.
+  Google을 연결하면 uid와 로그인 방식은 그대로지만 identity가 생겨서 게스트가 아니다.
+- **기록**: 인증된 요청마다(`UserService.current`) `guest`와 `lastSeenAt`을 적는다. 쓰기는 하루 한 번까지, 게스트 여부가
+  바뀌면 바로.
+- **대상**: 게스트이고, 만든 지 30일이 지났고(Firebase가 지웠을 때), 7일 동안 요청이 없는 사용자. 두 조건을 다 보므로
+  Firebase 정리가 늦어도 쓰고 있는 게스트는 지우지 않는다. 지우는 방법은 계정 삭제(`AccountService`)와 같다.
+- 이 필드가 생기기 전의 사용자는 정리하지 않는다(테스트 기간의 몇 명뿐).
 
 에러 코드(응답 본문 `{ "code": "..." }`, 문구는 앱이 정한다):
 

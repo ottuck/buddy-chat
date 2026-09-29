@@ -63,7 +63,8 @@
   옮기지 않는다. 이미 다른 사용자인 Google 계정이면 합치지 않고, 확인 후 그 계정으로 전환한다(게스트 데이터는 이 기기에서 못 봄).
 - 연결은 지금 웹 Google만 된다. 아이폰 Google/Apple 연결은 개발용 빌드에서 붙인다.
 - **게스트는 30일.** Firebase 콘솔의 익명 계정 자동 정리(30일 지난 익명 계정 삭제)를 켜서 그대로 제품 정책으로 쓴다. 남은 일수는
-  Firebase 계정 생성 시각으로 앱이 계산한다(`features/auth/guest-expiry.ts`, 서버·스케줄러 없음). 첫 화면과 설정에 안내하고
+  Firebase 계정 생성 시각으로 앱이 계산한다(`features/auth/guest-expiry.ts`). 서버에 남은 만료 게스트의 데이터는 서버가
+  주 1회 지운다(`account/GuestCleanup`). 첫 화면과 설정에 안내하고
   마지막 7일은 채팅 위에 안내 줄을 띄운다. 문구는 "회원가입"이 아니라 "계정 연결".
 - 계정 삭제는 설정 맨 아래. 서버(`DELETE /api/me`)를 먼저 지우고 Firebase 계정은 앱이 `deleteUser`로 지운다. Google 연결
   계정은 그 전에 다시 로그인한다(`features/auth/actions.ts`, 순서와 이유는 `docs/server-design.md` 계정 삭제).
