@@ -1,10 +1,19 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Linking,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  View,
+} from 'react-native';
 
 import { PageTitle } from '@/components/page-title';
-import { isCancelledSignIn, signOut, switchAccount } from '@/features/auth/actions';
+import { deleteAccount, isCancelledSignIn, signOut, switchAccount } from '@/features/auth/actions';
 import { useAuth } from '@/features/auth/auth-provider';
 import { useGuestDaysLeft } from '@/features/auth/guest-expiry';
 import {
@@ -13,13 +22,20 @@ import {
   linkGoogle,
   switchToGoogle,
 } from '@/features/auth/google-sign-in';
+import {
+  pushEnabled,
+  type PushState,
+  pushSupported,
+  setPushEnabled,
+} from '@/features/notifications/push';
 import { leaveRoom, type Room } from '@/features/room/api';
 import { errorMessage } from '@/features/room/error-message';
 import { useRoom } from '@/features/room/room-provider';
 import { confirm } from '@/lib/confirm';
 import { MAX_CONTENT_WIDTH, useColors } from '@/theme';
 
-// Who you are, your account, the room, and leaving or signing out (docs/product.md, MVP 범위).
+// Who you are, your account, notifications, the room, and leaving, signing out or deleting the
+// account (docs/product.md, MVP 범위).
 export default function SettingsScreen() {
   const colors = useColors();
   const { t } = useTranslation();
@@ -28,6 +44,9 @@ export default function SettingsScreen() {
   const me = state.status === 'ready' ? state.me : null;
   const guest = !!user?.isAnonymous;
   const daysLeft = useGuestDaysLeft(user);
+
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // A guest who signs out can never come back to this account; say so first.
   const onSignOut = async () => {
@@ -42,6 +61,38 @@ export default function SettingsScreen() {
       if (!ok) return;
     }
     await signOut();
+  };
+
+  const onDelete = async () => {
+    const room = state.status === 'ready' ? state.room : null;
+    const partner = room?.members.find((member) => member.id !== me?.id);
+    const ok = await confirm({
+      title: t('settings.deleteTitle'),
+      message: !room
+        ? t('settings.deleteNoRoom')
+        : partner
+          ? t('settings.deleteDuo', {
+              buddy: room.buddy.name,
+              partner: partner.displayName ?? t('chat.guestName'),
+            })
+          : t('settings.deleteSolo', { buddy: room.buddy.name }),
+      confirmLabel: t('settings.deleteConfirm'),
+      cancelLabel: t('common.cancel'),
+      destructive: true,
+    });
+    if (!ok) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      // Signed out at the end: the route guards move on to the sign-in screen.
+      await deleteAccount();
+    } catch (e) {
+      if (!isCancelledSignIn(e)) {
+        console.warn(e);
+        setDeleteError(t('settings.deleteFailed'));
+      }
+      setDeleting(false);
+    }
   };
 
   return (
@@ -68,6 +119,8 @@ export default function SettingsScreen() {
 
         <AccountCard guest={guest} daysLeft={daysLeft} email={user?.email ?? null} />
 
+        {pushSupported ? <NotificationsCard /> : null}
+
         {state.status === 'ready' ? <RoomCard room={state.room} myId={state.me.id} /> : null}
 
         {/* For someone who started solo and got a friend's code later. */}
@@ -92,6 +145,28 @@ export default function SettingsScreen() {
         >
           <Text style={[styles.signOut, { color: colors.accent }]}>{t('settings.signOut')}</Text>
         </Pressable>
+
+        {/* Quiet, at the very end: needed, but not something to press by accident. */}
+        <Pressable
+          onPress={onDelete}
+          disabled={deleting}
+          accessibilityRole="button"
+          hitSlop={8}
+          style={({ pressed }) => [styles.delete, { opacity: pressed || deleting ? 0.6 : 1 }]}
+        >
+          {deleting ? (
+            <ActivityIndicator color={colors.textMuted} />
+          ) : (
+            <Text style={[styles.deleteLabel, { color: colors.textMuted }]}>
+              {t('settings.deleteAccount')}
+            </Text>
+          )}
+        </Pressable>
+        {deleteError ? (
+          <Text style={[styles.email, styles.centered, { color: colors.accent }]}>
+            {deleteError}
+          </Text>
+        ) : null}
       </View>
     </ScrollView>
   );
@@ -185,6 +260,79 @@ function AccountCard({
           {email ? <Text style={[styles.email, { color: colors.textMuted }]}>{email}</Text> : null}
         </>
       )}
+    </View>
+  );
+}
+
+// New-message notifications for this device. Turning them off removes the device from the
+// server, and a "no" to the system prompt can only be undone in the Settings app.
+function NotificationsCard() {
+  const colors = useColors();
+  const { t } = useTranslation();
+  const [state, setState] = useState<PushState | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    pushEnabled()
+      .then((enabled) => (enabled ? setPushEnabled(true) : ('off' as const)))
+      .then((next) => !cancelled && setState(next))
+      .catch((e) => {
+        console.warn(e);
+        if (!cancelled) setState('unavailable');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const toggle = (enabled: boolean) => {
+    setState(enabled ? 'on' : 'off');
+    setPushEnabled(enabled)
+      .then(setState)
+      .catch((e) => {
+        console.warn(e);
+        setState('unavailable');
+      });
+  };
+
+  return (
+    <View style={[styles.card, { backgroundColor: colors.surface }]}>
+      <View style={styles.switchRow}>
+        <View style={styles.switchText}>
+          <Text style={[styles.row, { color: colors.text }]}>{t('settings.notifications')}</Text>
+          <Text style={[styles.email, { color: colors.textMuted }]}>
+            {t('settings.notificationsBody')}
+          </Text>
+        </View>
+        <Switch
+          value={state === 'on'}
+          onValueChange={toggle}
+          disabled={state === null || state === 'unavailable'}
+          trackColor={{ true: colors.accent }}
+          accessibilityLabel={t('settings.notifications')}
+        />
+      </View>
+      {state === 'denied' ? (
+        <>
+          <Text style={[styles.email, styles.section, { color: colors.textMuted }]}>
+            {t('settings.notificationsDenied')}
+          </Text>
+          <Pressable
+            onPress={() => Linking.openSettings()}
+            accessibilityRole="button"
+            hitSlop={8}
+            style={({ pressed }) => [styles.link, { opacity: pressed ? 0.6 : 1 }]}
+          >
+            <Text style={[styles.linkLabel, { color: colors.accent }]}>
+              {t('settings.openSettings')}
+            </Text>
+          </Pressable>
+        </>
+      ) : state === 'unavailable' ? (
+        <Text style={[styles.email, styles.section, { color: colors.textMuted }]}>
+          {t('settings.notificationsUnavailable')}
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -301,6 +449,27 @@ const styles = StyleSheet.create({
   },
   row: {
     fontSize: 16,
+  },
+  switchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  switchText: {
+    flex: 1,
+    gap: 2,
+  },
+  delete: {
+    alignSelf: 'center',
+    minHeight: 24,
+    justifyContent: 'center',
+  },
+  deleteLabel: {
+    fontSize: 14,
+    textDecorationLine: 'underline',
+  },
+  centered: {
+    textAlign: 'center',
   },
   signOut: {
     fontSize: 16,

@@ -50,6 +50,7 @@ com.buddychat
  ├ common     공통 설정, 에러 응답
  ├ auth       SecurityConfig, 현재 사용자(uid) 꺼내기
  ├ user       User, /api/me
+ ├ account    계정 삭제(여러 모듈의 service를 차례로 부른다)
  ├ room       Room, Invitation, 멤버 관리
  ├ chat       Message, 히스토리 조회
  ├ buddy      Buddy 규칙과 상태 변경
@@ -97,6 +98,7 @@ push_tokens  { _id: <Expo push token>, userId, updatedAt }
 | --- | --- | --- |
 | GET | `/api/me` | 내 정보. 첫 호출 때 user 생성(이름은 토큰의 name, 게스트는 없음) |
 | PATCH | `/api/me` | 내 이름 바꾸기 `{ displayName }`(1~20자). 게스트는 처음에 여기서 이름을 정한다. Google을 연결해도 uid가 같아 이름은 유지 |
+| DELETE | `/api/me` | 계정 삭제 → 204(아래 계정 삭제). Firebase 계정은 앱이 이어서 지운다 |
 | POST | `/api/rooms` | 내 room 생성(solo, Buddy 알) |
 | GET | `/api/rooms/me` | 내 room, 멤버, Buddy 상태 |
 | POST | `/api/rooms/me/invitations` | 초대 코드 발급 |
@@ -104,7 +106,7 @@ push_tokens  { _id: <Expo push token>, userId, updatedAt }
 | POST | `/api/rooms/me/leave` | room 나가기 → 204(아래 Room 규칙) |
 | GET | `/api/rooms/me/messages?before=&after=&limit=` | 타임라인(최신순, limit ≤ 50). `before`: 이전 페이지, `after`: 재연결 후 놓친 메시지. 응답 `{ messages, hasMore }` |
 | POST | `/api/me/push-tokens` | 이 기기의 Expo 푸시 토큰 등록 `{ token }` → 204. 다른 사용자가 갖고 있던 토큰이면 이쪽으로 옮긴다 |
-| DELETE | `/api/me/push-tokens/{token}` | 로그아웃할 때 토큰 삭제(자기 것만) → 204 |
+| DELETE | `/api/me/push-tokens/{token}` | 로그아웃하거나 앱 설정에서 알림을 끌 때 토큰 삭제(자기 것만) → 204 |
 
 ## WebSocket 프로토콜
 
@@ -166,6 +168,8 @@ server → client
   숨긴 웹 탭까지 한 규칙으로 처리된다. 메시지 전송(ack)은 알림을 기다리지 않는다.
 - **무효 토큰**: 보낼 때 받는 ticket과 약 15분 뒤 조회하는 receipt에서 `DeviceNotRegistered`면 토큰을 지운다.
   receipt 확인은 스케줄러 없이 메모리에서 지연 실행하므로 재배포되면 그 사이 것은 빠진다(다음 전송에서 다시 걸린다).
+- **끄기**: 앱 설정의 알림 스위치는 기기별이다. 끄면 그 기기 토큰을 서버에서 지워서 아예 보내지 않는다. 서버에 사용자별
+  알림 설정은 두지 않는다. 웹은 푸시가 없어 스위치도 없다.
 - 설정: `buddychat.push.grace-period`(3s), `receipt-delay`(15m), `expo-access-token`(Expo의 강화 보안을 켤 때).
 
 ## 인프라 (S7)
@@ -293,6 +297,19 @@ Storage는 이름이 ur-manager에 묶여 있어(`cae-ur-manager-prod` 안에 bu
   (예: 참가는 됐는데 roomId 변경 실패) 같은 사용자가 같은 코드를 다시 수락했을 때 멈춘 곳부터 이어서 끝낸다.
   초대의 `usedBy`가 자신이면 사용된 코드여도 통과하고, 이미 멤버면 참가 성공으로 본다. 앱은 에러 뒤 다시
   시도하기만 하면 된다. 끝내 다시 시도하지 않으면 그 자리는 유령 멤버로 남는다(MVP에서는 감수).
+
+## 계정 삭제
+
+App Store Guideline 5.1.1(v)(앱에서 만든 계정은 앱에서 지울 수 있어야 한다) 때문에 넣었다. 게스트는 30일 뒤 Firebase가
+익명 계정을 지우지만 서버 데이터는 남으므로, 스스로 지울 방법이 있어야 한다.
+
+- 서버(`DELETE /api/me`, `account/AccountService`): room 나가기(위 나가기와 같다: 2명 room이면 상대가 room·Buddy·대화를
+  그대로 갖고 `left`를 받는다, 혼자 room이면 기록과 함께 삭제) → 내가 만든 초대 코드 → 내 읽음 위치 → 내 푸시 토큰 →
+  사용자 문서 순으로 지운다. 트랜잭션 없이 단계마다 다시 해도 되는 삭제라, 중간에 실패해도 다시 요청하면 끝난다.
+- 상대와 주고받은 메시지는 상대의 대화이기도 해서 room에 남는다(메신저의 일반적인 방식). 삭제 확인 문구에서 알린다.
+- 앱: Google을 연결한 계정은 먼저 Google로 다시 로그인한다(Firebase는 최근 로그인 뒤에만 계정 삭제를 허용한다. 서버를
+  지운 뒤에 물으면 서버 데이터만 사라지고 계정은 남을 수 있다). 그다음 서버 삭제 → Firebase `deleteUser`(로그아웃 된다).
+  Admin SDK를 쓰지 않는 원칙(위 Firebase token 검증)대로 Firebase 계정은 앱이 지운다.
 
 에러 코드(응답 본문 `{ "code": "..." }`, 문구는 앱이 정한다):
 

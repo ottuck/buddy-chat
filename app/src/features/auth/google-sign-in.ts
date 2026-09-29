@@ -21,3 +21,7 @@ export async function linkGoogle(): Promise<void> {
 export async function switchToGoogle(_credential: AuthCredential): Promise<void> {
   throw new Error('Google sign-in is not available in this build yet.');
 }
+
+export async function reauthenticateGoogle(): Promise<void> {
+  throw new Error('Google sign-in is not available in this build yet.');
+}

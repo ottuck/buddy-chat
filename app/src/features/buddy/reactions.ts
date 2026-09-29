@@ -23,3 +23,18 @@ export function reactionTo(message: ServerMessage, myId: string): Reaction | nul
         : undefined;
   return kind ? { id: message.id, kind } : null;
 }
+
+// The buddy evolved while this user was away (in messages loaded on opening or reconnecting,
+// newer than what they had read): worth showing once, the other care events are not. Someone
+// who never read anything here just joined, and the buddy's past is not news to them.
+export function missedEvolution(
+  loaded: ServerMessage[],
+  myRead: string | undefined,
+): Reaction | null {
+  if (!myRead) return null;
+  // Hex ids sort by time (docs/server-design.md).
+  const evolved = loaded.find(
+    (m) => m.type === 'BUDDY_EVENT' && m.buddyEvent === 'EVOLVED' && m.id > myRead,
+  );
+  return evolved ? { id: evolved.id, kind: 'evolved' } : null;
+}

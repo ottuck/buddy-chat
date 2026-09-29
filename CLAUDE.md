@@ -43,7 +43,8 @@
 - Buddy 상태(레벨, 배고픔, 똥, 돌볼 수 있는지)는 서버가 계산한 `BuddyView`를 그대로 보여준다. 앱에서 규칙을 다시 계산하지 않는다.
 - Buddy 무대(`features/buddy/components/buddy-stage.tsx`): 채팅 화면 위쪽 약 1/3, 입력 중이거나 위로 스크롤하면 한 줄로 접힌다.
   잠(밤 시간), 기쁨(쓰다듬기)처럼 서버에 없는 모습은 앱이 정한다. 먹기·💩·청소·진화·상대 메시지 반응은 실시간으로 받은
-  메시지(`features/buddy/reactions.ts`)로 시작한다. 다시 연결해서 채운 지난 메시지에는 반응하지 않는다.
+  메시지(`features/buddy/reactions.ts`)로 시작한다. 앱을 다시 열거나 재연결해서 채운 메시지에는 반응하지 않고, 진화만
+  내 읽음 위치보다 새로우면 한 번 보여준다.
 - 도트는 문자열 격자 → SVG 사각형(`features/buddy/pixel`). 비트맵을 쓰지 않아 iOS·웹 모두 선명하다. 격자 행 길이가 모두 같아야 하고,
   격자 배열에는 `// prettier-ignore`를 붙여 모양을 유지한다.
 
@@ -61,6 +62,8 @@
 - **게스트는 30일.** Firebase 콘솔의 익명 계정 자동 정리(30일 지난 익명 계정 삭제)를 켜서 그대로 제품 정책으로 쓴다. 남은 일수는
   Firebase 계정 생성 시각으로 앱이 계산한다(`features/auth/guest-expiry.ts`, 서버·스케줄러 없음). 첫 화면과 설정에 안내하고
   마지막 7일은 채팅 위에 안내 줄을 띄운다. 문구는 "회원가입"이 아니라 "계정 연결".
+- 계정 삭제는 설정 맨 아래. 서버(`DELETE /api/me`)를 먼저 지우고 Firebase 계정은 앱이 `deleteUser`로 지운다. Google 연결
+  계정은 그 전에 다시 로그인한다(`features/auth/actions.ts`, 순서와 이유는 `docs/server-design.md` 계정 삭제).
 
 ## Server commands (`server/`에서 실행)
 

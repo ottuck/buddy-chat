@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Platform } from 'react-native';
 
 import type { BuddyView } from '@/features/buddy/api';
-import { type Reaction, reactionTo } from '@/features/buddy/reactions';
+import { missedEvolution, type Reaction, reactionTo } from '@/features/buddy/reactions';
 
 import { fetchNewer, fetchNewest, fetchOlder } from './api';
 import { ChatSocket, type ConnectionStatus } from './socket';
@@ -102,21 +102,27 @@ export function useChat({ myId, onRoomLost, onMembersChanged, onBuddy }: Options
 
   useEffect(() => {
     // Fetch what arrived while this device was away, then resend what never got an ack.
-    const catchUp = async () => {
+    // `myRead`: the newest message this user had read, from the server.
+    const catchUp = async (myRead: string | undefined) => {
       let after = messagesRef.current.find((m) => m.id)?.id;
+      const fetched: ServerMessage[] = [];
       if (!after) {
         const page = await fetchNewest();
         apply(page.messages);
+        fetched.push(...page.messages);
         setHasOlder(page.hasMore);
         setLoaded(true);
       } else {
         for (;;) {
           const page = await fetchNewer(after);
           apply(page.messages);
+          fetched.push(...page.messages);
           if (!page.hasMore || page.messages.length === 0) break;
           after = page.messages[0].id;
         }
       }
+      const missed = missedEvolution(fetched, myRead);
+      if (missed) setReaction(missed);
       for (const m of messagesRef.current) {
         if (m.type === 'TEXT' && !m.id && m.status === 'sending') {
           socketRef.current?.send(m.clientMessageId, m.text);
@@ -139,7 +145,7 @@ export function useChat({ myId, onRoomLost, onMembersChanged, onBuddy }: Options
         // Anything sent before the connection dropped may not have arrived.
         readSent.current = undefined;
         typingSentAt.current = 0;
-        catchUp().catch((e) => console.warn('catch-up failed', e));
+        catchUp(readsNow[myIdRef.current]).catch((e) => console.warn('catch-up failed', e));
       },
       onAck: (_clientMessageId, message) => apply([message]),
       onMessage: (message) => {

@@ -114,6 +114,12 @@ public class RoomService {
                 });
     }
 
+    /** Removes the invite codes the user made, used or not (account deletion). */
+    public Mono<Void> deleteInvitationsBy(String userId) {
+        return mongo.remove(query(where("createdBy").is(userId)), Invitation.class)
+                .then();
+    }
+
     Mono<Room> findMine(User user) {
         if (user.roomId() == null) return Mono.error(roomNotFound());
         return rooms.findById(user.roomId()).switchIfEmpty(Mono.error(roomNotFound()));
