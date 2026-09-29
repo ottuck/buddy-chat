@@ -109,7 +109,7 @@ class BuddyFlowTest {
     @Test
     void getsHungryOverTimeAndIsNoticedOnce() {
         createRoom("henry");
-        clock.advance(Duration.ofHours(9));
+        clock.advance(BuddyRules.hungryAfter());
 
         BuddyView buddy = room("henry").buddy();
         room("henry"); // looking again does not repeat the event
@@ -117,14 +117,16 @@ class BuddyFlowTest {
         assertThat(buddy.hungry()).isTrue();
         assertThat(buddy.canFeed()).isTrue();
         assertThat(buddy.fullness()).isLessThanOrEqualTo(30);
-        // 9 hours is also enough for one poop.
-        assertThat(timeline("henry")).containsExactlyInAnyOrder("HUNGRY", "POOPED");
+        // Poops came meanwhile too, each once.
+        long poops = Math.min(3, BuddyRules.hungryAfter().dividedBy(BuddyRules.poopEvery()));
+        assertThat(timeline("henry")).containsOnlyOnce("HUNGRY");
+        assertThat(timeline("henry")).filteredOn("POOPED"::equals).hasSize((int) poops);
     }
 
     @Test
     void feedingRestoresFullnessGivesExpAndLeavesATimelineEvent() {
         createRoom("henry");
-        clock.advance(Duration.ofHours(9));
+        clock.advance(BuddyRules.hungryAfter());
 
         Care care = care("henry", "feed");
 
@@ -137,7 +139,7 @@ class BuddyFlowTest {
     @Test
     void bothMembersFeedingAtOnceFeedsItOnce() {
         duoRoom("henry", "yuki");
-        clock.advance(Duration.ofHours(9));
+        clock.advance(BuddyRules.hungryAfter());
 
         List<Boolean> changed =
                 race(8, i -> care(i % 2 == 0 ? "henry" : "yuki", "feed").changed());
@@ -150,7 +152,7 @@ class BuddyFlowTest {
     @Test
     void poopsPileUpAndCleaningClearsThemOnce() {
         duoRoom("henry", "yuki");
-        clock.advance(Duration.ofHours(13)); // two poops (one per 6h)
+        clock.advance(BuddyRules.poopEvery().multipliedBy(2).plusMinutes(1)); // two poops
 
         assertThat(room("henry").buddy().poops()).isEqualTo(2);
         List<Boolean> changed =
@@ -213,9 +215,31 @@ class BuddyFlowTest {
     }
 
     @Test
+    void careWordsInTheChatFeedAndCleanButSentencesDoNot() {
+        duoRoom("henry", "yuki");
+        clock.advance(BuddyRules.hungryAfter()); // hungry, and poops by now
+        room("henry");
+        TestSocket henry = connect("henry");
+        TestSocket yuki = connect("yuki");
+
+        henry.send(Map.of("type", "send", "clientMessageId", "c-1", "text", "밥 먹었어?"))
+                .expect("ack");
+        await(() -> room("henry").buddy().exp() == 1); // the sentence was counted as a message
+        assertThat(room("henry").buddy().hungry()).isTrue(); // and did not feed
+        henry.send(Map.of("type", "send", "clientMessageId", "c-2", "text", "밥!"));
+        yuki.send(Map.of("type", "send", "clientMessageId", "c-3", "text", "🧹"));
+
+        await(() -> timeline("henry").containsAll(List.of("FED", "CLEANED")));
+        BuddyView buddy = room("henry").buddy();
+        assertThat(buddy.hungry()).isFalse();
+        assertThat(buddy.poops()).isZero();
+        assertThat(timeline("henry")).containsOnlyOnce("FED");
+    }
+
+    @Test
     void partnerSeesCareLive() {
         duoRoom("henry", "yuki");
-        clock.advance(Duration.ofHours(9));
+        clock.advance(BuddyRules.hungryAfter());
         room("henry"); // notices hunger now, so the socket below only sees the feeding
         TestSocket yuki = connect("yuki");
 
@@ -232,7 +256,7 @@ class BuddyFlowTest {
     void partnerSeesAPoopTheMomentItIsNoticed() {
         duoRoom("henry", "yuki");
         TestSocket yuki = connect("yuki");
-        clock.advance(Duration.ofHours(7)); // one poop, not hungry yet
+        clock.advance(BuddyRules.poopEvery().plusMinutes(1)); // one poop, not hungry yet
 
         room("henry");
 
@@ -281,6 +305,18 @@ class BuddyFlowTest {
     }
 
     // --- helpers ---
+
+    private static void await(java.util.function.BooleanSupplier done) {
+        for (int i = 0; i < 50 && !done.getAsBoolean(); i++) {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+        }
+        assertThat(done.getAsBoolean()).isTrue();
+    }
 
     private List<String> timeline(String uid) {
         JsonNode page = http.get()

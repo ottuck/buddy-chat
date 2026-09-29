@@ -56,6 +56,7 @@ public class BuddyService {
             Clock clock,
             BuddyProperties properties) {
         BuddyRules.useExpPerLevel(properties.expPerLevel());
+        BuddyRules.useTiming(properties.fullToEmpty(), properties.poopEvery());
         this.mongo = mongo;
         this.chatService = chatService;
         this.hub = hub;
@@ -118,6 +119,18 @@ public class BuddyService {
                 "CLEANED",
                 BuddyRules.CLEAN_EXP,
                 now);
+    }
+
+    /**
+     * After a text message: +1 EXP, and if the whole message is a care word ("밥", "🧹", …, see
+     * {@link CareCommand}), the sender feeds or cleans as with the buttons. Not needed right now
+     * (not hungry, no poop) is fine: the message is just a message.
+     */
+    public Mono<Void> onMessageSent(String roomId, String senderId, String text) {
+        Mono<?> care = CareCommand.of(text)
+                .map(command -> command == CareCommand.FEED ? feed(roomId, senderId) : clean(roomId, senderId))
+                .orElse(Mono.empty());
+        return onMessageSent(roomId).then(care).then();
     }
 
     /**

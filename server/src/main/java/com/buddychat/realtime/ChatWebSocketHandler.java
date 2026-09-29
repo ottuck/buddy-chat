@@ -201,9 +201,10 @@ class ChatWebSocketHandler implements WebSocketHandler {
                                 notifications.onNewMessage(result.message(), user);
                             }
                         })
-                        // Chatting grows the buddy; a resend earned its EXP the first time.
-                        .flatMap(result ->
-                                result.created() ? buddyService.onMessageSent(connection.roomId) : Mono.<Void>empty())
+                        // Chatting grows the buddy (and "밥" feeds it); a resend did that the first time.
+                        .flatMap(result -> result.created()
+                                ? buddyService.onMessageSent(connection.roomId, user.id(), send.text())
+                                : Mono.<Void>empty())
                         .onErrorResume(ApiException.class, e -> {
                             connection.emit(new ServerEvent.Error(e.code(), send.clientMessageId()));
                             return Mono.empty();

@@ -2,6 +2,8 @@ package com.buddychat;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
+import java.util.Map;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
@@ -13,6 +15,7 @@ import reactor.core.publisher.Mono;
 /**
  * Replaces Firebase token verification in tests that send raw tokens (the WebSocket's auth
  * message). A token is {@code "<uid>~<name>"} (bearer tokens allow only a few symbols); anything without a {@code ~} is rejected.
+ * {@code "anon.<uid>~"} is a guest: signed in anonymously, no name, no linked account.
  * Real verification is covered by {@code FirebaseJwtValidatorTest}.
  */
 @TestConfiguration(proxyBeanMethods = false)
@@ -20,6 +23,10 @@ public class TestJwtConfiguration {
 
     public static String token(String uid) {
         return uid + "~" + uid;
+    }
+
+    public static String guestToken(String uid) {
+        return "anon." + uid + "~";
     }
 
     @Bean
@@ -32,11 +39,15 @@ public class TestJwtConfiguration {
             Duration lifetime = token.startsWith("short-") ? Duration.ofSeconds(2) : Duration.ofHours(1);
             int bar = token.indexOf('~');
             if (bar < 0) return Mono.error(new BadJwtException("invalid test token"));
-            return Mono.just(Jwt.withTokenValue(token)
-                            .header("alg", "none")
-                            .subject(token.substring(0, bar))
-                            .claim("name", token.substring(bar + 1))
-                            .issuedAt(Instant.now())
+            boolean guest = token.startsWith("anon.");
+            String uid = token.substring(guest ? "anon.".length() : 0, bar);
+            Map<String, Object> firebase = guest
+                    ? Map.of("sign_in_provider", "anonymous", "identities", Map.of())
+                    : Map.of("sign_in_provider", "google.com", "identities", Map.of("google.com", List.of(uid)));
+            Jwt.Builder jwt =
+                    Jwt.withTokenValue(token).header("alg", "none").subject(uid).claim("firebase", firebase);
+            if (!guest) jwt.claim("name", token.substring(bar + 1));
+            return Mono.just(jwt.issuedAt(Instant.now())
                             .expiresAt(Instant.now().plus(lifetime))
                             .build())
                     .delayElement(delay);

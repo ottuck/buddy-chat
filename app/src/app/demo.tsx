@@ -28,7 +28,7 @@ import { useDemo } from '@/features/demo/use-demo';
 import { MAX_CONTENT_WIDTH, useColors } from '@/theme';
 
 // "Take a look first" (docs/product.md, 구경하기): the chat screen as it is, playing a scripted
-// room in which the buddy grows from an egg to an adult in about 40 seconds. No account, no
+// room in which the buddy grows from an egg to an adult in about 50 seconds. No account, no
 // server. The visitor can feed, clean and type along; at the end, starting their own is one tap.
 export default function DemoRoute() {
   // Watching again starts everything over.
@@ -116,6 +116,8 @@ function DemoScreen({ onReplay }: { onReplay: () => void }) {
           onOpenDetail={() => setBuddyOpen(true)}
           reaction={demo.reaction}
           companionEgg={demo.finished}
+          greets={false}
+          askedAct={demo.askedAct}
         />
         <View style={styles.list}>
           <MessageList

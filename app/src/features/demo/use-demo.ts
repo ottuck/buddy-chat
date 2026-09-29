@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { BuddyStage, BuddyView } from '@/features/buddy/api';
 import { STAGE_ORDER } from '@/features/buddy/pixel/sprites';
+import type { AskedAct } from '@/features/buddy/components/buddy-stage';
 import type { Reaction, ReactionKind } from '@/features/buddy/reactions';
 import type { BuddyEvent, Message } from '@/features/chat/types';
 
@@ -79,6 +80,7 @@ export function useDemo({ buddyName, lineText, replyText }: Options) {
   const [partnerTyping, setPartnerTyping] = useState(false);
   const [partnerReadId, setPartnerReadId] = useState<string | undefined>(undefined);
   const [reaction, setReaction] = useState<Reaction | null>(null);
+  const [askedAct, setAskedAct] = useState<AskedAct | null>(null);
   const [finished, setFinished] = useState(false);
   const buddyRef = useRef(buddy);
   const timers = useRef(new Set<ReturnType<typeof setTimeout>>());
@@ -157,6 +159,7 @@ export function useDemo({ buddyName, lineText, replyText }: Options) {
       if (step.kind === 'typing') setPartnerTyping(true);
       else if (step.kind === 'text') text(step.from, lineRef.current(step.line));
       else if (step.kind === 'event') event(step.event, step.actor);
+      else if (step.kind === 'act') setAskedAct({ id: `act-${step.at}`, act: step.act });
       else setFinished(true);
     };
     for (const step of SCRIPT) later(step.at, () => run(step));
@@ -184,6 +187,7 @@ export function useDemo({ buddyName, lineText, replyText }: Options) {
     partnerTyping,
     partnerReadId,
     reaction,
+    askedAct,
     finished,
     send,
     feed: () => event('FED', DEMO_ME),

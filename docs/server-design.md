@@ -63,7 +63,7 @@ com.buddychat
 ## 컬렉션
 
 ```text
-users        { _id, firebaseUid (unique), displayName, roomId?, createdAt }
+users        { _id, firebaseUid (unique), displayName, roomId?, createdAt, guest?, lastSeenAt? }
 rooms        { _id, memberIds [1..2], memberCount, createdAt,
                buddy { name, exp, bornAt, lastFedAt?, lastCleanedAt?, expDay?, messageExpToday? } }
 messages     { _id, roomId, senderId?, type (TEXT | SYSTEM | BUDDY_EVENT), text?, buddyEvent?, systemEvent?, actorId?,
@@ -272,8 +272,14 @@ Storage는 이름이 ur-manager에 묶여 있어(`cae-ur-manager-prod` 안에 bu
 
 - **저장하는 것**: `exp`, `bornAt`, `lastFedAt`, `lastCleanedAt`, 오늘 메시지 EXP 카운터. 배고픔·똥은 저장하지 않고
   조회 시점에 계산한다. 앱은 서버가 계산한 `BuddyView`(level, stage, fullness, poops, canFeed, canClean)를 그대로 보여준다.
-- **배고픔**: 밥을 먹은 뒤 12시간에 걸쳐 100 → 0. 80 미만이면 밥을 줄 수 있고, 30 이하면 "배고파요".
-- **똥**: 청소 뒤 6시간마다 하나, 최대 3개. 있으면 청소할 수 있다.
+- **배고픔**: 밥을 먹은 뒤 2시간 30분에 걸쳐 100 → 0. 80 미만이면(30분 뒤부터) 밥을 줄 수 있고, 30 이하면(1시간 45분 뒤)
+  "배고파요". 2026-09-29에 12시간에서 줄였다: 잠깐 들르는 사람도 돌볼 거리가 있게.
+- **똥**: 청소 뒤 1시간마다 하나(전에는 6시간), 최대 3개. 있으면 청소할 수 있다.
+- 두 주기는 설정값이다(`buddychat.buddy.full-to-empty`, `poop-every`). 테스트는 숫자 대신 `BuddyRules.hungryAfter()`,
+  `poopEvery()`로 시간을 보낸다.
+- **채팅으로 돌보기**: 메시지 전체가 "밥"·"🍚"(일본어 "ごはん", 영어 "food")이면 밥주기, "청소"·"🧹"("そうじ", "clean")이면
+  청소를 보낸 사람이 한 것으로 처리한다(`CareCommand`). 끝의 "!", "~", "."는 괜찮고, "밥 먹었어?"처럼 문장 안의 단어는
+  아니다. 메시지는 그대로 대화에 남고 EXP도 받는다. 필요 없을 때(배부름, 💩 없음)는 그냥 메시지다.
 - **경험치**: 밥 +2, 청소 +2, 메시지 +1(room당 하루 50까지, 일본 시간 기준). 레벨당 20
   (`buddychat.buddy.exp-per-level`). **포트폴리오로 보여주는 동안 Azure에서는 3**(Terraform `buddy_exp_per_level`,
   2026-09-29에 테스트용 1에서 올림). 출시 전에 변수를 null로 돌린다. 레벨은 `exp / 레벨당 EXP + 1`로 매번 계산하므로 값을
@@ -286,13 +292,12 @@ Storage는 이름이 ur-manager에 묶여 있어(`cae-ur-manager-prod` 안에 bu
   | 어린이 | 5 | 4 | 12 | 80 |
   | 어른 | 10 | 9 | 27 | 180 |
 
-  하루에 얻을 수 있는 EXP는 메시지 50 + 밥(2.4시간마다 가능) + 청소(6시간마다 가능) 정도라, 기본값이면 부지런한 둘이
-  3일쯤 걸려 어른이 된다.
+  하루에 얻을 수 있는 EXP는 메시지 50 + 밥(30분마다 가능) + 청소(1시간마다 가능) 정도다.
 - **타임라인 이벤트**: `FED`, `CLEANED`(누가 했는지 포함), `LEVELED_UP`(`text`에 새 레벨, 단계가 바뀌면 대신 `EVOLVED` 하나만),
   `EVOLVED`는 일어날 때, `HUNGRY`, `POOPED`는 누군가
   앱을 열거나(`GET /api/rooms/me`) 연결할 때 기록한다. 원인 시각으로 만든 키(`buddy:hungry:<lastFedAt>` 등)가
   메시지 unique 인덱스에 걸려서 여러 번 확인해도 한 번만 남는다. 스케줄러가 없다.
-- **동시성**: 밥주기는 `lastFedAt < 지금 - 2.4h`, 청소는 `lastCleanedAt <= 지금 - 6h` 조건부 update. 둘이 동시에 눌러도
+- **동시성**: 밥주기는 `lastFedAt < 지금 - 30분`, 청소는 `lastCleanedAt <= 지금 - 1시간` 조건부 update. 둘이 동시에 눌러도
   한 번만 적용되고, 진 쪽은 `changed: false`와 현재 상태를 받는다. 메시지 EXP 상한도 조건부 update 두 단계로 지킨다.
 - API: `POST /api/rooms/me/buddy/feed`, `POST /api/rooms/me/buddy/clean` → `{ buddy, changed }`.
   변화는 room 전체에 `message`(타임라인 이벤트)와 `buddy`(새 상태) WebSocket 이벤트로 전달된다.
@@ -328,6 +333,20 @@ App Store Guideline 5.1.1(v)(앱에서 만든 계정은 앱에서 지울 수 있
 - 앱: Google을 연결한 계정은 먼저 Google로 다시 로그인한다(Firebase는 최근 로그인 뒤에만 계정 삭제를 허용한다. 서버를
   지운 뒤에 물으면 서버 데이터만 사라지고 계정은 남을 수 있다). 그다음 서버 삭제 → Firebase `deleteUser`(로그아웃 된다).
   Admin SDK를 쓰지 않는 원칙(위 Firebase token 검증)대로 Firebase 계정은 앱이 지운다.
+
+## 게스트 정리
+
+Firebase가 30일 지난 익명 계정을 지워도 서버의 사용자·방·메시지는 남는다. 링크를 공개하면 방문자마다 게스트가 생기므로
+서버가 **매주 월요일 04:00(일본 시간)** 정리한다(`account/GuestCleanup`, Spring `@Scheduled`). 서버가 항상 1대 떠 있어서
+가능하다(인프라의 콜드 스타트 결정). 배포 중 2대가 겹쳐 두 번 돌아도 삭제는 여러 번 해도 같다.
+
+- **게스트 판단**: 토큰의 `firebase.sign_in_provider`가 `anonymous`이고 `firebase.identities`가 비어 있으면 게스트.
+  Google을 연결하면 uid와 로그인 방식은 그대로지만 identity가 생겨서 게스트가 아니다.
+- **기록**: 인증된 요청마다(`UserService.current`) `guest`와 `lastSeenAt`을 적는다. 쓰기는 하루 한 번까지, 게스트 여부가
+  바뀌면 바로.
+- **대상**: 게스트이고, 만든 지 30일이 지났고(Firebase가 지웠을 때), 7일 동안 요청이 없는 사용자. 두 조건을 다 보므로
+  Firebase 정리가 늦어도 쓰고 있는 게스트는 지우지 않는다. 지우는 방법은 계정 삭제(`AccountService`)와 같다.
+- 이 필드가 생기기 전의 사용자는 정리하지 않는다(테스트 기간의 몇 명뿐).
 
 에러 코드(응답 본문 `{ "code": "..." }`, 문구는 앱이 정한다):
 
