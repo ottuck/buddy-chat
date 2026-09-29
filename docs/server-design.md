@@ -180,14 +180,21 @@ iPhone / Web ──HTTPS·WSS──▶ Azure Container Apps (Spring WebFlux, Doc
 ```
 
 - **백엔드**: Docker 이미지 → Azure Container Registry → Azure Container Apps. VM에 앱과 DB를 같이 올리지 않는다.
-- **레플리카**: `maxReplicas = 1`, **`minReplicas = 0`(비용 절약 정책)**. 아무도 안 쓰면 0대로 줄어서 첫 방문은
-  콜드 스타트를 기다린다. 재배포하면 메모리의 연결·presence·typing이 사라지므로 앱은 재연결을 전제로 한다.
+- **레플리카**: `maxReplicas = 1`, **`minReplicas = 1`**(아래 콜드 스타트 결정). 재배포하면 메모리의 연결·presence·typing이 사라지므로 앱은 재연결을 전제로 한다.
   유휴 연결 타임아웃 때문에 서버가 25초마다 ping을 보낸다.
 - **콜드 스타트 결정(2026-09-29)**: 측정해 보니 인스턴스 준비·이미지 받기 약 17초 + Spring 기동 4초였다. 최소 1대를
   유지하면 사라지지만 월 비용이 생긴다(0.5 vCPU / 1GiB 약 $10~12 추정, 0.25 vCPU / 0.5GiB 약 $5~6 추정. 작은 크기는
-  로컬에서 기동이 34초로 느려졌다). 개인 구독의 비용을 아끼는 인프라 정책이라 **0대 유지**로 정했다. 대신 앱이 열리자마자
-  `/actuator/health`를 한 번 불러 서버를 미리 깨운다(`app/src/lib/warm-up.ts`). 사용자가 첫 화면을 보는 동안 서버가
-  뜬다. 사용자가 생기면 다시 검토: 최소 1대, 또는 이미지 축소·Java AOT 캐시로 기동 단축.
+  로컬에서 기동이 34초로 느려졌다). 처음에는 개인 구독의 비용을 아끼려고 0대를 유지하고, 앱이 열리자마자
+  `/actuator/health`를 불러 미리 깨우기만 했다(`app/src/lib/warm-up.ts`, 지금도 남아 있다).
+  같은 날 **1대 유지로 바꿨다**: 포트폴리오로 남에게 보여줄 때 첫 화면에서 20초를 기다리게 할 수 없고, 번들 크기를 줄이는
+  것으로는 근본 원인(인스턴스 준비)이 해결되지 않는다. 비용은 Azure 가격 API의 Japan East 단가로 계산했다(JPY, 한 달):
+  아무도 접속하지 않을 때 유휴 요금 약 ¥1,700~1,950(무료 할당량 차감 전후, 그중 2/3가 메모리), 누군가 WebSocket으로
+  연결해 있는 동안은 활성 요금으로 시간당 약 +¥6, 한 달 내내 연결돼 있으면 약 ¥6,200.
+  `rg-buddy-chat-prod`에 월 ¥3,000 예산(실제 50/80/100%, 예측 100% 알림, 구독 Owner에게)을 두고 한 달 사용량을 본 뒤
+  다음 달에 조정한다: 메모리에 여유가 있으면 0.25 vCPU / 0.5GiB, 아니면 이미지 축소·Java AOT 캐시로 기동을 줄이고 0대로.
+  Terraform 변수 `min_replicas`, `monthly_budget_jpy`.
+- **DB 비용**: DocumentDB 무료 티어라 ¥0(계정이 있는 동안 무료, 32GB, 구독당 1개, HA·백업 없음, **60일 동안 쓰지 않으면
+  일시 정지**). MongoDB Atlas로 옮겨도 절감이 없다: 무료 M0는 512MB·초당 100 ops, Flex는 월 $8~30, M10은 약 $57(2026-09 확인).
 - **DB**: Azure DocumentDB. MongoDB 자체가 아니라 MongoDB 호환이므로 CRUD, 인덱스 조회, 커서 페이지네이션,
   조건부 atomic update, unique 인덱스만 쓴다(위 컬렉션 참고).
   README 등에는 "Azure DocumentDB (MongoDB-compatible)"로 적는다. 확인할 것은 마일스톤 S7 참고.
@@ -253,8 +260,8 @@ Storage는 이름이 ur-manager에 묶여 있어(`cae-ur-manager-prod` 안에 bu
    - **결과(2026-09-27, PR #4)**: 서버 테스트 58개를 실제 DocumentDB에서 전부 통과. 배포된 서버에서 16분 idle 뒤에도
      WebSocket 유지(240초 요청 timeout은 업그레이드된 연결에 적용되지 않음), 재연결 0.14초, 토큰 만료 시각에
      `TOKEN_EXPIRED` → 새 토큰으로 재연결, 아이폰 백그라운드 복귀 정상. 메시지 전달 30~400ms.
-   - **남은 것(blocker 아님)**: scale-to-zero 뒤 첫 접속 시간. 열린 WebSocket이 있으면 0대로 줄지 않으므로 앱과 웹을 모두
-     닫고 10~20분 뒤 잰다. 불편할 만큼 길면 `minReplicas = 1`을 검토한다. `main` 자동 배포(CI 안의 deploy job)는 확인 완료.
+   - scale-to-zero 뒤 첫 접속은 약 21초였다. 그래서 `minReplicas = 1`로 바꿨다(위 콜드 스타트 결정, 적용 후 응답 0.1초 이내).
+     `main` 자동 배포(CI 안의 deploy job)는 확인 완료.
 8. **S8 Push**: FCM / APNs. 상대가 오프라인일 때 상대 메시지만 알린다(Buddy 알림 없음).
    iOS는 결국 APNs를 거치므로 `expo-notifications`로 할지 FCM으로 할지 이때 정한다. 개발용 빌드와
    Apple Developer Program이 필요하다. Firebase Admin SDK는 이때 도입한다.

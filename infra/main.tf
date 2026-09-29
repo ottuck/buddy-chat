@@ -120,9 +120,10 @@ resource "azurerm_container_app" "server" {
   }
 
   template {
-    # Scales to zero when idle (a few seconds of cold start). At most one replica: realtime state
-    # lives in memory.
-    min_replicas = 0
+    # One replica always running, so nobody waits ~20 s for a cold start (docs/server-design.md,
+    # 콜드 스타트). While no one is connected it is billed at the idle rate. At most one replica:
+    # realtime state lives in memory.
+    min_replicas = var.min_replicas
     max_replicas = 1
 
     container {
@@ -242,4 +243,37 @@ resource "azurerm_static_web_app_custom_domain" "web" {
   static_web_app_id = azurerm_static_web_app.web.id
   domain_name       = each.value
   validation_type   = "cname-delegation"
+}
+
+# --- Cost: a monthly budget on this resource group, with alerts to the subscription's owners ---
+
+resource "azurerm_consumption_budget_resource_group" "monthly" {
+  name              = "budget-buddy-chat-monthly"
+  resource_group_id = azurerm_resource_group.prod.id
+  amount            = var.monthly_budget_jpy
+  time_grain        = "Monthly"
+
+  time_period {
+    start_date = "2026-09-01T00:00:00Z"
+  }
+
+  dynamic "notification" {
+    for_each = [50, 80, 100]
+    content {
+      enabled        = true
+      threshold      = notification.value
+      operator       = "GreaterThan"
+      threshold_type = "Actual"
+      contact_roles  = ["Owner"]
+    }
+  }
+
+  # Warns before the month is out if the month is on course to go over.
+  notification {
+    enabled        = true
+    threshold      = 100
+    operator       = "GreaterThan"
+    threshold_type = "Forecasted"
+    contact_roles  = ["Owner"]
+  }
 }
