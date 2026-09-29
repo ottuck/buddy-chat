@@ -49,3 +49,16 @@ variable "buddy_exp_per_level" {
   type    = number
   default = 1
 }
+
+# 1 keeps the server warm (no cold start, billed at the idle rate while unused); 0 scales to zero
+# to save that cost (docs/server-design.md, 콜드 스타트).
+variable "min_replicas" {
+  type    = number
+  default = 1
+}
+
+# In the subscription's billing currency (JPY). Expected with one warm replica: about ¥2,000 a month.
+variable "monthly_budget_jpy" {
+  type    = number
+  default = 3000
+}

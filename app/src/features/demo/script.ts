@@ -3,7 +3,7 @@ import type { BuddyEvent } from '@/features/chat/types';
 // The "take a look first" tour (docs/product.md, 구경하기): a scripted conversation of about 40
 // seconds in which the buddy hatches, gets hungry, eats, poops, is cleaned and grows up. It runs in
 // the app only, with no account or server, so a first-time visitor sees what the app is about
-// right away (and the server can wake from scale-to-zero meanwhile).
+// right away.
 
 export const DEMO_ME = 'demo-me';
 export const DEMO_PARTNER = 'demo-partner';
