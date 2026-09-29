@@ -23,9 +23,9 @@
 buddy-chat은 **딱 두 사람을 위한 메신저**예요. 그리고 두 사람 사이에는 작은 생명체 하나가 살고 있어요.
 
 ```text
-18:02   모찌가 💩을 쌌어요
+18:02   버디가 💩을 쌌어요
 
-Yuki    헐 모찌 똥 쌌어 ㅋㅋㅋ
+Yuki    헐 버디 똥 쌌어 ㅋㅋㅋ
 Henry   ㅋㅋㅋ 니가 치워
 Yuki    싫어 ㅋㅋ
 ```
@@ -41,7 +41,7 @@ Yuki    싫어 ㅋㅋ
 <div align="center">
 <table>
   <tr>
-    <td align="center"><img src="docs/images/empty.png" width="200" alt="혼자 시작한 방. 모찌가 태어났다는 안내와 친구 초대 버튼"><br><sub><b>혼자 시작해요</b><br>알이 태어나면 바로 채팅 화면</sub></td>
+    <td align="center"><img src="docs/images/empty.png" width="200" alt="혼자 시작한 방. 버디가 태어났다는 안내와 친구 초대 버튼"><br><sub><b>혼자 시작해요</b><br>알이 태어나면 바로 채팅 화면</sub></td>
     <td align="center"><img src="docs/images/invite.png" width="200" alt="8자리 초대 코드"><br><sub><b>친구 한 명을 초대해요</b><br>8자리 코드, 한 번만 사용</sub></td>
     <td align="center"><img src="docs/images/chat.png" width="200" alt="Buddy 이벤트가 섞인 대화"><br><sub><b>대화하며 함께 돌봐요</b><br>입력 중 · 읽음 · 접속 표시</sub></td>
     <td align="center"><img src="docs/images/buddy.png" width="200" alt="Buddy 상세: 경험치, 배부름, 청결, 밥주기, 청소하기"><br><sub><b>Buddy를 챙겨요</b><br>밥주기 · 청소하기</sub></td>
