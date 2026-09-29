@@ -9,6 +9,7 @@ const BY_EVENT: Partial<Record<string, ReactionKind>> = {
   CLEANED: 'cleaned',
   POOPED: 'pooped',
   LEVELED_UP: 'levelUp',
+  MAX_LEVEL: 'levelUp',
   EVOLVED: 'evolved',
 };
 

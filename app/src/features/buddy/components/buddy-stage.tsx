@@ -330,8 +330,8 @@ function ExpandedStage({
     };
   }, [act, hop, note]);
 
-  // The bowl and the poops bob now and then while they can be tapped.
-  const wantsFood = buddy.canFeed && !eating;
+  // The bowl and the poops bob now and then while they need tapping.
+  const wantsFood = buddy.hungry && !eating;
   const hasPoop = buddy.poops > 0;
   useEffect(() => {
     if (!wantsFood && !hasPoop) return;
@@ -517,7 +517,8 @@ function ExpandedStage({
   const bursting = active?.kind === 'evolved' && active.phase === 'after';
   const levelingUp = active?.kind === 'levelUp';
 
-  const bowlFull = eating && active?.phase === 'main';
+  // Rice in the bowl, but for when the buddy is hungry: then it is empty and asks to be filled.
+  const bowlFull = !buddy.hungry || eating;
   // Dancing and head-shaking turn the buddy left and right.
   const flipped = act === 'dance' || act === 'refuse' ? tick % 2 === 0 : facingLeft;
 
@@ -588,7 +589,7 @@ function ExpandedStage({
           accessibilityRole="button"
           accessibilityLabel={t('buddy.feed')}
         >
-          {/* Empty but for the meal being eaten. */}
+          {/* Full, but empty while the buddy is hungry. */}
           <PixelSprite
             frame={bowlFull ? BOWL_FULL : BOWL_EMPTY}
             palette={PROP_PALETTE}

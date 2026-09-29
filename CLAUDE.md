@@ -120,6 +120,8 @@
 - iOS UX가 기준이다(Safe Area, 키보드, 스크롤). Web은 같은 모바일 레이아웃을 가운데 정렬하고 최대 폭만 제한한다.
   넓은 창(768px~)에서는 폰 크기 틀에 담는다: CSS 미디어 쿼리(`app/+html.tsx`)가 `WebFrame`의 id를 꾸민다. 창 폭을 JS로 재서
   구조를 바꾸면 경계를 넘을 때 앱 전체가 다시 마운트되므로 그렇게 하지 않는다. 모달 시트도 `WebFrame`으로 감싼다.
+- 초대 링크 `join?code=`: 로그인 전이면 `lib/pending-invite`가 코드를 기억했다가 이름을 정한 뒤 참가 화면을 연다.
+  복사는 `lib/clipboard`(웹만. 앱은 expo-clipboard가 필요해서 첫 개발용 빌드 때 사용자 확인 후 추가).
 - 링크 미리보기(Open Graph, 영어)는 `app/+html.tsx`, 이미지는 `app/public/og.png`(1200×630, 구경하기 화면으로 만듦).
 - iOS-first design ≠ iOS-only code. 플랫폼 분기는 정말 다를 때만 `*.ios.ts` / `*.web.ts`로 나눈다.
 - 라이브러리는 구체적인 문제가 생겼을 때만 추가한다.

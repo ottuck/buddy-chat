@@ -21,7 +21,8 @@
     "error": "ログインできませんでした。もう一度お試しください。",
     "startNow": "すぐに始める",
     "noAccountNeeded": "アカウントなしで始められます。ゲストは30日間使え、アカウントを連携するとそのまま続けられます。",
-    "demo": "まずは見てみる"
+    "demo": "まずは見てみる",
+    "invited": "友だちの招待で来ました。始めるとすぐ友だちのルームに入れます。"
   },
   "welcome": {
     "title": "新しいBuddyが生まれそう！",
@@ -50,7 +51,8 @@
     "offline": "オフライン",
     "emptySolo": "{{buddy}}が生まれました！\n友だちを招待して一緒に育てましょう。",
     "emptySoloHint": "友だちを待つあいだに、メッセージを送ってみてください。\n{{buddy}}も一緒に育ちます。",
-    "emptyDuo": "{{partner}}さんと一緒になりました。\n最初のメッセージを送ってみましょう。"
+    "emptyDuo": "{{partner}}さんと一緒になりました。\n最初のメッセージを送ってみましょう。",
+    "maxLevelThanks": "本当にありがとうございます！新しいキャラクターやコレクションなど、いろいろな機能を準備中です。お楽しみに！"
   },
   "invite": {
     "button": "友だちを招待",
@@ -58,7 +60,9 @@
     "hint": "このコードを送ってください。友だちはログイン後に入力します。",
     "expires": "{{time}}まで有効・1回だけ使えます",
     "share": "コードを送る",
-    "shareMessage": "buddy-chatでいっしょにBuddyを育てよう！招待コード: {{code}}"
+    "shareMessage": "buddy-chatで一緒にBuddyを育てよう！🥚\n\n👉 {{link}}\n\nリンクを開くとすぐ参加できます。\n招待コード：{{code}}（{{time}}まで）",
+    "copy": "コピー",
+    "copied": "コピーしました ✓"
   },
   "buddy": {
     "level": "Lv.{{level}}",
@@ -103,7 +107,8 @@
     "POOPED": "{{buddy}}がうんちをしました 💩",
     "CLEANED": "{{actor}}が{{buddy}}のうんちを片付けました",
     "LEVELED_UP": "{{buddy}}がレベルアップしました！Lv.{{level}} ⬆️",
-    "EVOLVED": "{{buddy}}が進化しました！✨"
+    "EVOLVED": "{{buddy}}が進化しました！✨",
+    "MAX_LEVEL": "🎉 {{buddy}}が最高レベル Lv.{{level}}に到達しました！"
   },
   "settings": {
     "title": "設定",

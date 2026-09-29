@@ -21,7 +21,8 @@
     "error": "로그인하지 못했어요. 다시 시도해 주세요.",
     "startNow": "바로 시작하기",
     "noAccountNeeded": "계정 없이 시작할 수 있어요. 게스트는 30일 동안 쓸 수 있고, 계정을 연결하면 그대로 이어져요.",
-    "demo": "먼저 구경하기"
+    "demo": "먼저 구경하기",
+    "invited": "친구의 초대로 왔어요. 시작하면 바로 친구의 방에 들어갈 수 있어요."
   },
   "welcome": {
     "title": "새로운 Buddy가 태어나려고 해요!",
@@ -50,7 +51,8 @@
     "offline": "접속 안 함",
     "emptySolo": "{{buddy, 이가}} 태어났어요!\n친구를 초대해서 같이 키워 볼까요?",
     "emptySoloHint": "친구를 기다리는 동안 메시지를 남겨 보세요.\n{{buddy}}도 함께 자라요.",
-    "emptyDuo": "{{partner}}님과 함께하게 됐어요.\n첫 메시지를 보내 보세요."
+    "emptyDuo": "{{partner}}님과 함께하게 됐어요.\n첫 메시지를 보내 보세요.",
+    "maxLevelThanks": "정말 감사합니다! 추가 캐릭터와 컬렉션 등 다양한 기능을 준비하고 있어요. 기대해 주세요!"
   },
   "invite": {
     "button": "친구 초대",
@@ -58,7 +60,9 @@
     "hint": "이 코드를 보내 주세요. 친구가 로그인한 뒤 입력하면 돼요.",
     "expires": "{{time}}까지 유효 · 한 번만 사용",
     "share": "코드 보내기",
-    "shareMessage": "buddy-chat에서 같이 Buddy를 키우자! 초대 코드: {{code}}"
+    "shareMessage": "buddy-chat에서 같이 Buddy 키워요! 🥚\n\n👉 {{link}}\n\n링크를 누르면 바로 들어올 수 있어요.\n초대 코드: {{code}} ({{time}}까지)",
+    "copy": "복사",
+    "copied": "복사됨 ✓"
   },
   "buddy": {
     "level": "Lv.{{level}}",
@@ -103,7 +107,8 @@
     "POOPED": "{{buddy, 이가}} 💩을 쌌어요",
     "CLEANED": "{{actor}}님이 {{buddy}}의 💩을 치웠어요",
     "LEVELED_UP": "{{buddy, 이가}} 레벨 업했어요! Lv.{{level}} ⬆️",
-    "EVOLVED": "{{buddy, 이가}} 진화했어요! ✨"
+    "EVOLVED": "{{buddy, 이가}} 진화했어요! ✨",
+    "MAX_LEVEL": "🎉 {{buddy, 이가}} 최고 레벨 Lv.{{level}}에 도달했어요!"
   },
   "settings": {
     "title": "설정",

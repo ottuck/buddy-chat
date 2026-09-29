@@ -21,7 +21,8 @@
     "error": "Couldn’t sign in. Please try again.",
     "startNow": "Start now",
     "noAccountNeeded": "No account needed. Guests can use buddy-chat for 30 days, and linking an account keeps everything.",
-    "demo": "Take a look first"
+    "demo": "Take a look first",
+    "invited": "You were invited by a friend. Start, and you will go straight to their room."
   },
   "welcome": {
     "title": "A new buddy is about to hatch!",
@@ -50,7 +51,8 @@
     "offline": "Offline",
     "emptySolo": "{{buddy}} has hatched!\nInvite a friend to raise it together.",
     "emptySoloHint": "While you wait for a friend, try sending a message.\n{{buddy}} grows as you chat.",
-    "emptyDuo": "You and {{partner}} are together now.\nSay hello!"
+    "emptyDuo": "You and {{partner}} are together now.\nSay hello!",
+    "maxLevelThanks": "Thank you so much! New characters, a collection and more are on the way. Stay tuned!"
   },
   "invite": {
     "button": "Invite a friend",
@@ -58,7 +60,9 @@
     "hint": "Share this code. Your friend enters it after signing in.",
     "expires": "Valid until {{time}} · one use",
     "share": "Share code",
-    "shareMessage": "Let's raise a buddy together on buddy-chat! Invite code: {{code}}"
+    "shareMessage": "Let's raise a Buddy together on buddy-chat! 🥚\n\n👉 {{link}}\n\nOpen the link to join right away.\nInvite code: {{code}} (until {{time}})",
+    "copy": "Copy",
+    "copied": "Copied ✓"
   },
   "buddy": {
     "level": "Lv.{{level}}",
@@ -103,7 +107,8 @@
     "POOPED": "{{buddy}} pooped 💩",
     "CLEANED": "{{actor}} cleaned up after {{buddy}}",
     "LEVELED_UP": "{{buddy}} leveled up! Lv.{{level}} ⬆️",
-    "EVOLVED": "{{buddy}} evolved! ✨"
+    "EVOLVED": "{{buddy}} evolved! ✨",
+    "MAX_LEVEL": "🎉 {{buddy}} reached the top level, Lv.{{level}}!"
   },
   "settings": {
     "title": "Settings",

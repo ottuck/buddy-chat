@@ -4,7 +4,7 @@ import { FlatList, StyleSheet, View } from 'react-native';
 
 import { formatTime, runPosition } from '../timeline';
 import type { Member, Message } from '../types';
-import { BuddyEventRow } from './buddy-event-row';
+import { BuddyEventRow, MaxLevelCard } from './buddy-event-row';
 import { MessageBubble } from './message-bubble';
 
 const READING_BACK_OFFSET = 80;
@@ -67,6 +67,16 @@ export function MessageList({
                 label={t(`systemEvent.${item.event}`, {
                   name: item.actorName ?? t('chat.guestName'),
                 })}
+              />
+            </View>
+          );
+        }
+        if (item.type === 'BUDDY_EVENT' && item.event === 'MAX_LEVEL') {
+          return (
+            <View style={styles.spaced}>
+              <MaxLevelCard
+                title={t('buddyEvent.MAX_LEVEL', { buddy: buddyName, level: item.level })}
+                body={t('chat.maxLevelThanks')}
               />
             </View>
           );

@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
@@ -20,7 +20,14 @@ export default function JoinScreen() {
   const colors = useColors();
   const { t } = useTranslation();
   const { setRoom } = useRoom();
-  const [code, setCode] = useState('');
+  // From an invite link (join?code=…), if that is how they came.
+  const params = useLocalSearchParams<{ code?: string }>();
+  const [code, setCode] = useState(() =>
+    (params.code ?? '')
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, '')
+      .slice(0, CODE_LENGTH),
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

@@ -1,4 +1,4 @@
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import { DarkTheme, DefaultTheme, router, Stack, ThemeProvider, usePathname } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
@@ -11,6 +11,7 @@ import { StatusScreen } from '@/components/status-screen';
 import { WebFrame } from '@/components/web-frame';
 import { AuthProvider, useAuth } from '@/features/auth/auth-provider';
 import { RoomProvider, useRoom } from '@/features/room/room-provider';
+import { rememberInviteFromUrl, takePendingInvite } from '@/lib/pending-invite';
 import { warmUpServer } from '@/lib/warm-up';
 
 // Keep the splash screen up until we know where the user belongs (signed out, no room yet, or
@@ -23,6 +24,8 @@ export default function RootLayout() {
   // Wake the server (it may have scaled to zero) before the first real request needs it.
   useEffect(() => {
     warmUpServer();
+    // A friend's invite link (join?code=…) may arrive before the friend has signed in.
+    rememberInviteFromUrl();
   }, []);
 
   return (
@@ -47,6 +50,20 @@ function RootNavigator() {
   const { t, i18n } = useTranslation();
   const signedIn = !!user;
   const settled = !initializing && (!signedIn || state.status !== 'loading');
+  const pathname = usePathname();
+  const canJoin =
+    signedIn && (state.status === 'none' || state.status === 'ready') && !!state.me.displayName;
+
+  // Signed in with a name now: on to the invite that brought them here, code filled in.
+  // Waits for where they land after naming (welcome or the chat): going earlier, the name screen's
+  // own navigation would cover the join screen.
+  useEffect(() => {
+    if (!canJoin || (pathname !== '/welcome' && pathname !== '/')) return;
+    const code = takePendingInvite();
+    if (!code) return;
+    const timer = setTimeout(() => router.push({ pathname: '/join', params: { code } }), 0);
+    return () => clearTimeout(timer);
+  }, [canJoin, pathname]);
 
   useEffect(() => {
     if (settled) SplashScreen.hideAsync();
