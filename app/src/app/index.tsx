@@ -119,6 +119,7 @@ function ChatScreen({ me, room, onRoomLost, onMembersChanged }: ChatScreenProps)
           onFeed={feed}
           onClean={clean}
           onOpenDetail={() => setBuddyOpen(true)}
+          reaction={chat.reaction}
         />
         <View style={styles.list}>
           {chat.loaded && messages.length === 0 ? (

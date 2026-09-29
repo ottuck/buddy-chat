@@ -21,24 +21,42 @@ import {
   BOWL_FULL,
   BUDDY_PALETTE,
   buddyFrame,
+  EXCLAIM,
   HEART,
   POOP,
   type Pose,
   PROP_PALETTE,
-  STAGE_SIZE,
+  SPARKLE,
+  STAGE_ORDER,
   ZZZ,
 } from '../pixel/sprites';
+import type { Reaction, ReactionKind } from '../reactions';
 
 // The buddy's stage above the chat (docs/product.md, 핵심 경험): the buddy walks around, waits by
 // an empty bowl when hungry, leaves poops on the floor and sleeps at night. Tapping the bowl or a
-// poop takes care of it right there. Folds into one row while typing or reading back.
+// poop takes care of it right there, and it reacts to what happens in the room: eating when fed,
+// straining when it poops, sparkling when cleaned, hopping at a new message, and evolving.
+// Folds into one row while typing or reading back.
 
 const FLOOR = 22;
 const PROP_SCALE = 3;
 const TICK_MS = 450;
-const HAPPY_MS = 1800;
+const FAST_TICK_MS = 150;
+const PET_MS = 1800;
 const SLEEP_FROM = 23;
 const SLEEP_UNTIL = 7;
+// How long each reaction plays.
+const REACTION_MS: Record<ReactionKind, number> = {
+  message: 1400,
+  fed: 3200,
+  cleaned: 1800,
+  pooped: 1400,
+  evolved: 3600,
+};
+// Of 'fed', the part spent chewing; the rest is a happy heart.
+const CHEW_MS = 2400;
+// Of 'evolved', the part flickering between old and new; the rest shows off the new look.
+const EVOLVE_MS = 2400;
 // The web has no native animation driver (it would warn and fall back anyway).
 const NATIVE_DRIVER = Platform.OS !== 'web';
 
@@ -52,6 +70,8 @@ type Props = {
   onFeed: () => void;
   onClean: () => void;
   onOpenDetail: () => void;
+  // The latest live event to react to.
+  reaction: Reaction | null;
 };
 
 export function BuddyStage(props: Props) {
@@ -68,46 +88,79 @@ function useSleeping(): boolean {
   return hour >= SLEEP_FROM || hour < SLEEP_UNTIL;
 }
 
-// A counter that drives frame changes (steps, blinks) at a toy-like pace.
-function useTick(): number {
+// A counter that drives frame changes (steps, blinks, chewing) at a toy-like pace.
+function useTick(ms: number): number {
   const [tick, setTick] = useState(0);
   useEffect(() => {
-    const timer = setInterval(() => setTick((t) => t + 1), TICK_MS);
+    const timer = setInterval(() => setTick((t) => t + 1), ms);
     return () => clearInterval(timer);
-  }, []);
+  }, [ms]);
   return tick;
 }
 
-function ExpandedStage({ buddy, busy, height, onFeed, onClean, onOpenDetail }: Props) {
+// The reaction playing now, and how far into it (in ticks of the phase that matters). A new event
+// replaces the one playing.
+function useActiveReaction(reaction: Reaction | null) {
+  const [active, setActive] = useState<{ kind: ReactionKind; phase: 'main' | 'after' } | null>(
+    null,
+  );
+  useEffect(() => {
+    if (!reaction) return;
+    const timers = [setTimeout(() => setActive({ kind: reaction.kind, phase: 'main' }), 0)];
+    const main =
+      reaction.kind === 'fed' ? CHEW_MS : reaction.kind === 'evolved' ? EVOLVE_MS : undefined;
+    if (main !== undefined) {
+      timers.push(setTimeout(() => setActive({ kind: reaction.kind, phase: 'after' }), main));
+    }
+    timers.push(setTimeout(() => setActive(null), REACTION_MS[reaction.kind]));
+    return () => timers.forEach(clearTimeout);
+  }, [reaction]);
+  return active;
+}
+
+function gridScale(height: number, gridHeight: number): number {
+  // Up to 5 points per pixel, smaller on short screens so the grown-up buddy still fits.
+  return Math.max(3, Math.min(5, Math.floor((height - 84) / gridHeight)));
+}
+
+function ExpandedStage({ buddy, busy, height, onFeed, onClean, onOpenDetail, reaction }: Props) {
   const colors = useColors();
   const { t } = useTranslation();
-  const tick = useTick();
-  const sleeping = useSleeping();
+  const active = useActiveReaction(reaction);
+  const evolving = active?.kind === 'evolved' && active.phase === 'main';
+  const tick = useTick(evolving ? FAST_TICK_MS : TICK_MS);
+  const night = useSleeping();
   const [width, setWidth] = useState(0);
   const [walking, setWalking] = useState(false);
   const [facingLeft, setFacingLeft] = useState(false);
-  const [happy, setHappy] = useState(false);
-  const happyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [petted, setPetted] = useState(false);
+  const petTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const placed = useRef(false);
   const [x] = useState(() => new Animated.Value(0));
+  const [hop] = useState(() => new Animated.Value(0));
   const [tilt] = useState(() => new Animated.Value(0));
+  const [flash] = useState(() => new Animated.Value(0));
 
   const egg = buddy.stage === 'EGG';
-  const scale = Math.round(5 * STAGE_SIZE[buddy.stage]);
-  const spriteWidth = 16 * scale;
+  // A reaction wakes a sleeping buddy for a moment.
+  const sleeping = night && !active && !petted;
+  const idleFrame = buddyFrame(buddy.stage, 'idle');
+  const scale = gridScale(height, idleFrame.length);
+  const spriteWidth = idleFrame[0].length * scale;
   const bowlWidth = 12 * PROP_SCALE;
   // The walkable strip: right of the bowl, left of the poops.
   const minX = 16 + bowlWidth + 8;
   const maxX = Math.max(minX, width - spriteWidth - 16);
-  const settled = sleeping || buddy.hungry || egg;
+  const eating = active?.kind === 'fed';
+  const settled = sleeping || buddy.hungry || egg || eating || evolving;
 
-  // Wander: walk to a random spot, look around, repeat. A hungry buddy waits by the bowl, a
-  // sleeping one stays put, and an egg only wobbles.
+  // Wander: walk to a random spot, look around, repeat. A hungry or eating buddy stays by the bowl,
+  // a sleeping one stays put, and an egg only wobbles.
   useEffect(() => {
     if (width === 0) return;
     let stopped = false;
     let current: Animated.CompositeAnimation | null = null;
-    const home = buddy.hungry ? minX : (minX + maxX) / 2;
+    const home = buddy.hungry || eating ? minX : (minX + maxX) / 2;
     const leg = (from: number) => {
       if (stopped) return;
       const to = settled ? home : minX + Math.random() * (maxX - minX);
@@ -119,7 +172,7 @@ function ExpandedStage({ buddy, busy, height, onFeed, onClean, onOpenDetail }: P
       current = Animated.sequence([
         Animated.timing(x, {
           toValue: to,
-          duration: distance * 28,
+          duration: distance * (eating ? 12 : 28),
           easing: Easing.linear,
           useNativeDriver: NATIVE_DRIVER,
         }),
@@ -129,7 +182,7 @@ function ExpandedStage({ buddy, busy, height, onFeed, onClean, onOpenDetail }: P
         if (finished) leg(to);
       });
       // The walk part ends before the pause; stop stepping then.
-      setTimeout(() => !stopped && setWalking(false), distance * 28);
+      setTimeout(() => !stopped && setWalking(false), distance * (eating ? 12 : 28));
     };
     x.stopAnimation((value) => {
       // The first time, appear where the buddy belongs instead of walking in from the edge.
@@ -145,7 +198,7 @@ function ExpandedStage({ buddy, busy, height, onFeed, onClean, onOpenDetail }: P
       stopped = true;
       current?.stop();
     };
-  }, [width, settled, buddy.hungry, minX, maxX, x]);
+  }, [width, settled, eating, buddy.hungry, minX, maxX, x]);
 
   // The egg rocks in small, stepped moves now and then.
   useEffect(() => {
@@ -168,42 +221,91 @@ function ExpandedStage({ buddy, busy, height, onFeed, onClean, onOpenDetail }: P
     return () => rock.stop();
   }, [egg, tilt]);
 
+  // Movement that goes with a reaction: hops for a message, a shudder while straining, a white
+  // flash while evolving.
+  useEffect(() => {
+    if (!reaction) return;
+    const jump = (h: number) =>
+      Animated.sequence([
+        Animated.timing(hop, { toValue: -h, duration: 140, useNativeDriver: NATIVE_DRIVER }),
+        Animated.timing(hop, { toValue: 0, duration: 140, useNativeDriver: NATIVE_DRIVER }),
+      ]);
+    const shake = Animated.loop(
+      Animated.sequence([
+        Animated.timing(hop, { toValue: 2, duration: 60, useNativeDriver: NATIVE_DRIVER }),
+        Animated.timing(hop, { toValue: 0, duration: 60, useNativeDriver: NATIVE_DRIVER }),
+      ]),
+      { iterations: 10 },
+    );
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(flash, { toValue: 0.85, duration: 150, useNativeDriver: NATIVE_DRIVER }),
+        Animated.timing(flash, { toValue: 0, duration: 250, useNativeDriver: NATIVE_DRIVER }),
+      ]),
+      { iterations: 6 },
+    );
+    const moves: Partial<Record<ReactionKind, Animated.CompositeAnimation>> = {
+      message: Animated.sequence([jump(14), jump(8)]),
+      cleaned: jump(10),
+      pooped: shake,
+      evolved: pulse,
+    };
+    const move = moves[reaction.kind];
+    move?.start();
+    return () => move?.stop();
+  }, [reaction, hop, flash]);
+
   useEffect(
     () => () => {
-      if (happyTimer.current) clearTimeout(happyTimer.current);
+      if (petTimer.current) clearTimeout(petTimer.current);
     },
     [],
   );
 
-  const cheer = () => {
-    setHappy(true);
-    if (happyTimer.current) clearTimeout(happyTimer.current);
-    happyTimer.current = setTimeout(() => setHappy(false), HAPPY_MS);
+  const pet = () => {
+    setPetted(true);
+    if (petTimer.current) clearTimeout(petTimer.current);
+    petTimer.current = setTimeout(() => setPetted(false), PET_MS);
   };
 
-  const pose: Pose = sleeping
-    ? 'sleep'
-    : happy
-      ? 'happy'
-      : buddy.hungry
-        ? 'hungry'
-        : walking
-          ? tick % 2 === 0
-            ? 'step'
-            : 'idle'
-          : tick % 11 === 0
-            ? 'blink'
-            : 'idle';
+  const pose: Pose = eating
+    ? active?.phase === 'main'
+      ? tick % 2 === 0
+        ? 'eat'
+        : 'idle'
+      : 'happy'
+    : active?.kind === 'pooped'
+      ? 'strain'
+      : active?.kind === 'cleaned' || (active?.kind === 'evolved' && !evolving) || petted
+        ? 'happy'
+        : sleeping
+          ? 'sleep'
+          : buddy.hungry
+            ? 'hungry'
+            : walking
+              ? tick % 2 === 0
+                ? 'step'
+                : 'idle'
+              : tick % 11 === 0
+                ? 'blink'
+                : 'idle';
+
+  // While evolving, the old and new looks take turns, faster and faster in feel.
+  const previousStage = STAGE_ORDER[Math.max(0, STAGE_ORDER.indexOf(buddy.stage) - 1)];
+  const frame =
+    evolving && tick % 2 === 0 ? buddyFrame(previousStage, 'idle') : buddyFrame(buddy.stage, pose);
+
+  const showHeart = petted || (eating && active?.phase === 'after');
+  const sparkling =
+    active?.kind === 'cleaned' || (active?.kind === 'evolved' && active.phase === 'after');
 
   const feed = () => {
     if (!buddy.canFeed || busy) return;
     onFeed();
-    cheer();
   };
   const clean = () => {
     if (!buddy.canClean || busy) return;
     onClean();
-    cheer();
   };
 
   return (
@@ -269,6 +371,7 @@ function ExpandedStage({ buddy, busy, height, onFeed, onClean, onOpenDetail }: P
             bottom: FLOOR - scale,
             transform: [
               { translateX: x },
+              { translateY: hop },
               {
                 rotate: tilt.interpolate({ inputRange: [-1, 1], outputRange: ['-8deg', '8deg'] }),
               },
@@ -276,28 +379,40 @@ function ExpandedStage({ buddy, busy, height, onFeed, onClean, onOpenDetail }: P
           },
         ]}
       >
-        {happy ? (
+        {showHeart ? (
           <View style={styles.above}>
             <PixelSprite frame={HEART} palette={PROP_PALETTE} scale={3} />
+          </View>
+        ) : active?.kind === 'message' ? (
+          <View style={styles.above}>
+            <PixelSprite frame={EXCLAIM} palette={BUDDY_PALETTE} scale={3} />
           </View>
         ) : sleeping && tick % 4 < 2 ? (
           <View style={styles.above}>
             <PixelSprite frame={ZZZ} palette={BUDDY_PALETTE} scale={3} />
           </View>
         ) : null}
+        {sparkling && tick % 2 === 0 ? (
+          <>
+            <View style={[styles.sparkle, { left: -14, top: 6 }]}>
+              <PixelSprite frame={SPARKLE} palette={PROP_PALETTE} scale={3} />
+            </View>
+            <View style={[styles.sparkle, { right: -14, top: 18 }]}>
+              <PixelSprite frame={SPARKLE} palette={PROP_PALETTE} scale={3} />
+            </View>
+          </>
+        ) : null}
         <Pressable
-          onPress={cheer}
+          onPress={pet}
           accessibilityRole="button"
           accessibilityLabel={t('buddy.pet', { buddy: buddy.name })}
         >
-          <PixelSprite
-            frame={buddyFrame(buddy.stage, pose)}
-            palette={BUDDY_PALETTE}
-            scale={scale}
-            flipped={facingLeft}
-          />
+          <PixelSprite frame={frame} palette={BUDDY_PALETTE} scale={scale} flipped={facingLeft} />
         </Pressable>
       </Animated.View>
+
+      {/* The evolution's white flashes, over the whole stage. */}
+      <Animated.View style={[StyleSheet.absoluteFill, styles.flash, { opacity: flash }]} />
     </View>
   );
 }
@@ -305,6 +420,7 @@ function ExpandedStage({ buddy, busy, height, onFeed, onClean, onOpenDetail }: P
 function FoldedStage({ buddy, onExpand }: Props) {
   const colors = useColors();
   const { t } = useTranslation();
+  const frame = buddyFrame(buddy.stage, buddy.hungry ? 'hungry' : 'idle');
   return (
     <Pressable
       onPress={onExpand}
@@ -315,11 +431,8 @@ function FoldedStage({ buddy, onExpand }: Props) {
         { backgroundColor: colors.stage, opacity: pressed ? 0.8 : 1 },
       ]}
     >
-      <PixelSprite
-        frame={buddyFrame(buddy.stage, buddy.hungry ? 'hungry' : 'idle')}
-        palette={BUDDY_PALETTE}
-        scale={2}
-      />
+      {/* About 32 points tall whatever the stage's grid size. */}
+      <PixelSprite frame={frame} palette={BUDDY_PALETTE} scale={32 / frame.length} />
       <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
         {buddy.name}
       </Text>
@@ -387,7 +500,14 @@ const styles = StyleSheet.create({
   },
   above: {
     position: 'absolute',
-    top: -22,
+    top: -24,
+  },
+  sparkle: {
+    position: 'absolute',
+  },
+  flash: {
+    backgroundColor: '#FFFFFF',
+    pointerEvents: 'none',
   },
   folded: {
     marginHorizontal: 12,

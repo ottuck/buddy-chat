@@ -82,9 +82,15 @@ public class BuddyService {
                         null,
                         "buddy:poop:" + buddy.cleanedAt().toEpochMilli() + ":" + i));
             }
+            BuddyView view = BuddyView.of(buddy, now);
+            // Newly noticed: the others see the event and, with it, the poop on the floor.
             return Flux.concat(noticed)
                     .doOnNext(message -> hub.publish(roomId, new ServerEvent.NewMessage(message), null))
-                    .then(Mono.fromSupplier(() -> BuddyView.of(buddy, now)));
+                    .count()
+                    .doOnNext(count -> {
+                        if (count > 0) hub.publish(roomId, new ServerEvent.BuddyUpdated(view), null);
+                    })
+                    .thenReturn(view);
         });
     }
 

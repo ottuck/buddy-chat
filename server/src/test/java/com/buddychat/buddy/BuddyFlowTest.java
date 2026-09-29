@@ -208,6 +208,21 @@ class BuddyFlowTest {
     }
 
     @Test
+    void partnerSeesAPoopTheMomentItIsNoticed() {
+        duoRoom("henry", "yuki");
+        TestSocket yuki = connect("yuki");
+        clock.advance(Duration.ofHours(7)); // one poop, not hungry yet
+
+        room("henry");
+
+        assertThat(yuki.expect("message").get("message").get("buddyEvent").asString())
+                .isEqualTo("POOPED");
+        assertThat(yuki.expect("buddy").get("buddy").get("poops").asInt()).isEqualTo(1);
+        room("henry"); // nothing new to tell
+        assertThat(yuki.next()).isNull();
+    }
+
+    @Test
     void sendingAMessageGrowsTheBuddyLive() {
         duoRoom("henry", "yuki");
         TestSocket henry = connect("henry");

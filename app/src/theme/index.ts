@@ -1,4 +1,5 @@
-import { useColorScheme } from 'react-native';
+import { useSyncExternalStore } from 'react';
+import { Appearance } from 'react-native';
 
 const light = {
   background: '#F6F4F1',
@@ -43,8 +44,20 @@ const dark: Colors = {
   stageLine: '#36493C',
 };
 
+// One subscription per component for its lifetime. react-native-web's useColorScheme subscribes
+// again on every render, and a component that re-renders all the time (the buddy's stage) missed
+// the change to dark mode.
+function subscribe(onChange: () => void) {
+  const subscription = Appearance.addChangeListener(onChange);
+  return () => subscription.remove();
+}
+
+function scheme() {
+  return Appearance.getColorScheme();
+}
+
 export function useColors(): Colors {
-  return useColorScheme() === 'dark' ? dark : light;
+  return useSyncExternalStore(subscribe, scheme, scheme) === 'dark' ? dark : light;
 }
 
 // Web shows the same mobile layout, centered and capped at this width (docs/product.md, 플랫폼).
