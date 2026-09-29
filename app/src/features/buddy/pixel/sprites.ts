@@ -291,3 +291,15 @@ export const LEVEL_UP: Frame = [
   'u.....u.u....uuu.',
   'uuuu...u.....uuu.',
 ];
+
+// ♪ rising from a singing buddy.
+// prettier-ignore
+export const NOTE: Frame = [
+  '...kk',
+  '...kk',
+  '...k.',
+  '...k.',
+  '.kkk.',
+  'kkkk.',
+  '.kk..',
+];

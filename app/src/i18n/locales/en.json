@@ -80,7 +80,22 @@
     "growthHint": "The more you chat and take care of it, the more it grows.",
     "peckish": "Could eat",
     "pet": "Pet {{buddy}}",
-    "showStage": "Show {{buddy}}"
+    "showStage": "Show {{buddy}}",
+    "say": {
+      "thanks": "Thank you!",
+      "yummy": "Yummy!",
+      "refreshed": "So fresh!",
+      "digestion": "My tummy feels great lately",
+      "hungry": "I'm hungry…",
+      "full": "I'm full",
+      "longTime": "Long time no see!",
+      "morning": "Good morning!",
+      "afternoon": "Good afternoon!",
+      "evening": "Good evening!",
+      "ateYet": "Have you eaten?",
+      "whatsUp": "Everything okay?",
+      "howWasToday": "How was your day?"
+    }
   },
   "buddyEvent": {
     "HUNGRY": "{{buddy}} is hungry 🍚",

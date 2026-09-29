@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Animated,
@@ -24,6 +24,7 @@ import {
   EXCLAIM,
   HEART,
   LEVEL_UP,
+  NOTE,
   POOP,
   type Pose,
   PROP_PALETTE,
@@ -32,11 +33,14 @@ import {
   ZZZ,
 } from '../pixel/sprites';
 import type { Reaction, ReactionKind } from '../reactions';
+import { type Line, pick, useBuddyTalk } from '../use-buddy-talk';
+import { SpeechBubble } from './speech-bubble';
 
 // The buddy's stage above the chat (docs/product.md, 핵심 경험): the buddy walks around, waits by
 // an empty bowl when hungry, leaves poops on the floor and sleeps at night. Tapping the bowl or a
 // poop takes care of it right there, and it reacts to what happens in the room: eating when fed,
-// straining when it poops, sparkling when cleaned, hopping at a new message, and evolving.
+// straining when it poops, sparkling when cleaned, hopping at a new message, and evolving. Left
+// alone it dances or sings now and then, and once grown it talks (use-buddy-talk.ts).
 // Folds into one row while typing or reading back.
 
 const FLOOR = 22;
@@ -45,6 +49,14 @@ const TICK_MS = 450;
 // While evolving the old and new looks swap this fast.
 const FAST_TICK_MS = 90;
 const PET_MS = 1800;
+// Things the buddy does by itself: a dance, a song, or shaking its head at a full bowl.
+type Act = 'dance' | 'sing' | 'refuse';
+// The tour's script asking for a dance or a song.
+export type AskedAct = { id: string; act: 'dance' | 'sing' };
+const ACT_MS: Record<Act, number> = { dance: 3000, sing: 3200, refuse: 900 };
+// How often, left alone, it dances or sings.
+const IDLE_ACT_MIN_MS = 20_000;
+const IDLE_ACT_MAX_MS = 40_000;
 // Floor kept free at the right end for the tour's egg.
 const EGG_ROOM = 72;
 const SLEEP_FROM = 23;
@@ -88,6 +100,9 @@ type Props = {
   reaction: Reaction | null;
   // An egg resting at the far end: the tour's ending, "yours is next".
   companionEgg?: boolean;
+  // Greets on opening ("good morning"); off in the tour.
+  greets?: boolean;
+  askedAct?: AskedAct | null;
 };
 
 export function BuddyStage(props: Props) {
@@ -148,6 +163,8 @@ function ExpandedStage({
   onOpenDetail,
   reaction: latest,
   companionEgg,
+  greets = true,
+  askedAct: latestAct,
 }: Props) {
   const colors = useColors();
   const { t } = useTranslation();
@@ -156,8 +173,12 @@ function ExpandedStage({
   const [mountedAfter] = useState(latest?.id);
   const reaction = latest && latest.id !== mountedAfter ? latest : null;
   const active = useActiveReaction(reaction);
+  const [actMountedAfter] = useState(latestAct?.id);
+  const askedAct = latestAct && latestAct.id !== actMountedAfter ? latestAct : null;
   const evolving = active?.kind === 'evolved' && active.phase === 'main';
-  const tick = useTick(evolving ? FAST_TICK_MS : TICK_MS);
+  const [act, setAct] = useState<Act | null>(null);
+  const actTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const tick = useTick(evolving || act === 'refuse' ? FAST_TICK_MS : TICK_MS);
   const night = useSleeping();
   const [width, setWidth] = useState(0);
   const [walking, setWalking] = useState(false);
@@ -171,6 +192,10 @@ function ExpandedStage({
   const [flash] = useState(() => new Animated.Value(0));
   const [glow] = useState(() => new Animated.Value(0));
   const [burst] = useState(() => new Animated.Value(0));
+  const [nudge] = useState(() => new Animated.Value(0));
+  const [note] = useState(() => new Animated.Value(0));
+  // Which half of the stage the buddy is heading to, so its speech bubble opens toward the middle.
+  const [onRightHalf, setOnRightHalf] = useState(false);
 
   const egg = buddy.stage === 'EGG';
   // A reaction wakes a sleeping buddy for a moment.
@@ -186,11 +211,28 @@ function ExpandedStage({
   const maxX = Math.max(minX, width - spriteWidth - 16 - (companionEgg ? EGG_ROOM : 0));
   const eating = active?.kind === 'fed';
   const settled = sleeping || buddy.hungry || egg || eating || evolving;
+  const acting = act !== null;
+  const { line, say } = useBuddyTalk({
+    stage: buddy.stage,
+    quiet: sleeping || !!active || acting,
+    greets,
+  });
+
+  const perform = useCallback((next: Act) => {
+    if (actTimer.current) clearTimeout(actTimer.current);
+    setAct(next);
+    actTimer.current = setTimeout(() => setAct(null), ACT_MS[next]);
+  }, []);
 
   // Wander: walk to a random spot, look around, repeat. A hungry or eating buddy stays by the bowl,
   // a sleeping one stays put, and an egg only wobbles.
   useEffect(() => {
     if (width === 0) return;
+    // Dancing or singing on the spot.
+    if (acting) {
+      x.stopAnimation();
+      return;
+    }
     let stopped = false;
     let current: Animated.CompositeAnimation | null = null;
     const home = buddy.hungry || eating ? minX : (minX + maxX) / 2;
@@ -201,7 +243,10 @@ function ExpandedStage({
       if (distance > 2) {
         setFacingLeft(to < from);
         setWalking(true);
+      } else if (buddy.hungry || eating) {
+        setFacingLeft(true); // looking at the bowl
       }
+      setOnRightHalf(to > (minX + maxX) / 2);
       current = Animated.sequence([
         Animated.timing(x, {
           toValue: to,
@@ -231,7 +276,98 @@ function ExpandedStage({
       stopped = true;
       current?.stop();
     };
-  }, [width, settled, eating, buddy.hungry, minX, maxX, x]);
+  }, [width, settled, acting, eating, buddy.hungry, minX, maxX, x]);
+
+  // Asked by the tour's script.
+  useEffect(() => {
+    if (!askedAct || egg) return;
+    const kind = askedAct.act;
+    const timer = setTimeout(() => perform(kind), 0);
+    return () => clearTimeout(timer);
+  }, [askedAct, egg, perform]);
+
+  // Something happening in the room ends a dance or a song.
+  useEffect(() => {
+    if (!reaction) return;
+    const timer = setTimeout(() => {
+      if (actTimer.current) clearTimeout(actTimer.current);
+      setAct(null);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [reaction]);
+
+  // Left alone, now and then a dance or a song.
+  useEffect(() => {
+    if (egg || settled || active || acting) return;
+    const timer = setTimeout(
+      () => perform(Math.random() < 0.5 ? 'dance' : 'sing'),
+      IDLE_ACT_MIN_MS + Math.random() * (IDLE_ACT_MAX_MS - IDLE_ACT_MIN_MS),
+    );
+    return () => clearTimeout(timer);
+  }, [egg, settled, active, acting, perform]);
+
+  // Little hops while dancing, notes rising while singing.
+  useEffect(() => {
+    if (act !== 'dance' && act !== 'sing') return;
+    const move =
+      act === 'dance'
+        ? Animated.loop(
+            Animated.sequence([
+              Animated.timing(hop, { toValue: -6, duration: 150, useNativeDriver: NATIVE_DRIVER }),
+              Animated.timing(hop, { toValue: 0, duration: 150, useNativeDriver: NATIVE_DRIVER }),
+            ]),
+          )
+        : Animated.loop(
+            Animated.sequence([
+              Animated.timing(note, { toValue: 0, duration: 0, useNativeDriver: NATIVE_DRIVER }),
+              Animated.timing(note, { toValue: 1, duration: 1000, useNativeDriver: NATIVE_DRIVER }),
+            ]),
+          );
+    move.start();
+    return () => {
+      move.stop();
+      hop.setValue(0);
+    };
+  }, [act, hop, note]);
+
+  // The bowl and the poops bob now and then while they can be tapped.
+  const wantsFood = buddy.canFeed && !eating;
+  const hasPoop = buddy.poops > 0;
+  useEffect(() => {
+    if (!wantsFood && !hasPoop) return;
+    const bob = Animated.loop(
+      Animated.sequence([
+        Animated.timing(nudge, { toValue: -3, duration: 120, useNativeDriver: NATIVE_DRIVER }),
+        Animated.timing(nudge, { toValue: 0, duration: 120, useNativeDriver: NATIVE_DRIVER }),
+        Animated.timing(nudge, { toValue: -2, duration: 100, useNativeDriver: NATIVE_DRIVER }),
+        Animated.timing(nudge, { toValue: 0, duration: 100, useNativeDriver: NATIVE_DRIVER }),
+        Animated.delay(1600),
+      ]),
+    );
+    bob.start();
+    return () => {
+      bob.stop();
+      nudge.setValue(0);
+    };
+  }, [wantsFood, hasPoop, nudge]);
+
+  // A word back for care, once grown.
+  useEffect(() => {
+    let next: Line | null = null;
+    if (active?.kind === 'fed' && active.phase === 'after')
+      next = pick(['thanks', 'yummy'] as const);
+    else if (active?.kind === 'cleaned') next = pick(['refreshed', 'digestion'] as const);
+    if (!next) return;
+    const say_ = next;
+    const timer = setTimeout(() => say(say_), 0);
+    return () => clearTimeout(timer);
+  }, [active, say]);
+
+  useEffect(() => {
+    if (!buddy.hungry || sleeping) return;
+    const timer = setTimeout(() => say('hungry'), 600);
+    return () => clearTimeout(timer);
+  }, [buddy.hungry, sleeping, say]);
 
   // The egg rocks in small, stepped moves now and then.
   useEffect(() => {
@@ -319,12 +455,19 @@ function ExpandedStage({
   useEffect(
     () => () => {
       if (petTimer.current) clearTimeout(petTimer.current);
+      if (actTimer.current) clearTimeout(actTimer.current);
     },
     [],
   );
 
+  // Petting: glad (and a thank-you once grown), or a dance, or a song.
   const pet = () => {
+    if (egg) return;
+    const roll = Math.random();
+    if (roll < 0.3) return perform('dance');
+    if (roll < 0.6) return perform('sing');
     setPetted(true);
+    say('thanks');
     if (petTimer.current) clearTimeout(petTimer.current);
     petTimer.current = setTimeout(() => setPetted(false), PET_MS);
   };
@@ -337,22 +480,32 @@ function ExpandedStage({
       : 'happy'
     : active?.kind === 'pooped'
       ? 'strain'
-      : active?.kind === 'cleaned' ||
-          active?.kind === 'levelUp' ||
-          (active?.kind === 'evolved' && !evolving) ||
-          petted
-        ? 'happy'
-        : sleeping
-          ? 'sleep'
-          : buddy.hungry
-            ? 'hungry'
-            : walking
-              ? tick % 2 === 0
-                ? 'step'
-                : 'idle'
-              : tick % 11 === 0
-                ? 'blink'
-                : 'idle';
+      : act === 'dance'
+        ? tick % 2 === 0
+          ? 'happy'
+          : 'step'
+        : act === 'sing'
+          ? tick % 2 === 0
+            ? 'eat'
+            : 'happy'
+          : act === 'refuse'
+            ? 'idle'
+            : active?.kind === 'cleaned' ||
+                active?.kind === 'levelUp' ||
+                (active?.kind === 'evolved' && !evolving) ||
+                petted
+              ? 'happy'
+              : sleeping
+                ? 'sleep'
+                : buddy.hungry
+                  ? 'hungry'
+                  : walking
+                    ? tick % 2 === 0
+                      ? 'step'
+                      : 'idle'
+                    : tick % 11 === 0
+                      ? 'blink'
+                      : 'idle';
 
   // While evolving, the old and new looks take turns quickly.
   const previousStage = STAGE_ORDER[Math.max(0, STAGE_ORDER.indexOf(buddy.stage) - 1)];
@@ -364,8 +517,18 @@ function ExpandedStage({
   const bursting = active?.kind === 'evolved' && active.phase === 'after';
   const levelingUp = active?.kind === 'levelUp';
 
+  const bowlFull = eating && active?.phase === 'main';
+  // Dancing and head-shaking turn the buddy left and right.
+  const flipped = act === 'dance' || act === 'refuse' ? tick % 2 === 0 : facingLeft;
+
   const feed = () => {
-    if (!buddy.canFeed || busy) return;
+    if (busy) return;
+    if (!buddy.canFeed) {
+      // Not hungry: a shake of the head.
+      if (!egg) perform('refuse');
+      say('full');
+      return;
+    }
     onFeed();
   };
   const clean = () => {
@@ -408,31 +571,49 @@ function ExpandedStage({
         ]}
       />
 
-      <Pressable
-        onPress={feed}
-        disabled={!buddy.canFeed || busy}
-        accessibilityRole="button"
-        accessibilityLabel={t('buddy.feed')}
-        style={[styles.bowl, { bottom: FLOOR - 3 }]}
+      <Animated.View
+        style={[
+          styles.bowl,
+          { bottom: FLOOR - 3, transform: [{ translateY: wantsFood ? nudge : 0 }] },
+        ]}
       >
-        <PixelSprite
-          frame={buddy.canFeed ? BOWL_EMPTY : BOWL_FULL}
-          palette={PROP_PALETTE}
-          scale={PROP_SCALE}
-        />
-      </Pressable>
-
-      {Array.from({ length: buddy.poops }, (_, i) => (
+        {buddy.hungry && !eating ? (
+          <View style={styles.bowlAsk}>
+            <PixelSprite frame={EXCLAIM} palette={BUDDY_PALETTE} scale={2} />
+          </View>
+        ) : null}
         <Pressable
-          key={i}
-          onPress={clean}
+          onPress={feed}
           disabled={busy}
           accessibilityRole="button"
-          accessibilityLabel={t('buddy.cleanUp')}
-          style={[styles.poop, { bottom: FLOOR - 2, right: 16 + i * 30 }]}
+          accessibilityLabel={t('buddy.feed')}
         >
-          <PixelSprite frame={POOP} palette={PROP_PALETTE} scale={PROP_SCALE} />
+          {/* Empty but for the meal being eaten. */}
+          <PixelSprite
+            frame={bowlFull ? BOWL_FULL : BOWL_EMPTY}
+            palette={PROP_PALETTE}
+            scale={PROP_SCALE}
+          />
         </Pressable>
+      </Animated.View>
+
+      {Array.from({ length: buddy.poops }, (_, i) => (
+        <Animated.View
+          key={i}
+          style={[
+            styles.poop,
+            { bottom: FLOOR - 2, right: 16 + i * 30, transform: [{ translateY: nudge }] },
+          ]}
+        >
+          <Pressable
+            onPress={clean}
+            disabled={busy}
+            accessibilityRole="button"
+            accessibilityLabel={t('buddy.cleanUp')}
+          >
+            <PixelSprite frame={POOP} palette={PROP_PALETTE} scale={PROP_SCALE} />
+          </Pressable>
+        </Animated.View>
       ))}
 
       {companionEgg ? (
@@ -501,6 +682,31 @@ function ExpandedStage({
             </View>
           </>
         ) : null}
+        {act === 'sing' ? (
+          <Animated.View
+            style={[
+              styles.sparkle,
+              styles.passThrough,
+              {
+                left: tick % 4 < 2 ? spriteWidth * 0.75 : spriteWidth * 0.1,
+                top: -6,
+                opacity: note.interpolate({ inputRange: [0, 0.2, 1], outputRange: [0, 1, 0] }),
+                transform: [
+                  { translateY: note.interpolate({ inputRange: [0, 1], outputRange: [0, -28] }) },
+                ],
+              },
+            ]}
+          >
+            <PixelSprite frame={NOTE} palette={BUDDY_PALETTE} scale={4} />
+          </Animated.View>
+        ) : null}
+        {line ? (
+          <SpeechBubble
+            text={t(`buddy.say.${line}`)}
+            side={onRightHalf ? 'left' : 'right'}
+            above={spriteHeight * 0.85}
+          />
+        ) : null}
         {bursting
           ? BURST.map(([dx, dy], i) => (
               <Animated.View
@@ -538,7 +744,7 @@ function ExpandedStage({
           accessibilityRole="button"
           accessibilityLabel={t('buddy.pet', { buddy: buddy.name })}
         >
-          <PixelSprite frame={frame} palette={BUDDY_PALETTE} scale={scale} flipped={facingLeft} />
+          <PixelSprite frame={frame} palette={BUDDY_PALETTE} scale={scale} flipped={flipped} />
         </Pressable>
       </Animated.View>
 
@@ -623,6 +829,11 @@ const styles = StyleSheet.create({
   },
   poop: {
     position: 'absolute',
+  },
+  bowlAsk: {
+    position: 'absolute',
+    top: -18,
+    left: 15,
   },
   buddy: {
     position: 'absolute',

@@ -80,7 +80,22 @@
     "growthHint": "おしゃべりしたりお世話したりするほど、大きくなります。",
     "peckish": "ちょっと小腹",
     "pet": "{{buddy}}をなでる",
-    "showStage": "{{buddy}}を大きく表示"
+    "showStage": "{{buddy}}を大きく表示",
+    "say": {
+      "thanks": "ありがとう！",
+      "yummy": "おいしい！",
+      "refreshed": "すっきり！",
+      "digestion": "最近おなかの調子がいいんだ",
+      "hungry": "おなかすいた…",
+      "full": "おなかいっぱい",
+      "longTime": "ひさしぶり！",
+      "morning": "おはよう！",
+      "afternoon": "こんにちは！",
+      "evening": "こんばんは！",
+      "ateYet": "ごはん食べた？",
+      "whatsUp": "何かあった？",
+      "howWasToday": "今日はどうだった？"
+    }
   },
   "buddyEvent": {
     "HUNGRY": "{{buddy}}がおなかをすかせています 🍚",
