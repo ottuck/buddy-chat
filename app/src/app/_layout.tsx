@@ -8,6 +8,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import '@/i18n';
 import { StatusScreen } from '@/components/status-screen';
+import { WebFrame } from '@/components/web-frame';
 import { AuthProvider, useAuth } from '@/features/auth/auth-provider';
 import { RoomProvider, useRoom } from '@/features/room/room-provider';
 import { warmUpServer } from '@/lib/warm-up';
@@ -29,7 +30,9 @@ export default function RootLayout() {
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <AuthProvider>
           <RoomProvider>
-            <RootNavigator />
+            <WebFrame>
+              <RootNavigator />
+            </WebFrame>
           </RoomProvider>
         </AuthProvider>
         <StatusBar style="auto" />

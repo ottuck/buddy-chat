@@ -115,6 +115,9 @@
 - Chat이 항상 핵심이다. Buddy 때문에 채팅 UX를 희생하지 않는다. Buddy는 가벼운 virtual pet이지 게임이 아니다.
 - MVP에 없는 기능(게임 요소, AI Chat, 사진 첨부 등)을 임의로 추가하지 않는다. Pokémon/Tamagotchi IP를 쓰지 않는다.
 - iOS UX가 기준이다(Safe Area, 키보드, 스크롤). Web은 같은 모바일 레이아웃을 가운데 정렬하고 최대 폭만 제한한다.
+  넓은 창(768px~)에서는 폰 크기 틀에 담는다: CSS 미디어 쿼리(`app/+html.tsx`)가 `WebFrame`의 id를 꾸민다. 창 폭을 JS로 재서
+  구조를 바꾸면 경계를 넘을 때 앱 전체가 다시 마운트되므로 그렇게 하지 않는다. 모달 시트도 `WebFrame`으로 감싼다.
+- 링크 미리보기(Open Graph, 영어)는 `app/+html.tsx`, 이미지는 `app/public/og.png`(1200×630, 구경하기 화면으로 만듦).
 - iOS-first design ≠ iOS-only code. 플랫폼 분기는 정말 다를 때만 `*.ios.ts` / `*.web.ts`로 나눈다.
 - 라이브러리는 구체적인 문제가 생겼을 때만 추가한다.
 - UI 문구는 처음부터 다국어(ja / ko / en). 화면에 문자열을 직접 쓰지 않고 `app/src/i18n/locales/*.json`에 넣고
