@@ -49,6 +49,7 @@
     "online": "접속 중",
     "offline": "접속 안 함",
     "emptySolo": "{{buddy, 이가}} 태어났어요!\n친구를 초대해서 같이 키워 볼까요?",
+    "emptySoloHint": "혼자 메시지를 보내도 {{buddy, 이가}} 자라요.",
     "emptyDuo": "{{partner}}님과 함께하게 됐어요.\n첫 메시지를 보내 보세요."
   },
   "invite": {

@@ -49,6 +49,7 @@
     "online": "Online",
     "offline": "Offline",
     "emptySolo": "{{buddy}} has hatched!\nInvite a friend to raise it together.",
+    "emptySoloHint": "Or just start chatting. {{buddy}} grows with every message.",
     "emptyDuo": "You and {{partner}} are together now.\nSay hello!"
   },
   "invite": {
