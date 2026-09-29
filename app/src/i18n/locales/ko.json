@@ -87,6 +87,7 @@
     "FED": "{{actor}}님이 {{buddy}}에게 밥을 줬어요",
     "POOPED": "{{buddy, 이가}} 💩을 쌌어요",
     "CLEANED": "{{actor}}님이 {{buddy}}의 💩을 치웠어요",
+    "LEVELED_UP": "{{buddy, 이가}} 레벨 업했어요! Lv.{{level}} ⬆️",
     "EVOLVED": "{{buddy, 이가}} 진화했어요! ✨"
   },
   "settings": {

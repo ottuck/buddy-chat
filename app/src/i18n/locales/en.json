@@ -87,6 +87,7 @@
     "FED": "{{actor}} fed {{buddy}}",
     "POOPED": "{{buddy}} pooped 💩",
     "CLEANED": "{{actor}} cleaned up after {{buddy}}",
+    "LEVELED_UP": "{{buddy}} leveled up! Lv.{{level}} ⬆️",
     "EVOLVED": "{{buddy}} evolved! ✨"
   },
   "settings": {

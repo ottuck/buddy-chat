@@ -16,6 +16,7 @@ const REACTION_OF: Partial<Record<BuddyEvent, ReactionKind>> = {
   FED: 'fed',
   CLEANED: 'cleaned',
   POOPED: 'pooped',
+  LEVELED_UP: 'levelUp',
   EVOLVED: 'evolved',
 };
 const REPLY_AFTER_MS = 900;
@@ -51,6 +52,8 @@ function afterEvent(buddy: BuddyView, event: BuddyEvent): BuddyView | null {
       if (!stage) return null;
       return { ...buddy, stage, level: LEVEL_OF[stage], levelProgress: 0.1 };
     }
+    case 'LEVELED_UP':
+      return { ...buddy, level: buddy.level + 1, levelProgress: 0.1 };
     case 'HUNGRY':
       return buddy.hungry ? null : { ...buddy, hungry: true, canFeed: true, fullness: 20 };
     case 'FED':
@@ -137,7 +140,12 @@ export function useDemo({ buddyName, lineText, replyText }: Options) {
       const next = afterEvent(buddyRef.current, kind);
       if (!next) return;
       changeBuddy(next);
-      const id = add({ type: 'BUDDY_EVENT', event: kind, actorId: actor });
+      const id = add({
+        type: 'BUDDY_EVENT',
+        event: kind,
+        actorId: actor,
+        level: kind === 'LEVELED_UP' ? next.level : undefined,
+      });
       const reactionKind = REACTION_OF[kind];
       if (reactionKind) setReaction({ id, kind: reactionKind });
     },

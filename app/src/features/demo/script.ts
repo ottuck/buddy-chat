@@ -1,7 +1,7 @@
 import type { BuddyEvent } from '@/features/chat/types';
 
 // The "take a look first" tour (docs/product.md, 구경하기): a scripted conversation of about 40
-// seconds in which the buddy hatches, gets hungry, eats, poops, is cleaned and grows up. It runs in
+// seconds in which the buddy hatches, gets hungry, eats, poops, is cleaned, levels up and grows up. It runs in
 // the app only, with no account or server, so a first-time visitor sees what the app is about
 // right away.
 
@@ -41,16 +41,19 @@ export const SCRIPT: Step[] = [
   { at: 10000, kind: 'event', event: 'HUNGRY' },
   { at: 11800, kind: 'text', from: DEMO_ME, line: 'hungry' },
   { at: 12800, kind: 'event', event: 'FED', actor: DEMO_ME },
+  { at: 14600, kind: 'event', event: 'LEVELED_UP' },
   { at: 16600, kind: 'event', event: 'POOPED' },
   { at: 18400, kind: 'typing' },
   { at: 19400, kind: 'text', from: DEMO_PARTNER, line: 'pooped' },
   { at: 21000, kind: 'event', event: 'CLEANED', actor: DEMO_PARTNER },
   { at: 22600, kind: 'text', from: DEMO_PARTNER, line: 'cleaned' },
+  { at: 23600, kind: 'event', event: 'LEVELED_UP' },
   { at: 24800, kind: 'text', from: DEMO_ME, line: 'grown' },
   { at: 26000, kind: 'event', event: 'EVOLVED' },
   { at: 29800, kind: 'typing' },
   { at: 30800, kind: 'text', from: DEMO_PARTNER, line: 'leaves' },
   { at: 32600, kind: 'text', from: DEMO_ME, line: 'weekend' },
+  { at: 33200, kind: 'event', event: 'LEVELED_UP' },
   { at: 33800, kind: 'typing' },
   { at: 34600, kind: 'text', from: DEMO_PARTNER, line: 'ok' },
   { at: 36200, kind: 'event', event: 'EVOLVED' },

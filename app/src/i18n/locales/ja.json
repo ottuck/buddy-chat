@@ -87,6 +87,7 @@
     "FED": "{{actor}}が{{buddy}}にごはんをあげました",
     "POOPED": "{{buddy}}がうんちをしました 💩",
     "CLEANED": "{{actor}}が{{buddy}}のうんちを片付けました",
+    "LEVELED_UP": "{{buddy}}がレベルアップしました！Lv.{{level}} ⬆️",
     "EVOLVED": "{{buddy}}が進化しました！✨"
   },
   "settings": {
