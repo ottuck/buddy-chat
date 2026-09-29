@@ -176,9 +176,14 @@ iPhone / Web ──HTTPS·WSS──▶ Azure Container Apps (Spring WebFlux, Doc
 ```
 
 - **백엔드**: Docker 이미지 → Azure Container Registry → Azure Container Apps. VM에 앱과 DB를 같이 올리지 않는다.
-- **레플리카**: `maxReplicas = 1`. 처음엔 비용 때문에 `minReplicas = 0`, 콜드 스타트(JVM 기동 동안 첫 연결이 몇 초
-  걸림)가 채팅 UX를 해치면 `1`로 올린다. 재배포하면 메모리의 연결·presence·typing이 사라지므로 앱은 재연결을
-  전제로 한다. 유휴 연결 타임아웃 때문에 서버가 25초마다 ping을 보낸다.
+- **레플리카**: `maxReplicas = 1`, **`minReplicas = 0`(비용 절약 정책)**. 아무도 안 쓰면 0대로 줄어서 첫 방문은
+  콜드 스타트를 기다린다. 재배포하면 메모리의 연결·presence·typing이 사라지므로 앱은 재연결을 전제로 한다.
+  유휴 연결 타임아웃 때문에 서버가 25초마다 ping을 보낸다.
+- **콜드 스타트 결정(2026-09-29)**: 측정해 보니 인스턴스 준비·이미지 받기 약 17초 + Spring 기동 4초였다. 최소 1대를
+  유지하면 사라지지만 월 비용이 생긴다(0.5 vCPU / 1GiB 약 $10~12 추정, 0.25 vCPU / 0.5GiB 약 $5~6 추정. 작은 크기는
+  로컬에서 기동이 34초로 느려졌다). 개인 구독의 비용을 아끼는 인프라 정책이라 **0대 유지**로 정했다. 대신 앱이 열리자마자
+  `/actuator/health`를 한 번 불러 서버를 미리 깨운다(`app/src/lib/warm-up.ts`). 사용자가 첫 화면을 보는 동안 서버가
+  뜬다. 사용자가 생기면 다시 검토: 최소 1대, 또는 이미지 축소·Java AOT 캐시로 기동 단축.
 - **DB**: Azure DocumentDB. MongoDB 자체가 아니라 MongoDB 호환이므로 CRUD, 인덱스 조회, 커서 페이지네이션,
   조건부 atomic update, unique 인덱스만 쓴다(위 컬렉션 참고).
   README 등에는 "Azure DocumentDB (MongoDB-compatible)"로 적는다. 확인할 것은 마일스톤 S7 참고.

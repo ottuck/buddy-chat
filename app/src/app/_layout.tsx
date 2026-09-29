@@ -10,6 +10,7 @@ import '@/i18n';
 import { StatusScreen } from '@/components/status-screen';
 import { AuthProvider, useAuth } from '@/features/auth/auth-provider';
 import { RoomProvider, useRoom } from '@/features/room/room-provider';
+import { warmUpServer } from '@/lib/warm-up';
 
 // Keep the splash screen up until we know where the user belongs (signed out, no room yet, or
 // their room), so no screen flashes by on launch.
@@ -17,6 +18,11 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+
+  // Wake the server (it may have scaled to zero) before the first real request needs it.
+  useEffect(() => {
+    warmUpServer();
+  }, []);
 
   return (
     <SafeAreaProvider>
