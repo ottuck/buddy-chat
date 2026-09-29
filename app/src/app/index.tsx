@@ -18,6 +18,7 @@ import { GuestExpiryBanner } from '@/features/auth/components/guest-expiry-banne
 import { useGuestDaysLeft } from '@/features/auth/guest-expiry';
 import { BuddySheet } from '@/features/buddy/components/buddy-sheet';
 import { BuddyStage } from '@/features/buddy/components/buddy-stage';
+import { stageFoldsOnFocus } from '@/features/buddy/stage-folds-on-focus';
 import { useBuddy } from '@/features/buddy/use-buddy';
 import { ChatHeader } from '@/features/chat/components/chat-header';
 import { MessageComposer } from '@/features/chat/components/message-composer';
@@ -151,7 +152,7 @@ function ChatScreen({ me, room, onRoomLost, onMembersChanged }: ChatScreenProps)
           onTyping={chat.notifyTyping}
           onFocusChange={(focused) => {
             animateStage();
-            setTypingMessage(focused);
+            setTypingMessage(focused && stageFoldsOnFocus());
           }}
         />
       </KeyboardAvoidingView>
