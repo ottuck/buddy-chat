@@ -1,4 +1,4 @@
-# buddy-chat
+# buddy-chat (서비스 이름: puny-chat)
 
 1~2명이 작은 가상 생명체(Buddy)를 함께 키우며 쓰는 초경량 1:1 실시간 채팅 앱.
 **Chat first. Buddy makes it fun.** iOS가 기준 플랫폼이고 Web은 보조, Android는 나중.
@@ -11,10 +11,10 @@
 
 - `app/` — Expo(React Native) + TypeScript + Expo Router. iOS / Web / Android 공용 코드.
 - `server/` — Java 25, Spring Boot 4.1 + WebFlux + Reactive MongoDB. 패키지는 기능 모듈(`auth`, `user`, `room`, `chat`, `buddy`, `realtime`).
-- `infra/` — Azure Terraform(Container App, DocumentDB). ur-manager의 ACR·Container Apps 환경·tfstate Storage를 읽어서 씀
+- `infra/` — Terraform: Railway(서버), MongoDB Atlas(DB), Cloudflare(DNS, state는 R2). `infra/azure/`는 이전 전 Azure 설정(지울 예정)
 - `docs/` — 기획과 설계 문서
 - `.github/workflows/ci.yml` — app(lint / typecheck / format), server(spotless / test)
-- `.github/workflows/deploy.yml` — main에서 CI 통과 후 서버(Container Apps)와 웹(Static Web Apps) 배포
+- `.github/workflows/deploy.yml` — main에서 CI 통과 후 서버(Railway, `railway up`)와 웹(Cloudflare Worker, `wrangler deploy`) 배포
 - 로컬 전용(gitignore): `.claude/`(desktop app preview 설정), `.idea/`, `.env*`
 
 ## App commands (`app/`에서 실행)
@@ -25,12 +25,12 @@
   `npx eas-cli build --profile development --platform ios`(Apple 계정 로그인이 필요해 사용자가 실행, `eas.json`).
 - 번역 JSON 등 수정이 화면에 반영되지 않으면 Metro 캐시 문제다: `pnpm start --clear`
 - `pnpm lint` / `pnpm typecheck` / `pnpm format:check` · 한 번에: `pnpm check`
-- `pnpm build:web` — 배포용 웹 빌드(`dist/`, Static Web Apps 설정 포함)
+- `pnpm build:web` — 배포용 웹 빌드(`dist/`, Worker 정적 자산용 404·`_headers` 포함. `app/wrangler.jsonc`)
 - 패키지 추가는 `pnpm exec expo install <pkg>` — SDK와 맞는 버전을 고른다. `pnpm add`로 직접 넣지 않는다.
 - `pnpm exec expo-doctor` — 의존성·설정 진단
 - Node 24+, pnpm (버전은 `app/package.json`의 `packageManager`)
 - 처음 한 번: `app/.env.example`을 `app/.env.local`로 복사하고 Firebase 웹 앱 설정값을 채운다(공개 설정값, git 제외).
-- 서버 주소는 `EXPO_PUBLIC_API_URL`(`.env.local`, 예: Azure 주소). 비우면 Metro를 띄운 PC의 :8080 로컬 서버
+- 서버 주소는 `EXPO_PUBLIC_API_URL`(`.env.local`, 예: https://api.puny-chat.com). 비우면 Metro를 띄운 PC의 :8080 로컬 서버
   (`./gradlew bootRun`)로 정해진다(`app/src/lib/api-url.ts`). 아이폰에서 로컬 서버를 쓰려면 Windows 방화벽에서 8080을 허용한다.
 
 ## App structure
@@ -80,10 +80,10 @@
 
 ## Infra (`infra/`에서 실행)
 
-- `terraform init` / `terraform plan -out=prod.tfplan` / `terraform apply prod.tfplan`. state는 공유 Storage의
-  `buddy-chat-tfstate` container(Entra ID 인증, `az login` 필요).
+- 인증 정보는 `infra/.env`(git 제외, `.env.example` 참고)에서 읽는다: `set -a; . ./.env; set +a`. state는 Cloudflare R2.
+  init·plan·apply와 계정·토큰 준비는 `infra/README.md`.
 - apply 전에 plan을 사용자에게 보여주고 확인받는다. 이미 있는 리소스를 바꾸거나 지우는 plan은 특히.
-- 서버 이미지는 Terraform이 아니라 deploy workflow가 바꾼다(`ignore_changes`).
+- 서버 코드는 Terraform이 아니라 deploy workflow가 배포한다(`railway up`). Terraform은 서비스와 변수만.
 
 ## Server principles
 
@@ -92,7 +92,7 @@
   사용자 식별은 항상 토큰의 `sub`(uid). 클라이언트가 보낸 id를 믿지 않는다.
 - 문서에 필드를 추가하면 기존 문서에는 그 필드가 없다. 새 필드는 nullable(래퍼 타입)로 두고 없는 경우를 처리한다.
 - 인덱스는 auto index creation 대신 모듈별 `*Indexes` 클래스에서 명시적으로 만든다.
-- 운영 DB는 Azure DocumentDB(MongoDB 호환). 트랜잭션·change stream·복잡한 aggregation에 기대지 않는다(지원 여부와 별개로
+- 운영 DB는 MongoDB Atlas(M0). 트랜잭션·change stream·복잡한 aggregation에 기대지 않는다(지원 여부와 별개로
   단순함과 호환 범위 때문). 동시성은 조건부 atomic update와 unique 인덱스로 해결한다. 메시지 순서는 `_id` 하나로 정한다.
 - 모듈끼리는 service로만 호출한다. 다른 모듈의 repository를 직접 쓰지 않는다.
 - 동시성·멱등성·권한은 테스트로 보여준다(초대 경쟁, 메시지 중복, 동시 밥주기·청소, 남의 room 접근, 읽음 위치).

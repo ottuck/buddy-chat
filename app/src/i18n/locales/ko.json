@@ -61,7 +61,7 @@
     "hint": "이 코드를 보내 주세요. 친구가 로그인한 뒤 입력하면 돼요.",
     "expires": "{{time}}까지 유효 · 한 번만 사용",
     "share": "코드 보내기",
-    "shareMessage": "buddy-chat에서 같이 Buddy 키워요! 🥚\n\n👉 {{link}}\n\n링크를 누르면 바로 들어올 수 있어요.\n초대 코드: {{code}} ({{time}}까지)",
+    "shareMessage": "puny-chat에서 같이 Buddy 키워요! 🥚\n\n👉 {{link}}\n\n링크를 누르면 바로 들어올 수 있어요.\n초대 코드: {{code}} ({{time}}까지)",
     "copy": "복사",
     "copied": "복사됨 ✓"
   },
@@ -159,13 +159,13 @@
     "linkedGoogle": "Google 계정으로 연결됨",
     "linkFailed": "계정을 연결하지 못했어요. 다시 시도해 주세요.",
     "accountInUseTitle": "이미 사용 중인 Google 계정이에요",
-    "accountInUseMessage": "이 계정에는 이미 buddy-chat 기록이 있어요. 그 계정으로 전환하면 지금 게스트로 쓰던 Buddy와 대화는 이 기기에서 더는 볼 수 없어요.",
+    "accountInUseMessage": "이 계정에는 이미 puny-chat 기록이 있어요. 그 계정으로 전환하면 지금 게스트로 쓰던 Buddy와 대화는 이 기기에서 더는 볼 수 없어요.",
     "accountInUseConfirm": "전환하기",
     "guestSignOutTitle": "게스트 계정에서 로그아웃할까요?",
     "guestSignOutMessage": "로그아웃하면 이 게스트 계정으로 다시 들어올 수 없어요. Buddy와 대화를 지키려면 먼저 계정을 연결해 주세요.",
     "notifications": "알림",
     "notificationsBody": "상대에게서 메시지가 오면 알려줘요.",
-    "notificationsDenied": "iPhone 설정에서 buddy-chat 알림이 꺼져 있어요.",
+    "notificationsDenied": "iPhone 설정에서 puny-chat 알림이 꺼져 있어요.",
     "openSettings": "설정 열기",
     "notificationsUnavailable": "이 기기에서는 알림을 받을 수 없어요.",
     "deleteAccount": "계정 삭제",
@@ -181,8 +181,8 @@
     "followDevice": "기기 설정",
     "light": "라이트",
     "dark": "다크",
-    "notificationsDeniedWeb": "브라우저에서 buddy-chat 알림이 차단돼 있어요. 사이트 설정에서 알림을 허용해 주세요.",
-    "notificationsInstall": "iPhone에서는 홈 화면에 추가한 앱에서 알림을 받을 수 있어요. Safari의 공유 버튼 → '홈 화면에 추가'를 누른 뒤, 홈 화면의 buddy-chat에서 알림을 켜 주세요."
+    "notificationsDeniedWeb": "브라우저에서 puny-chat 알림이 차단돼 있어요. 사이트 설정에서 알림을 허용해 주세요.",
+    "notificationsInstall": "iPhone에서는 홈 화면에 추가한 앱에서 알림을 받을 수 있어요. Safari의 공유 버튼 → '홈 화면에 추가'를 누른 뒤, 홈 화면의 puny-chat에서 알림을 켜 주세요."
   },
   "systemEvent": {
     "MEMBER_LEFT": "{{name}}님이 나갔어요"

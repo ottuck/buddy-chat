@@ -1,6 +1,6 @@
 {
-  "name": "buddy-chat",
-  "short_name": "buddy-chat",
+  "name": "puny-chat",
+  "short_name": "puny-chat",
   "description": "A tiny 1:1 chat app where two people raise a pixel buddy together.",
   "start_url": "/",
   "scope": "/",

@@ -22,4 +22,4 @@ record NotificationProperties(
         @DefaultValue("15m") Duration receiptDelay,
         @Nullable String vapidPublicKey,
         @Nullable String vapidPrivateKey,
-        @DefaultValue("https://buddy.pokepidia.com") String vapidSubject) {}
+        @DefaultValue("https://puny-chat.com") String vapidSubject) {}

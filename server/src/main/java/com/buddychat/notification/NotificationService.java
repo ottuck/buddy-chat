@@ -155,7 +155,7 @@ public class NotificationService {
 
     private static PushMessage toPush(String token, String roomId, String text, User from) {
         String body = text.length() > MAX_BODY_LENGTH ? text.substring(0, MAX_BODY_LENGTH) + "…" : text;
-        String title = from.displayName() != null ? from.displayName() : "buddy-chat";
+        String title = from.displayName() != null ? from.displayName() : "puny-chat";
         return new PushMessage(token, title, body, "default", Map.of("roomId", roomId));
     }
 

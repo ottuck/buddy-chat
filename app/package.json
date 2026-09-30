@@ -13,7 +13,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check": "pnpm lint && pnpm typecheck && pnpm format:check",
-    "build:web": "expo export -p web && node scripts/static-web-app-config.mjs dist"
+    "build:web": "expo export -p web && node scripts/worker-assets.mjs dist"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",

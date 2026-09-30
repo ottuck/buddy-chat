@@ -1,0 +1,16 @@
+// The web app as a Cloudflare Worker serving static assets (no script), deployed by CI after
+// `pnpm build:web` (docs/server-design.md, 인프라). The custom domain comes with the deploy:
+// Cloudflare makes its DNS record and certificate.
+{
+  "name": "puny-chat",
+  "compatibility_date": "2026-09-30",
+  "assets": {
+    "directory": "./dist",
+    // Expo writes a page per route (join.html) and +not-found.html, copied to 404.html by
+    // scripts/worker-assets.mjs.
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page",
+  },
+  "workers_dev": true,
+  "routes": [{ "pattern": "puny-chat.com", "custom_domain": true }],
+}

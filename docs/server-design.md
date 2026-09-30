@@ -155,7 +155,7 @@ server → client
   update한다. 비교는 타임라인과 같은 `_id` 순서다(위 컬렉션
   참고, 16진 문자열 비교 = ObjectId 비교).
   앱은 상대가 읽은 위치 이하인 내 메시지 중 가장 최근 것에 "읽음"을 표시한다.
-- Container Apps의 유휴 연결 타임아웃 때문에 서버가 25초마다 ping 프레임을 보낸다.
+- 호스팅 프록시의 유휴 연결 타임아웃 때문에 서버가 25초마다 ping 프레임을 보낸다.
 
 ## 푸시 알림 (S8)
 
@@ -187,80 +187,50 @@ server → client
   보낸다. 암호화는 RFC 8291 부록의 예제로 테스트한다. 구독은 `push_tokens`에 endpoint를 키로(`p256dh`, `auth` 추가) 저장한다.
   404/410이면 구독을 지운다.
 - **SSRF 방지**: endpoint는 클라이언트가 보내는 URL이라, 알려진 푸시 서비스(FCM, Mozilla, Apple, Windows)의 https 주소만 받는다.
-- **키**: Terraform `tls_private_key`(P-256)로 만들어 state에 두고(DB 비밀번호와 같다) Container App 비밀값으로 넣는다(PEM).
+- **키**: Terraform `tls_private_key`(P-256)로 만들어 state에 두고(DB 비밀번호와 같다) 서버 변수로 넣는다(PEM).
   없으면 서버가 실행마다 임시 키를 쓴다(로컬 개발용).
 - 설정: `buddychat.push.grace-period`(3s), `receipt-delay`(15m), `expo-access-token`(Expo의 강화 보안을 켤 때).
 
-## 인프라 (S7)
+## 인프라 (S7, 2026-10 Railway·Atlas·Cloudflare로 이전)
 
 ```text
-iPhone / Web ──HTTPS·WSS──▶ Azure Container Apps (Spring WebFlux, Docker) ──▶ Azure DocumentDB (MongoDB 호환)
-                             외부: Firebase Authentication, Firebase Cloud Messaging(S8)
+iPhone / Web ──HTTPS·WSS──▶ Railway (Spring WebFlux, Docker, 싱가포르) ──▶ MongoDB Atlas M0 (싱가포르)
+웹 앱: Cloudflare Worker (정적 자산)            DNS·Terraform state: Cloudflare (puny-chat.com, R2)
+외부: Firebase Authentication, Web Push(FCM·Apple·Mozilla 푸시 서비스), Expo 푸시(S8)
 ```
 
-- **백엔드**: Docker 이미지 → Azure Container Registry → Azure Container Apps. VM에 앱과 DB를 같이 올리지 않는다.
-- **레플리카**: `maxReplicas = 1`, **`minReplicas = 1`**(아래 콜드 스타트 결정). 재배포하면 메모리의 연결·presence·typing이 사라지므로 앱은 재연결을 전제로 한다.
-  유휴 연결 타임아웃 때문에 서버가 25초마다 ping을 보낸다.
-- **콜드 스타트 결정(2026-09-29)**: 측정해 보니 인스턴스 준비·이미지 받기 약 17초 + Spring 기동 4초였다. 최소 1대를
-  유지하면 사라지지만 월 비용이 생긴다(0.5 vCPU / 1GiB 약 $10~12 추정, 0.25 vCPU / 0.5GiB 약 $5~6 추정. 작은 크기는
-  로컬에서 기동이 34초로 느려졌다). 처음에는 개인 구독의 비용을 아끼려고 0대를 유지하고, 앱이 열리자마자
-  `/actuator/health`를 불러 미리 깨우기만 했다(`app/src/lib/warm-up.ts`, 지금도 남아 있다).
-  같은 날 **1대 유지로 바꿨다**: 포트폴리오로 남에게 보여줄 때 첫 화면에서 20초를 기다리게 할 수 없고, 번들 크기를 줄이는
-  것으로는 근본 원인(인스턴스 준비)이 해결되지 않는다. 비용은 Azure 가격 API의 Japan East 단가로 계산했다(JPY, 한 달):
-  아무도 접속하지 않을 때 유휴 요금 약 ¥1,700~1,950(무료 할당량 차감 전후, 그중 2/3가 메모리), 누군가 WebSocket으로
-  연결해 있는 동안은 활성 요금으로 시간당 약 +¥6, 한 달 내내 연결돼 있으면 약 ¥6,200.
-  `rg-buddy-chat-prod`에 월 ¥3,000 예산(실제 50/80/100%, 예측 100% 알림, 구독 Owner에게)을 두고 한 달 사용량을 본 뒤
-  다음 달에 조정한다: 메모리에 여유가 있으면 0.25 vCPU / 0.5GiB, 아니면 이미지 축소·Java AOT 캐시로 기동을 줄이고 0대로.
-  Terraform 변수 `min_replicas`, `monthly_budget_jpy`.
-- **DB 비용**: DocumentDB 무료 티어라 ¥0(계정이 있는 동안 무료, 32GB, 구독당 1개, HA·백업 없음, **60일 동안 쓰지 않으면
-  일시 정지**). MongoDB Atlas로 옮겨도 절감이 없다: 무료 M0는 512MB·초당 100 ops, Flex는 월 $8~30, M10은 약 $57(2026-09 확인).
-- **DB**: Azure DocumentDB. MongoDB 자체가 아니라 MongoDB 호환이므로 CRUD, 인덱스 조회, 커서 페이지네이션,
-  조건부 atomic update, unique 인덱스만 쓴다(위 컬렉션 참고).
-  README 등에는 "Azure DocumentDB (MongoDB-compatible)"로 적는다. 확인할 것은 마일스톤 S7 참고.
-- **웹 앱**: Azure Static Web Apps(Free, `stapp-buddy-chat-prod`)에 `expo export -p web` 결과(정적 파일)를 올린다.
-  무료 플랜: 커스텀 도메인 2개, 자동 갱신 SSL, 전 세계 배포, 앱 250MB. Expo는 route마다 `<route>.html`을 만들고
-  Static Web Apps는 `<route>/index.html`을 찾으므로 `app/scripts/static-web-app-config.mjs`가 export 뒤에 rewrite 규칙을
-  만든다(`pnpm build:web`). `EXPO_PUBLIC_*`(서버 주소, Firebase 웹 설정)는 빌드에 들어가는 공개 값이라 repo variables로 둔다.
-  배포 토큰은 저장하지 않고 배포 identity가 매번 읽는다. 서버 CORS에는 웹 주소와 `web_origins`(커스텀 도메인, 로컬 dev)가 들어간다.
-- **도메인(구매 후)**: 웹 `<domain>` → Static Web Apps 커스텀 도메인, 서버 `api.<domain>` → Container App 커스텀 도메인
-  (managed certificate, 무료). Firebase 콘솔의 승인된 도메인에 웹 도메인을 추가해야 Google 로그인이 된다.
+- **이전(2026-10)**: 처음에는 Azure(Container Apps, DocumentDB 무료, Static Web Apps)에 ur-manager와 환경·레지스트리·
+  state를 공유해 올렸다. 서버를 항상 1대 켜두면 월 약 ¥2,000이 나왔고, 공유 때문에 이름·권한이 ur-manager에 묶였다.
+  이 프로젝트만의 작은 구성으로 옮겼다: Railway Hobby(월 $5, 사용량 $5 포함), Atlas M0(무료), Cloudflare(무료).
+  옛 설정은 `infra/azure/`에 두었다가 리소스를 지운 뒤 없앤다.
+- **서버**: Railway 서비스 1개, 싱가포르(`asia-southeast1-eqsg3a`), 복제 1(연결·presence·typing이 메모리에 있다).
+  항상 켜져 있어 콜드 스타트가 없다(앱의 미리 깨우기 `app/src/lib/warm-up.ts`는 남아 있다). Railway는 사용한 만큼 과금하므로
+  힙을 `-Xmx384m`, SerialGC로 고정한다(`JAVA_TOOL_OPTIONS`). 유휴 연결 타임아웃 때문에 서버가 25초마다 ping을 보낸다.
+  재배포하면 WebSocket이 끊기므로 앱은 재연결을 전제로 한다.
+- **DB**: MongoDB Atlas M0(무료, 512MB, 초당 100 ops), 싱가포르 AWS. 서버와 같은 도시라 쿼리마다 왕복이 짧다.
+  Railway Hobby는 나가는 IP가 고정이 아니어서 Atlas 접근 목록을 0.0.0.0/0으로 두었다. 비밀번호(32자, Terraform이 만들어
+  Railway 변수로만 전달)와 TLS가 막는다. 사용자가 늘면 Railway의 고정 IP(Pro) 또는 Atlas 유료 티어의 private networking을 쓴다.
+  DocumentDB 때 정한 대로 트랜잭션·change stream·복잡한 aggregation에 기대지 않는 원칙은 그대로 둔다(단순함).
+  이전 때 데이터는 옮기지 않고 새로 시작했다.
+- **웹 앱**: Cloudflare Worker의 정적 자산(스크립트 없음, `app/wrangler.jsonc`). Cloudflare가 새 프로젝트에 Pages보다
+  Workers를 권장한다. `pnpm build:web`이 `expo export -p web` 뒤에 `app/scripts/worker-assets.mjs`로 404 페이지와
+  `_headers`(서비스 워커 no-cache 등)를 만든다. route마다 생기는 `join.html`은 `html_handling: auto-trailing-slash`가
+  `/join`으로 연결한다. 커스텀 도메인 `puny-chat.com`은 wrangler 배포가 붙인다(DNS 레코드와 인증서를 Cloudflare가
+  만든다. 같은 이름의 CNAME이 있으면 안 된다). `EXPO_PUBLIC_*`는 빌드에 들어가는 공개 값이라 repo variables로 둔다.
+- **도메인**: 웹 `puny-chat.com`(Worker), 서버 `api.puny-chat.com`(Railway 커스텀 도메인, CNAME + 확인용 TXT를
+  Terraform이 Cloudflare에 만든다, 프록시 없음). puny-chat.com은 Cloudflare Registrar에서 샀다(2026-09-30). 전에 쓰던
+  buddy.pokepidia.com은 새 주소로 리다이렉트한다. Firebase 콘솔의
+  승인된 도메인에 웹 도메인이 있어야 Google 로그인이 된다. 서버 CORS에는 웹 도메인과 로컬 Expo dev 서버가 들어간다.
+- **Terraform**(`infra/`, 사용법은 `infra/README.md`): Atlas 프로젝트·M0·DB 사용자·접근 목록, Railway 프로젝트·서비스·변수·
+  커스텀 도메인, Cloudflare DNS, VAPID 키. state는 Cloudflare R2(S3 호환 backend)에 둔다. 인증 정보는 `infra/.env`(git 제외)에만
+  있다. Railway provider는 커뮤니티 것(terraform-community-providers/railway)이다.
+- **배포**(`.github/workflows/deploy.yml`): main에서 CI가 통과하면 서버는 `railway up`(server/의 Dockerfile·`railway.json`,
+  health check 뒤 전환), 웹은 `wrangler deploy`. `server/`가 바뀐 push만 서버를 다시 배포한다(새 배포는 모든 WebSocket을
+  끊는다). GitHub secrets: `RAILWAY_TOKEN`(프로젝트 토큰), `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`.
 - **Redis는 쓰지 않는다.** 레플리카가 1개라 세션·presence·typing은 프로세스 메모리로 충분하다. 수평 확장이
   필요해지면 `RoomHub.publish` 뒤에 Redis Pub/Sub을 둔다.
-- **Blob Storage는 쓰지 않는다.** 사진 첨부가 MVP 밖이다. 나중에 넣으면 바이너리는 Blob, 메타데이터만 DB.
-- **ur-manager와 공유하는 것은 Container Registry(`acurmanagerur26jp01`, 이미지 `buddy-chat/server`), Container Apps
-  환경(`cae-ur-manager-prod`), tfstate Storage Account(`sturmanagerur26jp01`, buddy-chat 전용 container
-  `buddy-chat-tfstate`)다.** 구독에 리전당 Container Apps 환경이 하나만 허용되고 Japan East는 ur-manager가 쓰고 있다.
-  셋 다 ur-manager Terraform 소유이고 buddy-chat Terraform은 `data`로 읽기만 한다. 같은 환경의 앱은 VNet과 로그
-  대상(ur-manager의 Log Analytics)을 공유한다. Resource Group(`rg-buddy-chat-prod`), Container App, DocumentDB,
-  Managed Identity, secret, 배포 권한은 전부 buddy-chat 것이다. buddy-chat을 destroy해도 ur-manager에 영향이 없다.
-- **Terraform**(`infra/`): RG, DocumentDB(free tier) + 방화벽, Container App, 이미지 pull용 identity(공유 ACR에
-  AcrPull), 배포용 identity. 재현 가능한 배포에 필요한 만큼만.
-- **배포**(`.github/workflows/deploy.yml`): main에서 CI가 통과하면 buddy-chat 전용 배포 identity로 OIDC 로그인
-  (저장된 비밀 없음) → 이미지 빌드·push → `az containerapp update` → health 확인. 권한은 공유 ACR에 AcrPush,
-  buddy-chat Container App에 Contributor뿐이다. 이미지 태그는 `server/` 트리 해시라서 앱만 바뀐 push는
-  재배포하지 않는다(새 리비전은 모든 WebSocket을 끊는다). 이미지는 Terraform이 아니라 이 workflow가 바꾼다.
-- **DocumentDB 방화벽은 MVP용으로 일부러 넓게 열었다**: 포털의 "Azure 서비스 허용"과 같은 0.0.0.0 규칙이라 다른
-  고객의 Azure 리소스에서도 네트워크상으로는 닿는다. Container Apps(consumption)는 나가는 IP가 고정이 아니어서
-  좁힐 방법이 마땅치 않다. 접속에는 비밀번호(32자, Terraform이 만들어 Container App secret으로만 전달)와 TLS가
-  필요하다. 사용자가 늘거나 민감한 데이터가 생기면 VNet 통합 + Private Endpoint로 바꾼다.
-- tfstate(`buddy-chat-tfstate`)는 비공개 container다. 계정 단위로 공개 접근과 shared key가 꺼져 있어 Entra RBAC로만
-  읽는다. state에 DB 비밀번호가 들어 있다. 단, 같은 Storage Account를 쓰는 ur-manager 배포 principal도 계정 범위의
-  Blob 권한이 있어 읽을 수 있다(공유의 대가, 필요하면 그쪽 권한을 container 범위로 좁힌다).
-- **리전**: 일본 사용자 우선이라 Japan East(서비스별 지원·무료 조건은 만들 때 확인).
-- 쓰지 않는 것: Redis, Blob Storage, VM, self-hosted MongoDB, MongoDB Atlas, Cosmos DB for MongoDB, Firestore,
-  Kafka, Kubernetes/AKS.
-
-### 공유 인프라 이름 (정책만 정함, 적용은 나중에)
-
-개인 Azure 구독을 여러 사이드 프로젝트가 같이 쓰고 앞으로 더 늘어난다. 지금 공유 중인 ACR·Container Apps 환경·tfstate
-Storage는 이름이 ur-manager에 묶여 있어(`cae-ur-manager-prod` 안에 buddy-chat이 들어가 있는 식) 실제 역할과 어긋난다.
-
-- 공유 리소스: `<type>-personal-<env>-<region>` — 예: `cae-personal-prod-jpe`, `log-personal-prod-jpe`, ACR은 `acrpersonal…`
-  (ACR·Storage는 하이픈 불가, 전역 고유)
-- 프로젝트 전용 리소스: `<type>-<project>-<env>` — 예: `ca-buddy-chat-prod`, `id-buddy-chat-prod`, `ca-ur-manager-prod`
-- 지금은 이름을 바꾸지 않는다. Azure 리소스는 이름을 바꾸려면 대개 새로 만들고 옮겨야 한다(환경은 새 환경 생성 → 앱 이동).
-  S7 뒤 별도 인프라 정리 작업으로, 공유 리소스를 한 번에 맞출 필요 없이 하나씩 옮긴다. 공유 리소스는 별도 Terraform
-  (공용 state)이 소유하고, 각 프로젝트는 `data`로 읽는 구조는 그대로 둔다.
+- **파일 저장소는 쓰지 않는다.** 사진 첨부가 MVP 밖이다. 나중에 넣으면 바이너리는 R2, 메타데이터만 DB.
+- 쓰지 않는 것: VM, self-hosted MongoDB, Kubernetes, Kafka.
 
 ## 마일스톤
 
@@ -304,12 +274,12 @@ Storage는 이름이 ur-manager에 묶여 있어(`cae-ur-manager-prod` 안에 bu
   아니다. 메시지는 그대로 대화에 남고 EXP도 받는다. 필요 없을 때(배부름, 💩 없음)는 그냥 메시지다.
 - **경험치**: 밥 +2, 💩 하나당 +2, 메시지 +1(room당 하루 50까지, 일본 시간 기준). **최고 레벨은 30**이고 그 뒤로도 EXP는
   쌓이지만 레벨과 바는 30·가득에서 멈춘다. 30이 되는 순간 `MAX_LEVEL` 이벤트(감사 카드) 하나를 남긴다. 레벨당 20
-  (`buddychat.buddy.exp-per-level`). **포트폴리오로 보여주는 동안 Azure에서는 3**(Terraform `buddy_exp_per_level`,
+  (`buddychat.buddy.exp-per-level`). **포트폴리오로 보여주는 동안 운영 서버는 3**(Terraform `buddy_exp_per_level`,
   2026-09-29에 테스트용 1에서 올림). 출시 전에 변수를 null로 돌린다. 레벨은 `exp / 레벨당 EXP + 1`로 매번 계산하므로 값을
   바꾸면 이미 있는 Buddy의 레벨·단계도 바로 달라진다(작아질 수 있고, 진화 연출은 없다).
   단계: 알(Lv1) → 아기(Lv2) → 어린이(Lv5) → 어른(Lv10). 죽지 않는다. 단계에 필요한 누적 EXP:
 
-  | 단계 | 레벨 | 레벨당 1 (테스트) | 레벨당 3 (지금 Azure) | 레벨당 20 (기본값) |
+  | 단계 | 레벨 | 레벨당 1 (테스트) | 레벨당 3 (지금 운영) | 레벨당 20 (기본값) |
   | --- | --- | --- | --- | --- |
   | 아기 | 2 | 1 | 3 | 20 |
   | 어린이 | 5 | 4 | 12 | 80 |

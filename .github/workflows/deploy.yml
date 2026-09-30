@@ -1,31 +1,27 @@
 name: Deploy
 
-# Deploys the server to Azure Container Apps and the web app to Azure Static Web Apps
-# (docs/server-design.md, 인프라). Called by CI after it
-# passes on a push to main, or run by hand on main. Signs in with OIDC as buddy-chat's own deploy
-# identity (infra/main.tf), which trusts only main; no secret is stored.
-# Repository variables: AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID, and for the web build
-# the app's public settings: EXPO_PUBLIC_API_URL, EXPO_PUBLIC_FIREBASE_{API_KEY,AUTH_DOMAIN,PROJECT_ID,APP_ID}.
-#
-# Not a workflow_run trigger: those run as the default branch (dev), so the OIDC token would say dev.
+# Deploys the server to Railway and the web app to a Cloudflare Worker (docs/server-design.md,
+# 인프라). Called by CI after it passes on a push to main, or run by hand on main.
+# Secrets: RAILWAY_TOKEN (a project token for puny-chat's production environment),
+# CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID (Workers deploy). Variables: EXPO_PUBLIC_API_URL
+# and the app's public Firebase settings EXPO_PUBLIC_FIREBASE_{API_KEY,AUTH_DOMAIN,PROJECT_ID,APP_ID}.
 on:
   workflow_call:
+    secrets:
+      RAILWAY_TOKEN:
+        required: true
+      CLOUDFLARE_API_TOKEN:
+        required: true
+      CLOUDFLARE_ACCOUNT_ID:
+        required: true
   workflow_dispatch:
 
 concurrency:
-  group: deploy-server
+  group: deploy
   cancel-in-progress: false
 
 permissions:
-  id-token: write
   contents: read
-
-env:
-  REGISTRY: acurmanagerur26jp01
-  IMAGE: acurmanagerur26jp01.azurecr.io/buddy-chat/server
-  RESOURCE_GROUP: rg-buddy-chat-prod
-  APP: ca-buddy-chat-prod
-  WEB_APP: stapp-buddy-chat-prod
 
 jobs:
   server:
@@ -33,44 +29,42 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-
-      # Tagged by the server/ tree, so a push that changes only the app deploys nothing (a new
-      # revision would drop everyone's WebSocket).
-      - name: Image tag
-        id: tag
-        run: echo "tag=$(git rev-parse HEAD:server)" >> "$GITHUB_OUTPUT"
-
-      - uses: azure/login@v2
         with:
-          client-id: ${{ vars.AZURE_CLIENT_ID }}
-          tenant-id: ${{ vars.AZURE_TENANT_ID }}
-          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          fetch-depth: 0
 
-      - name: Skip if already running this server
-        id: current
+      # A push that changes only the app deploys no server: a new deployment would drop everyone's
+      # WebSocket. Run by hand, it always deploys.
+      - name: Server changed?
+        id: changed
         run: |
-          current=$(az containerapp show -g "$RESOURCE_GROUP" -n "$APP" \
-            --query "properties.template.containers[0].image" -o tsv)
-          echo "current=$current"
-          if [ "$current" = "$IMAGE:${{ steps.tag.outputs.tag }}" ]; then
-            echo "skip=true" >> "$GITHUB_OUTPUT"
+          before="${{ github.event.before }}"
+          if [ "${{ github.event_name }}" = "push" ] && [ -n "$before" ] && git cat-file -e "$before" 2>/dev/null \
+            && git diff --quiet "$before" HEAD -- server; then
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Build and push image
-        if: steps.current.outputs.skip != 'true'
-        run: |
-          az acr login -n "$REGISTRY"
-          docker build -t "$IMAGE:${{ steps.tag.outputs.tag }}" server
-          docker push "$IMAGE:${{ steps.tag.outputs.tag }}"
+      - uses: actions/setup-node@v5
+        if: steps.changed.outputs.deploy == 'true'
+        with:
+          node-version: 24
 
+      # Railway builds the image from server/ (Dockerfile, railway.json) and switches over once
+      # its health check passes.
       - name: Deploy
-        if: steps.current.outputs.skip != 'true'
+        if: steps.changed.outputs.deploy == 'true'
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
-          az containerapp update -g "$RESOURCE_GROUP" -n "$APP" \
-            --image "$IMAGE:${{ steps.tag.outputs.tag }}" --only-show-errors -o none
-          fqdn=$(az containerapp show -g "$RESOURCE_GROUP" -n "$APP" --query properties.configuration.ingress.fqdn -o tsv)
+          npm install -g @railway/cli
+          railway up server --path-as-root --service server --environment production --ci
+
+      - name: Health check
+        if: steps.changed.outputs.deploy == 'true'
+        run: |
           for i in $(seq 1 30); do
-            if curl -fsS "https://$fqdn/actuator/health"; then exit 0; fi
+            if curl -fsS "${{ vars.EXPO_PUBLIC_API_URL }}/actuator/health"; then exit 0; fi
             sleep 5
           done
           echo "health check failed" && exit 1
@@ -103,24 +97,9 @@ jobs:
           EXPO_PUBLIC_FIREBASE_PROJECT_ID: ${{ vars.EXPO_PUBLIC_FIREBASE_PROJECT_ID }}
           EXPO_PUBLIC_FIREBASE_APP_ID: ${{ vars.EXPO_PUBLIC_FIREBASE_APP_ID }}
 
-      - uses: azure/login@v2
-        with:
-          client-id: ${{ vars.AZURE_CLIENT_ID }}
-          tenant-id: ${{ vars.AZURE_TENANT_ID }}
-          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-
-      # Read with the deploy identity each time instead of keeping the site's token in GitHub.
-      - name: Deployment token
-        id: token
-        run: |
-          token=$(az staticwebapp secrets list -g "$RESOURCE_GROUP" -n "$WEB_APP" --query properties.apiKey -o tsv)
-          echo "::add-mask::$token"
-          echo "token=$token" >> "$GITHUB_OUTPUT"
-
-      - uses: Azure/static-web-apps-deploy@v1
-        with:
-          azure_static_web_apps_api_token: ${{ steps.token.outputs.token }}
-          action: upload
-          app_location: app/dist
-          skip_app_build: true
-          skip_api_build: true
+      # The Worker, its static assets and its custom domain (app/wrangler.jsonc).
+      - name: Deploy
+        run: npx --yes wrangler@4 deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

@@ -7,12 +7,12 @@ self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim(
 self.addEventListener('push', (event) => {
   const data = event.data ? event.data.json() : {};
   event.waitUntil(
-    self.registration.showNotification(data.title || 'buddy-chat', {
+    self.registration.showNotification(data.title || 'puny-chat', {
       body: data.body || '',
       icon: '/icon-192.png',
       badge: '/icon-192.png',
       // One notification for the chat, replaced by the newest message, with a sound each time.
-      tag: 'buddy-chat',
+      tag: 'puny-chat',
       renotify: true,
       data: { url: data.url || '/' },
     }),

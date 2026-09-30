@@ -249,6 +249,13 @@ export const POOP: Frame = [
 export type BowlTier = 0 | 1 | 2;
 const BOWL_COLOR = ['a', 'S', 'Y'] as const;
 
+// The rice on top of a bowl, drawn over an empty one so it can pop in and shrink away.
+// prettier-ignore
+export const RICE: Frame = [
+  '...wwwwww...',
+  '..wwwwwwww..',
+];
+
 export function bowl(full: boolean, tier: BowlTier): Frame {
   const c = BOWL_COLOR[tier];
   const shine = tier > 0 ? 'w' : c;

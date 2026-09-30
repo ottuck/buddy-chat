@@ -86,6 +86,11 @@ export function BuddySheet({
               </Text>
             </View>
 
+            {/* First thing in view once grown: easy to miss at the bottom. */}
+            {buddy.grown && onGraduate ? (
+              <GraduateCard buddyName={buddy.name} onGraduate={onGraduate} />
+            ) : null}
+
             <View style={[styles.card, { backgroundColor: colors.surface }]}>
               <Stat
                 label={t('buddy.exp')}
@@ -131,9 +136,6 @@ export function BuddySheet({
 
             <Text style={[styles.hint, { color: colors.textMuted }]}>{t('buddy.growthHint')}</Text>
 
-            {buddy.grown && onGraduate ? (
-              <GraduateCard buddyName={buddy.name} onGraduate={onGraduate} />
-            ) : null}
             {album && album.length > 0 ? <AlbumCard album={album} /> : null}
           </ScrollView>
         </View>

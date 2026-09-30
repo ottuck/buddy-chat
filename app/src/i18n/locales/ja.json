@@ -61,7 +61,7 @@
     "hint": "このコードを送ってください。友だちはログイン後に入力します。",
     "expires": "{{time}}まで有効・1回だけ使えます",
     "share": "コードを送る",
-    "shareMessage": "buddy-chatで一緒にBuddyを育てよう！🥚\n\n👉 {{link}}\n\nリンクを開くとすぐ参加できます。\n招待コード：{{code}}（{{time}}まで）",
+    "shareMessage": "puny-chatで一緒にBuddyを育てよう！🥚\n\n👉 {{link}}\n\nリンクを開くとすぐ参加できます。\n招待コード：{{code}}（{{time}}まで）",
     "copy": "コピー",
     "copied": "コピーしました ✓"
   },
@@ -159,13 +159,13 @@
     "linkedGoogle": "Google アカウントと連携済み",
     "linkFailed": "連携できませんでした。もう一度お試しください。",
     "accountInUseTitle": "すでに使われている Google アカウントです",
-    "accountInUseMessage": "このアカウントにはすでに buddy-chat の記録があります。切り替えると、いまゲストで使っている Buddy と会話はこの端末では見られなくなります。",
+    "accountInUseMessage": "このアカウントにはすでに puny-chat の記録があります。切り替えると、いまゲストで使っている Buddy と会話はこの端末では見られなくなります。",
     "accountInUseConfirm": "切り替える",
     "guestSignOutTitle": "ゲストアカウントからログアウトしますか？",
     "guestSignOutMessage": "ログアウトすると、このゲストアカウントには戻れません。Buddy と会話を残すには、先にアカウントを連携してください。",
     "notifications": "通知",
     "notificationsBody": "相手からメッセージが届いたらお知らせします。",
-    "notificationsDenied": "iPhone の設定で buddy-chat の通知がオフになっています。",
+    "notificationsDenied": "iPhone の設定で puny-chat の通知がオフになっています。",
     "openSettings": "設定を開く",
     "notificationsUnavailable": "この端末では通知を受け取れません。",
     "deleteAccount": "アカウントを削除",
@@ -181,8 +181,8 @@
     "followDevice": "端末の設定",
     "light": "ライト",
     "dark": "ダーク",
-    "notificationsDeniedWeb": "ブラウザでbuddy-chatの通知がブロックされています。サイトの設定で通知を許可してください。",
-    "notificationsInstall": "iPhoneではホーム画面に追加したアプリで通知を受け取れます。Safariの共有ボタン →「ホーム画面に追加」を押して、ホーム画面のbuddy-chatから通知をオンにしてください。"
+    "notificationsDeniedWeb": "ブラウザでpuny-chatの通知がブロックされています。サイトの設定で通知を許可してください。",
+    "notificationsInstall": "iPhoneではホーム画面に追加したアプリで通知を受け取れます。Safariの共有ボタン →「ホーム画面に追加」を押して、ホーム画面のpuny-chatから通知をオンにしてください。"
   },
   "systemEvent": {
     "MEMBER_LEFT": "{{name}}さんが退出しました"

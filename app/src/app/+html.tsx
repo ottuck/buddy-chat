@@ -2,8 +2,8 @@ import { ScrollViewStyleReset } from 'expo-router/html';
 import { type PropsWithChildren } from 'react';
 
 // The public address, for link previews: crawlers need absolute URLs (infra: web_custom_domains).
-const SITE = 'https://buddy.pokepidia.com';
-const TITLE = 'buddy-chat';
+const SITE = 'https://puny-chat.com';
+const TITLE = 'puny-chat';
 const DESCRIPTION =
   'A tiny 1:1 chat app where two people raise a pixel buddy together. Take a look without signing up.';
 

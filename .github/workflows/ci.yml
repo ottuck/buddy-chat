@@ -59,11 +59,14 @@ jobs:
           name: server-test-reports
           path: server/build/reports/tests/test
 
-  # A push to main that passed both jobs deploys the server.
+  # A push to main that passed both jobs deploys the server and the web app.
   deploy:
     needs: [app, server]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
-      id-token: write
       contents: read
     uses: ./.github/workflows/deploy.yml
+    secrets:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

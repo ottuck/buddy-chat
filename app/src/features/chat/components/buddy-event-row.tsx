@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useColors } from '@/theme';
 
@@ -16,7 +16,17 @@ export function BuddyEventRow({ label }: { label: string }) {
 }
 
 // The top level reached: a thank-you from us, and what comes next (docs/product.md, 최고 레벨).
-export function MaxLevelCard({ title, body }: { title: string; body: string }) {
+export function MaxLevelCard({
+  title,
+  body,
+  action,
+  onAction,
+}: {
+  title: string;
+  body: string;
+  action?: string;
+  onAction?: () => void;
+}) {
   const colors = useColors();
 
   return (
@@ -29,6 +39,18 @@ export function MaxLevelCard({ title, body }: { title: string; body: string }) {
         >
           {body}
         </Text>
+        {action && onAction ? (
+          <Pressable
+            onPress={onAction}
+            accessibilityRole="button"
+            style={({ pressed }) => [
+              styles.action,
+              { backgroundColor: colors.accent, opacity: pressed ? 0.7 : 1 },
+            ]}
+          >
+            <Text style={[styles.actionLabel, { color: colors.onAccent }]}>🎓 {action}</Text>
+          </Pressable>
+        ) : null}
       </View>
     </View>
   );
@@ -42,6 +64,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     gap: 6,
+  },
+  action: {
+    alignSelf: 'center',
+    marginTop: 4,
+    borderRadius: 999,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  actionLabel: {
+    fontSize: 14,
+    fontWeight: '700',
   },
   cardTitle: {
     fontSize: 15,

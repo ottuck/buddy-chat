@@ -4,6 +4,8 @@ import {
   Animated,
   Easing,
   type LayoutChangeEvent,
+  type StyleProp,
+  type ViewStyle,
   Platform,
   Pressable,
   StyleSheet,
@@ -29,6 +31,7 @@ import {
   POOP,
   type Pose,
   PROP_PALETTE,
+  RICE,
   SPARKLE,
   STAGE_ORDER,
   ZZZ,
@@ -150,6 +153,77 @@ function useActiveReaction(reaction: Reaction | null) {
   return active;
 }
 
+// A new poop drops onto the floor with a little bounce.
+function DroppingIn({ children }: { children: React.ReactNode }) {
+  const [drop] = useState(() => new Animated.Value(0));
+  useEffect(() => {
+    const fall = Animated.spring(drop, {
+      toValue: 1,
+      friction: 5,
+      tension: 120,
+      useNativeDriver: NATIVE_DRIVER,
+    });
+    fall.start();
+    return () => fall.stop();
+  }, [drop]);
+  return (
+    <Animated.View
+      style={{
+        opacity: drop.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0, 1, 1] }),
+        transform: [
+          { translateY: drop.interpolate({ inputRange: [0, 1], outputRange: [-18, 0] }) },
+        ],
+      }}
+    >
+      {children}
+    </Animated.View>
+  );
+}
+
+// A poop just cleaned up: it spins up and away, fading, with a sparkle.
+function FlyingAway({
+  id,
+  onDone,
+  style,
+}: {
+  id: string;
+  onDone: (id: string) => void;
+  style: StyleProp<ViewStyle>;
+}) {
+  const [away] = useState(() => new Animated.Value(0));
+  useEffect(() => {
+    const fly = Animated.timing(away, {
+      toValue: 1,
+      duration: 650,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: NATIVE_DRIVER,
+    });
+    fly.start(({ finished }) => finished && onDone(id));
+    return () => fly.stop();
+  }, [away, id, onDone]);
+  return (
+    <Animated.View
+      style={[
+        style,
+        styles.passThrough,
+        {
+          opacity: away.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
+          transform: [
+            { translateY: away.interpolate({ inputRange: [0, 1], outputRange: [0, -34] }) },
+            { rotate: away.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '40deg'] }) },
+            { scale: away.interpolate({ inputRange: [0, 1], outputRange: [1, 0.5] }) },
+          ],
+        },
+      ]}
+    >
+      <PixelSprite frame={POOP} palette={PROP_PALETTE} scale={PROP_SCALE} />
+      <View style={styles.cleanSparkle}>
+        <PixelSprite frame={SPARKLE} palette={PROP_PALETTE} scale={2} />
+      </View>
+    </Animated.View>
+  );
+}
+
 function gridScale(height: number, gridHeight: number): number {
   // Up to 5 points per pixel, smaller on short screens so the grown-up buddy still fits.
   return Math.max(3, Math.min(5, Math.floor((height - 84) / gridHeight)));
@@ -211,7 +285,7 @@ export function BuddyStage({
   // The walkable strip: right of the bowl, left of the poops.
   const minX = 16 + bowlWidth + 8;
   const decor = decorFor(buddy.level, album ?? []);
-  const plantRoom = plantRoomFor(decor.plant);
+  const plantRoom = plantRoomFor(decor);
   const maxX = Math.max(minX, width - spriteWidth - 16 - (companionEgg ? EGG_ROOM : 0) - plantRoom);
   const eating = active?.kind === 'fed';
   const settled = sleeping || buddy.hungry || egg || eating || evolving;
@@ -534,6 +608,54 @@ export function BuddyStage({
 
   // Rice in the bowl, but for when the buddy is hungry: then it is empty and asks to be filled.
   const bowlFull = !buddy.hungry || eating;
+  const [rice] = useState(() => new Animated.Value(bowlFull ? 1 : 0));
+  const [riceSparkle, setRiceSparkle] = useState(false);
+  const [riceWasFull] = useState(bowlFull);
+  useEffect(() => {
+    const change = bowlFull
+      ? Animated.spring(rice, {
+          toValue: 1,
+          friction: 4,
+          tension: 140,
+          useNativeDriver: NATIVE_DRIVER,
+        })
+      : Animated.timing(rice, {
+          toValue: 0,
+          duration: 380,
+          easing: Easing.in(Easing.quad),
+          useNativeDriver: NATIVE_DRIVER,
+        });
+    change.start();
+    // A sparkle as the bowl fills again (not when the stage first shows a full one).
+    const timers =
+      bowlFull && !riceWasFull
+        ? [setTimeout(() => setRiceSparkle(true), 0), setTimeout(() => setRiceSparkle(false), 700)]
+        : [];
+    return () => {
+      change.stop();
+      timers.forEach(clearTimeout);
+    };
+  }, [bowlFull, rice, riceWasFull]);
+
+  // Poops tapped away fly up and fade; the ones still there stay in place.
+  const [seenPoops, setSeenPoops] = useState(buddy.poops);
+  const [poopRound, setPoopRound] = useState(0);
+  const [leaving, setLeaving] = useState<{ key: string; index: number }[]>([]);
+  if (buddy.poops !== seenPoops) {
+    if (buddy.poops < seenPoops) {
+      const gone = Array.from({ length: seenPoops - buddy.poops }, (_, k) => ({
+        key: `${poopRound}-${buddy.poops + k}`,
+        index: buddy.poops + k,
+      }));
+      setLeaving((prev) => [...prev, ...gone]);
+    }
+    setPoopRound(poopRound + 1);
+    setSeenPoops(buddy.poops);
+  }
+  const doneLeaving = useCallback(
+    (key: string) => setLeaving((prev) => prev.filter((poop) => poop.key !== key)),
+    [],
+  );
   // Dancing and head-shaking turn the buddy left and right.
   const flipped = act === 'dance' || act === 'refuse' ? tick % 2 === 0 : facingLeft;
 
@@ -575,6 +697,8 @@ export function BuddyStage({
         >
           {t('buddy.level', { level: buddy.level })}
         </Text>
+        {/* Ready to go its own way (in the buddy's details). */}
+        {buddy.grown ? <Text style={styles.grown}>🎓</Text> : null}
         <View style={styles.bar}>
           <ProgressBar progress={buddy.levelProgress} />
         </View>
@@ -590,7 +714,7 @@ export function BuddyStage({
       <WallDecor decor={decor} floor={FLOOR} top={34} />
       {decor.plant ? (
         <View style={[styles.poop, { bottom: FLOOR - 2, right: 8 }]} pointerEvents="none">
-          <Plant tier={decor.plant} />
+          <Plant tier={decor.plant} scale={decor.plantScale} />
         </View>
       ) : null}
 
@@ -604,6 +728,10 @@ export function BuddyStage({
           <View style={styles.bowlAsk}>
             <PixelSprite frame={EXCLAIM} palette={BUDDY_PALETTE} scale={2} />
           </View>
+        ) : riceSparkle ? (
+          <View style={styles.bowlAsk}>
+            <PixelSprite frame={SPARKLE} palette={PROP_PALETTE} scale={2} />
+          </View>
         ) : null}
         <Pressable
           onPress={feed}
@@ -611,12 +739,22 @@ export function BuddyStage({
           accessibilityRole="button"
           accessibilityLabel={t('buddy.feed')}
         >
-          {/* Full, but empty while the buddy is hungry. */}
-          <PixelSprite
-            frame={bowl(bowlFull, decor.bowl)}
-            palette={PROP_PALETTE}
-            scale={PROP_SCALE}
-          />
+          {/* Full, but empty while the buddy is hungry: the rice pops in and shrinks away. */}
+          <PixelSprite frame={bowl(false, decor.bowl)} palette={PROP_PALETTE} scale={PROP_SCALE} />
+          <Animated.View
+            style={[
+              styles.rice,
+              {
+                opacity: rice.interpolate({ inputRange: [0, 0.4, 1], outputRange: [0, 1, 1] }),
+                transform: [
+                  { translateY: rice.interpolate({ inputRange: [0, 1], outputRange: [4, 0] }) },
+                  { scale: rice.interpolate({ inputRange: [0, 1], outputRange: [0.3, 1] }) },
+                ],
+              },
+            ]}
+          >
+            <PixelSprite frame={RICE} palette={PROP_PALETTE} scale={PROP_SCALE} />
+          </Animated.View>
         </Pressable>
       </Animated.View>
 
@@ -638,9 +776,19 @@ export function BuddyStage({
             accessibilityRole="button"
             accessibilityLabel={t('buddy.cleanUp')}
           >
-            <PixelSprite frame={POOP} palette={PROP_PALETTE} scale={PROP_SCALE} />
+            <DroppingIn>
+              <PixelSprite frame={POOP} palette={PROP_PALETTE} scale={PROP_SCALE} />
+            </DroppingIn>
           </Pressable>
         </Animated.View>
+      ))}
+      {leaving.map((poop) => (
+        <FlyingAway
+          key={poop.key}
+          id={poop.key}
+          onDone={doneLeaving}
+          style={[styles.poop, { bottom: FLOOR - 2, right: 16 + plantRoom + poop.index * 30 }]}
+        />
       ))}
 
       {companionEgg ? (
@@ -826,6 +974,14 @@ const styles = StyleSheet.create({
   poop: {
     position: 'absolute',
   },
+  rice: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+  },
+  grown: {
+    fontSize: 13,
+  },
   bowlAsk: {
     position: 'absolute',
     top: -18,
@@ -852,6 +1008,11 @@ const styles = StyleSheet.create({
   },
   passThrough: {
     pointerEvents: 'none',
+  },
+  cleanSparkle: {
+    position: 'absolute',
+    top: -8,
+    left: -8,
   },
   levelUp: {
     fontWeight: '700',

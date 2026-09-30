@@ -21,7 +21,7 @@
     "google": "Continue with Google",
     "error": "Couldn’t sign in. Please try again.",
     "startNow": "Start now",
-    "noAccountNeeded": "No account needed. Guests can use buddy-chat for 30 days, and linking an account keeps everything.",
+    "noAccountNeeded": "No account needed. Guests can use puny-chat for 30 days, and linking an account keeps everything.",
     "demo": "Take a look first",
     "invited": "You were invited by a friend. Start, and you will go straight to their room."
   },
@@ -61,7 +61,7 @@
     "hint": "Share this code. Your friend enters it after signing in.",
     "expires": "Valid until {{time}} · one use",
     "share": "Share code",
-    "shareMessage": "Let's raise a Buddy together on buddy-chat! 🥚\n\n👉 {{link}}\n\nOpen the link to join right away.\nInvite code: {{code}} (until {{time}})",
+    "shareMessage": "Let's raise a Buddy together on puny-chat! 🥚\n\n👉 {{link}}\n\nOpen the link to join right away.\nInvite code: {{code}} (until {{time}})",
     "copy": "Copy",
     "copied": "Copied ✓"
   },
@@ -153,19 +153,19 @@
     "changeName": "Change name",
     "account": "Account",
     "guestTitle": "Using as a guest",
-    "guestBody": "Guests can use buddy-chat for 30 days. Link a Google account to keep your buddy and messages after that, or on a new device.",
+    "guestBody": "Guests can use puny-chat for 30 days. Link a Google account to keep your buddy and messages after that, or on a new device.",
     "linkGoogle": "Link Google account",
     "linkNotReady": "Linking an account in the app is coming soon.",
     "linkedGoogle": "Linked to Google",
     "linkFailed": "Couldn’t link the account. Please try again.",
     "accountInUseTitle": "This Google account is already in use",
-    "accountInUseMessage": "It already has buddy-chat data. If you switch to it, the buddy and messages from this guest account won’t be available on this device anymore.",
+    "accountInUseMessage": "It already has puny-chat data. If you switch to it, the buddy and messages from this guest account won’t be available on this device anymore.",
     "accountInUseConfirm": "Switch",
     "guestSignOutTitle": "Sign out of your guest account?",
     "guestSignOutMessage": "You can’t come back to this guest account after signing out. Link an account first to keep your buddy and messages.",
     "notifications": "Notifications",
     "notificationsBody": "Get notified when your friend sends a message.",
-    "notificationsDenied": "Notifications for buddy-chat are turned off in iPhone Settings.",
+    "notificationsDenied": "Notifications for puny-chat are turned off in iPhone Settings.",
     "openSettings": "Open Settings",
     "notificationsUnavailable": "This device can’t receive notifications.",
     "deleteAccount": "Delete account",
@@ -181,8 +181,8 @@
     "followDevice": "Device setting",
     "light": "Light",
     "dark": "Dark",
-    "notificationsDeniedWeb": "Notifications for buddy-chat are blocked in this browser. Allow them in the site settings.",
-    "notificationsInstall": "On iPhone, notifications come to the app on your home screen. In Safari, tap Share → “Add to Home Screen”, then turn notifications on in buddy-chat from your home screen."
+    "notificationsDeniedWeb": "Notifications for puny-chat are blocked in this browser. Allow them in the site settings.",
+    "notificationsInstall": "On iPhone, notifications come to the app on your home screen. In Safari, tap Share → “Add to Home Screen”, then turn notifications on in puny-chat from your home screen."
   },
   "systemEvent": {
     "MEMBER_LEFT": "{{name}} left"
