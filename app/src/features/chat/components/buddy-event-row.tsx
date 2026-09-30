@@ -15,7 +15,44 @@ export function BuddyEventRow({ label }: { label: string }) {
   );
 }
 
+// The top level reached: a thank-you from us, and what comes next (docs/product.md, 최고 레벨).
+export function MaxLevelCard({ title, body }: { title: string; body: string }) {
+  const colors = useColors();
+
+  return (
+    <View style={styles.row}>
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.accent }]}>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>{title}</Text>
+        <Text
+          lineBreakStrategyIOS="hangul-word"
+          style={[styles.cardBody, { color: colors.textMuted }]}
+        >
+          {body}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  card: {
+    maxWidth: 340,
+    borderWidth: 1.5,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 6,
+  },
+  cardTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  cardBody: {
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: 'center',
+  },
   row: {
     alignItems: 'center',
     paddingHorizontal: 24,

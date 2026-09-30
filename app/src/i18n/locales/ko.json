@@ -13,7 +13,8 @@
     "INVITATION_EXPIRED": "초대가 만료됐어요. 새 코드를 받아 주세요.",
     "INVITATION_USED": "이미 사용된 초대예요. 새 코드를 받아 주세요.",
     "ALREADY_MEMBER": "이미 이 방에 있어요.",
-    "ALREADY_IN_ROOM": "이미 다른 방에서 누군가와 대화 중이에요."
+    "ALREADY_IN_ROOM": "이미 다른 방에서 누군가와 대화 중이에요.",
+    "BUDDY_NOT_GROWN": "이미 새 알이 왔어요."
   },
   "signIn": {
     "tagline": "좋아하는 사람과 대화하며 작은 Buddy를 함께 키워요.",
@@ -21,7 +22,8 @@
     "error": "로그인하지 못했어요. 다시 시도해 주세요.",
     "startNow": "바로 시작하기",
     "noAccountNeeded": "계정 없이 시작할 수 있어요. 게스트는 30일 동안 쓸 수 있고, 계정을 연결하면 그대로 이어져요.",
-    "demo": "먼저 구경하기"
+    "demo": "먼저 구경하기",
+    "invited": "친구의 초대로 왔어요. 시작하면 바로 친구의 방에 들어갈 수 있어요."
   },
   "welcome": {
     "title": "새로운 Buddy가 태어나려고 해요!",
@@ -50,7 +52,8 @@
     "offline": "접속 안 함",
     "emptySolo": "{{buddy, 이가}} 태어났어요!\n친구를 초대해서 같이 키워 볼까요?",
     "emptySoloHint": "친구를 기다리는 동안 메시지를 남겨 보세요.\n{{buddy}}도 함께 자라요.",
-    "emptyDuo": "{{partner}}님과 함께하게 됐어요.\n첫 메시지를 보내 보세요."
+    "emptyDuo": "{{partner}}님과 함께하게 됐어요.\n첫 메시지를 보내 보세요.",
+    "maxLevelThanks": "정말 감사합니다! 추가 캐릭터와 컬렉션 등 다양한 기능을 준비하고 있어요. 기대해 주세요!"
   },
   "invite": {
     "button": "친구 초대",
@@ -58,7 +61,9 @@
     "hint": "이 코드를 보내 주세요. 친구가 로그인한 뒤 입력하면 돼요.",
     "expires": "{{time}}까지 유효 · 한 번만 사용",
     "share": "코드 보내기",
-    "shareMessage": "buddy-chat에서 같이 Buddy를 키우자! 초대 코드: {{code}}"
+    "shareMessage": "buddy-chat에서 같이 Buddy 키워요! 🥚\n\n👉 {{link}}\n\n링크를 누르면 바로 들어올 수 있어요.\n초대 코드: {{code}} ({{time}}까지)",
+    "copy": "복사",
+    "copied": "복사됨 ✓"
   },
   "buddy": {
     "level": "Lv.{{level}}",
@@ -95,7 +100,31 @@
       "ateYet": "밥 먹었어?",
       "whatsUp": "무슨 일 있어?",
       "howWasToday": "오늘 어땠어?"
-    }
+    },
+    "graduate": {
+      "title": "독립시키기",
+      "body": "{{buddy, 이가}} 다 자랐어요. 독립시키면 앨범에 남고, 무대에는 새 알이 와요. 꾸민 소품은 그대로예요.",
+      "namePlaceholder": "새 알의 이름",
+      "button": "독립시키기",
+      "confirmTitle": "{{buddy, 을를}} 독립시킬까요?",
+      "confirmMessage": "{{buddy, 은는}} 앨범으로 가고, 새 알 {{name, 이가}} 무대에 와요. 되돌릴 수 없어요.",
+      "confirm": "독립시키기"
+    },
+    "album": {
+      "title": "앨범",
+      "together_one": "{{from}} ~ {{to}} · {{count}}일 함께",
+      "together_other": "{{from}} ~ {{to}} · {{count}}일 함께"
+    },
+    "reward": {
+      "plant1": "새싹 화분",
+      "bowl1": "은 밥그릇",
+      "plant2": "무성한 화분",
+      "rug": "러그",
+      "plant3": "꽃 핀 도자기 화분",
+      "bowl2": "금 밥그릇"
+    },
+    "nextReward_one": "다음 보상: Lv.{{level}} {{reward}} · {{count}}레벨 남았어요",
+    "nextReward_other": "다음 보상: Lv.{{level}} {{reward}} · {{count}}레벨 남았어요"
   },
   "buddyEvent": {
     "HUNGRY": "{{buddy, 이가}} 배고파졌어요 🍚",
@@ -103,7 +132,9 @@
     "POOPED": "{{buddy, 이가}} 💩을 쌌어요",
     "CLEANED": "{{actor}}님이 {{buddy}}의 💩을 치웠어요",
     "LEVELED_UP": "{{buddy, 이가}} 레벨 업했어요! Lv.{{level}} ⬆️",
-    "EVOLVED": "{{buddy, 이가}} 진화했어요! ✨"
+    "EVOLVED": "{{buddy, 이가}} 진화했어요! ✨",
+    "MAX_LEVEL": "🎉 {{buddy, 이가}} 최고 레벨 Lv.{{level}}에 도달했어요!",
+    "GRADUATED": "🎓 {{name, 이가}} 독립해서 앨범에 남았어요. 새 알이 도착했어요!"
   },
   "settings": {
     "title": "설정",
@@ -190,5 +221,34 @@
     "endTitle": "{{buddy, 이가}} 다 자랐어요!",
     "endBody": "이제 내 Buddy를 키워 볼까요? 로그인 없이 바로 시작해요.",
     "replay": "다시 보기"
+  },
+  "guide": {
+    "title": "버디 키우기 안내",
+    "banner": {
+      "title": "🥚 버디 키우는 법",
+      "body": "대화하고 돌봐줄수록 자라고, 5레벨마다 무대에 보상이 생겨요. 30레벨이 되면 독립시킬 수 있어요.",
+      "open": "안내 보기 ›"
+    },
+    "care": {
+      "title": "🍚 돌보기",
+      "feed": "배고프면 밥그릇이 비어요. 밥그릇을 누르거나 채팅에 \"밥\"만 보내면 밥을 줘요.",
+      "clean": "💩은 누를 때마다 하나씩 치워져요. 채팅에 \"청소\"를 보내면 한 번에 치워요.",
+      "pet": "버디를 누르면 기뻐하거나 춤추고 노래해요."
+    },
+    "grow": {
+      "title": "🌱 자라기",
+      "exp": "메시지 하나에 +1(하루 50개까지), 밥 +2, 💩 하나에 +2 경험치를 얻어요.",
+      "stages": "알 → 아기(Lv.2) → 어린이(Lv.5) → 어른(Lv.10)으로 자라요. 어린이부터는 말도 해요."
+    },
+    "rewards": {
+      "title": "🎁 레벨 보상",
+      "body": "5레벨마다 무대가 조금씩 좋아져요."
+    },
+    "graduate": {
+      "title": "🎓 독립",
+      "top": "최고 레벨은 30이에요. 30레벨이 되면 버디 상세에서 독립시킬 수 있어요.",
+      "album": "독립한 버디는 앨범에 남고 벽에 액자로 걸려요. 무대에는 새 알이 와요.",
+      "keep": "모은 보상은 새 알과 함께 그대로 남아요."
+    }
   }
 }

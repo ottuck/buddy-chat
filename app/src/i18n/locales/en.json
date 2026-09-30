@@ -13,7 +13,8 @@
     "INVITATION_EXPIRED": "That invite has expired. Ask for a new one.",
     "INVITATION_USED": "That invite was already used. Ask for a new one.",
     "ALREADY_MEMBER": "You're already in this room.",
-    "ALREADY_IN_ROOM": "You're already chatting with someone in another room."
+    "ALREADY_IN_ROOM": "You're already chatting with someone in another room.",
+    "BUDDY_NOT_GROWN": "A new egg is already here."
   },
   "signIn": {
     "tagline": "Chat with someone you like, and raise a tiny buddy together.",
@@ -21,7 +22,8 @@
     "error": "Couldn’t sign in. Please try again.",
     "startNow": "Start now",
     "noAccountNeeded": "No account needed. Guests can use buddy-chat for 30 days, and linking an account keeps everything.",
-    "demo": "Take a look first"
+    "demo": "Take a look first",
+    "invited": "You were invited by a friend. Start, and you will go straight to their room."
   },
   "welcome": {
     "title": "A new buddy is about to hatch!",
@@ -50,7 +52,8 @@
     "offline": "Offline",
     "emptySolo": "{{buddy}} has hatched!\nInvite a friend to raise it together.",
     "emptySoloHint": "While you wait for a friend, try sending a message.\n{{buddy}} grows as you chat.",
-    "emptyDuo": "You and {{partner}} are together now.\nSay hello!"
+    "emptyDuo": "You and {{partner}} are together now.\nSay hello!",
+    "maxLevelThanks": "Thank you so much! New characters, a collection and more are on the way. Stay tuned!"
   },
   "invite": {
     "button": "Invite a friend",
@@ -58,7 +61,9 @@
     "hint": "Share this code. Your friend enters it after signing in.",
     "expires": "Valid until {{time}} · one use",
     "share": "Share code",
-    "shareMessage": "Let's raise a buddy together on buddy-chat! Invite code: {{code}}"
+    "shareMessage": "Let's raise a Buddy together on buddy-chat! 🥚\n\n👉 {{link}}\n\nOpen the link to join right away.\nInvite code: {{code}} (until {{time}})",
+    "copy": "Copy",
+    "copied": "Copied ✓"
   },
   "buddy": {
     "level": "Lv.{{level}}",
@@ -95,7 +100,31 @@
       "ateYet": "Have you eaten?",
       "whatsUp": "Everything okay?",
       "howWasToday": "How was your day?"
-    }
+    },
+    "graduate": {
+      "title": "Its own way",
+      "body": "{{buddy}} is all grown up. Let it go its own way: it stays in the album, and a new egg comes to the stage. Your decorations stay.",
+      "namePlaceholder": "Name for the new egg",
+      "button": "Let it go its own way",
+      "confirmTitle": "Let {{buddy}} go its own way?",
+      "confirmMessage": "{{buddy}} goes into the album, and a new egg, {{name}}, comes to the stage. This can’t be undone.",
+      "confirm": "Let it go"
+    },
+    "album": {
+      "title": "Album",
+      "together_one": "{{from}} – {{to}} · {{count}} day together",
+      "together_other": "{{from}} – {{to}} · {{count}} days together"
+    },
+    "reward": {
+      "plant1": "Sprout pot",
+      "bowl1": "Silver bowl",
+      "plant2": "Leafy plant",
+      "rug": "Rug",
+      "plant3": "Flowers in a glazed pot",
+      "bowl2": "Gold bowl"
+    },
+    "nextReward_one": "Next reward: Lv.{{level}} {{reward}} · {{count}} level to go",
+    "nextReward_other": "Next reward: Lv.{{level}} {{reward}} · {{count}} levels to go"
   },
   "buddyEvent": {
     "HUNGRY": "{{buddy}} is hungry 🍚",
@@ -103,7 +132,9 @@
     "POOPED": "{{buddy}} pooped 💩",
     "CLEANED": "{{actor}} cleaned up after {{buddy}}",
     "LEVELED_UP": "{{buddy}} leveled up! Lv.{{level}} ⬆️",
-    "EVOLVED": "{{buddy}} evolved! ✨"
+    "EVOLVED": "{{buddy}} evolved! ✨",
+    "MAX_LEVEL": "🎉 {{buddy}} reached the top level, Lv.{{level}}!",
+    "GRADUATED": "🎓 {{name}} went its own way and is in the album now. A new egg arrived!"
   },
   "settings": {
     "title": "Settings",
@@ -190,5 +221,34 @@
     "endTitle": "{{buddy}} is all grown up!",
     "endBody": "Ready to raise your own buddy? Start right away, no sign-up.",
     "replay": "Watch again"
+  },
+  "guide": {
+    "title": "Raising your buddy",
+    "banner": {
+      "title": "🥚 How to raise your buddy",
+      "body": "It grows as you chat and take care of it, with a reward on the stage every 5 levels. At level 30 it can go its own way.",
+      "open": "See the guide ›"
+    },
+    "care": {
+      "title": "🍚 Care",
+      "feed": "When it is hungry the bowl is empty. Tap the bowl, or send just \"food\" in the chat.",
+      "clean": "Each tap cleans up one 💩. Send \"clean\" in the chat to clean them all.",
+      "pet": "Tap your buddy and it cheers, dances or sings."
+    },
+    "grow": {
+      "title": "🌱 Growing",
+      "exp": "EXP: +1 per message (up to 50 a day), +2 for a meal, +2 per 💩 cleaned.",
+      "stages": "Egg → baby (Lv.2) → child (Lv.5) → adult (Lv.10). From child on, it talks."
+    },
+    "rewards": {
+      "title": "🎁 Level rewards",
+      "body": "Every 5 levels the stage gets a little finer."
+    },
+    "graduate": {
+      "title": "🎓 Its own way",
+      "top": "The top level is 30. Then you can let your buddy go its own way from its details.",
+      "album": "It stays in the album and hangs on the wall in a frame. A new egg comes to the stage.",
+      "keep": "The rewards you collected stay with the new egg."
+    }
   }
 }

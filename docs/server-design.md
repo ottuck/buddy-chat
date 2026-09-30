@@ -274,13 +274,17 @@ Storage는 이름이 ur-manager에 묶여 있어(`cae-ur-manager-prod` 안에 bu
   조회 시점에 계산한다. 앱은 서버가 계산한 `BuddyView`(level, stage, fullness, poops, canFeed, canClean)를 그대로 보여준다.
 - **배고픔**: 밥을 먹은 뒤 2시간 30분에 걸쳐 100 → 0. 80 미만이면(30분 뒤부터) 밥을 줄 수 있고, 30 이하면(1시간 45분 뒤)
   "배고파요". 2026-09-29에 12시간에서 줄였다: 잠깐 들르는 사람도 돌볼 거리가 있게.
-- **똥**: 청소 뒤 1시간마다 하나(전에는 6시간), 최대 3개. 있으면 청소할 수 있다.
+- **똥**: 바닥이 깨끗해진 뒤(`lastCleanedAt`) 1시간마다 하나(전에는 6시간), 최대 3개. **누를 때마다 하나씩** 치운다:
+  이번 주기에 치운 수(`poopsCleaned`)를 올리고, 마지막 하나를 치우면 `lastCleanedAt`을 지금으로 옮겨 새 주기를 시작한다.
+  바닥의 💩 = 주기에 생긴 수 − 치운 수. 채팅의 "청소"는 한 번에 다 치운다. `POOPED` 키는 주기 안의 번호라서 하나 치워도 남은
+  💩이 다시 기록되지 않는다. 한 주기에 생기는 건 최대 3개라, 일부만 치우고 두면 다 치울 때까지 늘지 않는다.
 - 두 주기는 설정값이다(`buddychat.buddy.full-to-empty`, `poop-every`). 테스트는 숫자 대신 `BuddyRules.hungryAfter()`,
   `poopEvery()`로 시간을 보낸다.
 - **채팅으로 돌보기**: 메시지 전체가 "밥"·"🍚"(일본어 "ごはん", 영어 "food")이면 밥주기, "청소"·"🧹"("そうじ", "clean")이면
   청소를 보낸 사람이 한 것으로 처리한다(`CareCommand`). 끝의 "!", "~", "."는 괜찮고, "밥 먹었어?"처럼 문장 안의 단어는
   아니다. 메시지는 그대로 대화에 남고 EXP도 받는다. 필요 없을 때(배부름, 💩 없음)는 그냥 메시지다.
-- **경험치**: 밥 +2, 청소 +2, 메시지 +1(room당 하루 50까지, 일본 시간 기준). 레벨당 20
+- **경험치**: 밥 +2, 💩 하나당 +2, 메시지 +1(room당 하루 50까지, 일본 시간 기준). **최고 레벨은 30**이고 그 뒤로도 EXP는
+  쌓이지만 레벨과 바는 30·가득에서 멈춘다. 30이 되는 순간 `MAX_LEVEL` 이벤트(감사 카드) 하나를 남긴다. 레벨당 20
   (`buddychat.buddy.exp-per-level`). **포트폴리오로 보여주는 동안 Azure에서는 3**(Terraform `buddy_exp_per_level`,
   2026-09-29에 테스트용 1에서 올림). 출시 전에 변수를 null로 돌린다. 레벨은 `exp / 레벨당 EXP + 1`로 매번 계산하므로 값을
   바꾸면 이미 있는 Buddy의 레벨·단계도 바로 달라진다(작아질 수 있고, 진화 연출은 없다).
@@ -293,18 +297,26 @@ Storage는 이름이 ur-manager에 묶여 있어(`cae-ur-manager-prod` 안에 bu
   | 어른 | 10 | 9 | 27 | 180 |
 
   하루에 얻을 수 있는 EXP는 메시지 50 + 밥(30분마다 가능) + 청소(1시간마다 가능) 정도다.
-- **타임라인 이벤트**: `FED`, `CLEANED`(누가 했는지 포함), `LEVELED_UP`(`text`에 새 레벨, 단계가 바뀌면 대신 `EVOLVED` 하나만),
-  `EVOLVED`는 일어날 때, `HUNGRY`, `POOPED`는 누군가
+- **타임라인 이벤트**: `FED`, `CLEANED`(누가 했는지 포함, 바닥이 깨끗해질 때 한 줄), `LEVELED_UP`(`text`에 새 레벨,
+  단계가 바뀌면 대신 `EVOLVED` 하나만, 30이면 대신 `MAX_LEVEL`), `EVOLVED`는 일어날 때, `HUNGRY`, `POOPED`는 누군가
   앱을 열거나(`GET /api/rooms/me`) 연결할 때 기록한다. 원인 시각으로 만든 키(`buddy:hungry:<lastFedAt>` 등)가
   메시지 unique 인덱스에 걸려서 여러 번 확인해도 한 번만 남는다. 스케줄러가 없다.
-- **동시성**: 밥주기는 `lastFedAt < 지금 - 30분`, 청소는 `lastCleanedAt <= 지금 - 1시간` 조건부 update. 둘이 동시에 눌러도
+- **동시성**: 밥주기는 `lastFedAt < 지금 - 30분` 조건부 update, 청소는 읽은 `lastCleanedAt`·`poopsCleaned`가 그대로일 때만
+  바꾸는 compare-and-set. 둘이 동시에 눌러도
   한 번만 적용되고, 진 쪽은 `changed: false`와 현재 상태를 받는다. 메시지 EXP 상한도 조건부 update 두 단계로 지킨다.
+- **독립**(`POST /api/rooms/me/buddy/graduate` `{ buddyName }`): 30레벨(`BuddyView.grown`)일 때만. 지금 버디를 room의 `album`
+  (`{ name, bornAt, graduatedAt }`)에 push하고 `buddy`를 새 알로 바꾸는 것을 한 번의 조건부 update로 한다(같은 `bornAt`이고 EXP가
+  30레벨 이상일 때만: 새 알은 EXP 0이라 같은 순간에 태어나도 걸리지 않는다). 둘이 동시에 하면 한 명만 되고 다른 쪽은
+  `BUDDY_NOT_GROWN`(409). 타임라인 `GRADUATED`(`text` = 떠난 버디 이름), 상대 앱은 이 메시지를 받으면 room을 다시 읽는다(앨범).
+  진화·레벨·최고 레벨 이벤트 키에 버디의 `bornAt`을 넣어서 새 알이 다시 진화하면 새로 기록된다.
 - API: `POST /api/rooms/me/buddy/feed`, `POST /api/rooms/me/buddy/clean` → `{ buddy, changed }`.
   변화는 room 전체에 `message`(타임라인 이벤트)와 `buddy`(새 상태) WebSocket 이벤트로 전달된다.
 
 ## Room·초대 규칙 (S2에서 확정)
 
 - 초대 코드: 8자리(헷갈리는 0/O, 1/I/L 제외), 24시간 유효, 한 번만 사용. 대소문자 구분 없음.
+- 초대 링크: 앱이 공유하는 문구에 `<웹 주소>/join?code=<코드>`를 넣는다. 서버는 바뀌지 않는다: 웹이 로그인 전에 코드를 이 탭에
+  기억해 뒀다가(sessionStorage), 시작하고 이름을 정하면 코드가 채워진 참가 화면을 연다(`lib/pending-invite`).
 - 이미 solo room이 있는 사람이 초대를 수락하면 `LEAVE_CONFIRMATION_REQUIRED`를 받는다. 앱이 "지금 Buddy는 사라져요"를
   확인받고 `leaveCurrentRoom: true`로 다시 요청하면 참가하고, 기존 solo room과 Buddy는 삭제된다.
 - 다른 멤버가 있는 room에 있는 사람은 다른 room에 참가할 수 없다(`ALREADY_IN_ROOM`). 먼저 나가야 한다.
@@ -354,6 +366,7 @@ Firebase가 30일 지난 익명 계정을 지워도 서버의 사용자·방·�
 | --- | --- | --- |
 | `INVALID_REQUEST` | 400 | 요청 값 검증 실패(Buddy 이름 비었거나 12자 초과 등) |
 | `ROOM_NOT_FOUND` | 404 | 아직 room이 없음 |
+| `BUDDY_NOT_GROWN` | 409 | 30레벨이 아닌데 독립(또는 상대가 방금 독립시켜 새 알) |
 | `ROOM_ALREADY_EXISTS` | 409 | 이미 room이 있는데 만들려고 함 |
 | `ROOM_FULL` | 409 | 2명이 찬 room에 초대·참가 |
 | `INVITATION_NOT_FOUND` | 404 | 없는 코드 |

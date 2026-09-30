@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { FirebaseError } from 'firebase/app';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -10,6 +10,7 @@ import { BuddyAvatar } from '@/features/buddy/components/buddy-avatar';
 import { Button } from '@/components/button';
 import { isCancelledSignIn, signInAsGuest } from '@/features/auth/actions';
 import { googleSignInSupported, signInWithGoogle } from '@/features/auth/google-sign-in';
+import { hasPendingInvite } from '@/lib/pending-invite';
 import { MAX_CONTENT_WIDTH, useColors } from '@/theme';
 
 export default function SignInScreen() {
@@ -17,6 +18,13 @@ export default function SignInScreen() {
   const { t } = useTranslation();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Came with a friend's invite link: after starting, they go straight to joining. Read after the
+  // first render, which the web builds ahead of time without the link.
+  const [invited, setInvited] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setInvited(hasPendingInvite()), 0);
+    return () => clearTimeout(timer);
+  }, []);
 
   // On success the auth listener swaps this screen out, so only failures need handling here.
   const run = async (signIn: () => Promise<void>) => {
@@ -70,8 +78,8 @@ export default function SignInScreen() {
               variant="secondary"
             />
           ) : null}
-          <Text style={[styles.notice, { color: colors.textMuted }]}>
-            {t('signIn.noAccountNeeded')}
+          <Text style={[styles.notice, { color: invited ? colors.accent : colors.textMuted }]}>
+            {invited ? t('signIn.invited') : t('signIn.noAccountNeeded')}
           </Text>
           {busy ? <ActivityIndicator color={colors.accent} /> : null}
           {error ? <Text style={[styles.error, { color: colors.accent }]}>{error}</Text> : null}

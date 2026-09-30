@@ -41,6 +41,7 @@ function egg(name: string): BuddyView {
     hungry: false,
     canFeed: false,
     canClean: false,
+    grown: false,
   };
 }
 
@@ -53,6 +54,9 @@ function afterEvent(buddy: BuddyView, event: BuddyEvent): BuddyView | null {
       if (!stage) return null;
       return { ...buddy, stage, level: LEVEL_OF[stage], levelProgress: 0.1 };
     }
+    case 'MAX_LEVEL':
+    case 'GRADUATED':
+      return null; // not in the script
     case 'LEVELED_UP':
       return { ...buddy, level: buddy.level + 1, levelProgress: 0.1 };
     case 'HUNGRY':
@@ -191,6 +195,11 @@ export function useDemo({ buddyName, lineText, replyText }: Options) {
     finished,
     send,
     feed: () => event('FED', DEMO_ME),
-    clean: () => event('CLEANED', DEMO_ME),
+    // A tap cleans one poop; the last one leaves the line in the timeline, as in a real room.
+    clean: () => {
+      const current = buddyRef.current;
+      if (current.poops > 1) changeBuddy({ ...current, poops: current.poops - 1 });
+      else event('CLEANED', DEMO_ME);
+    },
   };
 }

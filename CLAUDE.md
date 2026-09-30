@@ -41,6 +41,8 @@
   `clientMessageId`로 다시 보낸다. 서버 에러 코드의 문구는 `errors.*` 번역 키로 보여준다.
 - web은 Node에서 미리 렌더링되므로 모듈 최상위에서 `window`에 접근하지 않는다.
 - Buddy 상태(레벨, 배고픔, 똥, 돌볼 수 있는지)는 서버가 계산한 `BuddyView`를 그대로 보여준다. 앱에서 규칙을 다시 계산하지 않는다.
+  무대 꾸미기(`stage-decor.tsx`의 `REWARDS`)는 서버가 준 레벨과 앨범으로 앱이 고른다(표시 규칙이라 서버에 없음). 도움말
+  (`app/guide.tsx`)과 Buddy 상세의 다음 보상도 같은 목록을 쓴다.
   예외는 로그인 전 "구경하기"(`app/demo.tsx`, `features/demo`)뿐이다. 대본으로 채팅 화면 부품을 그대로 재생하고 서버를 쓰지 않는다.
 - Buddy 무대(`features/buddy/components/buddy-stage.tsx`): 채팅 화면 위쪽 약 1/3, 입력 중이거나 위로 스크롤하면 한 줄로 접힌다.
   입력 중 접기는 화면 키보드가 있는 기기만(`stage-folds-on-focus`, PC 웹은 접지 않음). 펼칠 때마다 새로 마운트되므로
@@ -120,6 +122,8 @@
 - iOS UX가 기준이다(Safe Area, 키보드, 스크롤). Web은 같은 모바일 레이아웃을 가운데 정렬하고 최대 폭만 제한한다.
   넓은 창(768px~)에서는 폰 크기 틀에 담는다: CSS 미디어 쿼리(`app/+html.tsx`)가 `WebFrame`의 id를 꾸민다. 창 폭을 JS로 재서
   구조를 바꾸면 경계를 넘을 때 앱 전체가 다시 마운트되므로 그렇게 하지 않는다. 모달 시트도 `WebFrame`으로 감싼다.
+- 초대 링크 `join?code=`: 로그인 전이면 `lib/pending-invite`가 코드를 기억했다가 이름을 정한 뒤 참가 화면을 연다.
+  복사는 `lib/clipboard`(웹만. 앱은 expo-clipboard가 필요해서 첫 개발용 빌드 때 사용자 확인 후 추가).
 - 링크 미리보기(Open Graph, 영어)는 `app/+html.tsx`, 이미지는 `app/public/og.png`(1200×630, 구경하기 화면으로 만듦).
 - iOS-first design ≠ iOS-only code. 플랫폼 분기는 정말 다를 때만 `*.ios.ts` / `*.web.ts`로 나눈다.
 - 라이브러리는 구체적인 문제가 생겼을 때만 추가한다.

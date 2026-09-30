@@ -13,7 +13,9 @@ public record BuddyView(
         int poops,
         boolean hungry,
         boolean canFeed,
-        boolean canClean) {
+        boolean canClean,
+        // At the top level: ready to go its own way (BuddyService.graduate).
+        boolean grown) {
 
     public static BuddyView of(Buddy buddy, Instant now) {
         int level = BuddyRules.level(buddy.exp());
@@ -22,11 +24,12 @@ public record BuddyView(
                 buddy.exp(),
                 level,
                 BuddyRules.stage(level),
-                (buddy.exp() % BuddyRules.expPerLevel()) / (double) BuddyRules.expPerLevel(),
+                BuddyRules.levelProgress(buddy.exp()),
                 BuddyRules.fullness(buddy, now),
                 BuddyRules.poops(buddy, now),
                 BuddyRules.isHungry(buddy, now),
                 BuddyRules.canFeed(buddy, now),
-                BuddyRules.canClean(buddy, now));
+                BuddyRules.canClean(buddy, now),
+                level == BuddyRules.MAX_LEVEL);
     }
 }

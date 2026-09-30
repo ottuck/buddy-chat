@@ -31,7 +31,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -150,20 +152,61 @@ class BuddyFlowTest {
     }
 
     @Test
-    void poopsPileUpAndCleaningClearsThemOnce() {
+    void eachTapCleansOnePoopAndTheLastLeavesOneLine() {
         duoRoom("henry", "yuki");
         clock.advance(BuddyRules.poopEvery().multipliedBy(2).plusMinutes(1)); // two poops
-
         assertThat(room("henry").buddy().poops()).isEqualTo(2);
+
+        Care first = care("henry", "clean");
+        room("henry"); // looking again does not bring the cleaned poop back
+        Care second = care("yuki", "clean");
+        Care third = care("henry", "clean");
+
+        assertThat(first.changed()).isTrue();
+        assertThat(first.buddy().poops()).isEqualTo(1);
+        assertThat(second.changed()).isTrue();
+        assertThat(second.buddy().poops()).isZero();
+        assertThat(third.changed()).isFalse();
+        assertThat(room("henry").buddy().exp()).isEqualTo(2 * BuddyRules.CLEAN_EXP);
+        assertThat(timeline("henry")).filteredOn("POOPED"::equals).hasSize(2);
+        assertThat(timeline("henry")).containsOnlyOnce("CLEANED");
+
+        // A clean floor starts over: the next poop comes a full period later.
+        clock.advance(BuddyRules.poopEvery().minusMinutes(1));
+        assertThat(room("henry").buddy().poops()).isZero();
+        clock.advance(Duration.ofMinutes(2));
+        assertThat(room("henry").buddy().poops()).isEqualTo(1);
+    }
+
+    @Test
+    void tapsOnTheSamePoopAtOnceCleanItOnce() {
+        duoRoom("henry", "yuki");
+        clock.advance(BuddyRules.poopEvery().plusMinutes(1)); // one poop
+
         List<Boolean> changed =
                 race(6, i -> care(i % 2 == 0 ? "henry" : "yuki", "clean").changed());
 
         assertThat(changed).containsOnlyOnce(true);
-        BuddyView after = room("henry").buddy();
-        assertThat(after.poops()).isZero();
-        assertThat(after.exp()).isEqualTo(BuddyRules.CLEAN_EXP);
-        assertThat(timeline("henry")).filteredOn("POOPED"::equals).hasSize(2);
-        assertThat(timeline("henry")).containsOnlyOnce("CLEANED");
+        assertThat(room("henry").buddy().exp()).isEqualTo(BuddyRules.CLEAN_EXP);
+    }
+
+    @Test
+    void theTopLevelSaysThanksOnceAndStaysThere() {
+        String roomId = createRoom("henry").id();
+        int almost = (BuddyRules.MAX_LEVEL - 1) * BuddyRules.expPerLevel() - 1;
+        mongo.updateFirst(
+                        Query.query(Criteria.where("_id").is(new ObjectId(roomId))),
+                        new Update().set("buddy.exp", almost),
+                        "rooms")
+                .block();
+
+        buddyService.onMessageSent(roomId).block();
+        buddyService.onMessageSent(roomId).block();
+
+        BuddyView buddy = room("henry").buddy();
+        assertThat(buddy.level()).isEqualTo(BuddyRules.MAX_LEVEL);
+        assertThat(buddy.levelProgress()).isEqualTo(1.0);
+        assertThat(timeline("henry")).containsExactly("MAX_LEVEL");
     }
 
     @Test
@@ -237,6 +280,58 @@ class BuddyFlowTest {
     }
 
     @Test
+    void onlyATopLevelBuddyCanGoItsOwnWay() {
+        createRoom("henry");
+
+        post("henry", "/api/rooms/me/buddy/graduate", Map.of("buddyName", "Mochi"))
+                .expectStatus()
+                .isEqualTo(409)
+                .expectBody(JsonNode.class)
+                .value(body -> assertThat(body.get("code").asString()).isEqualTo("BUDDY_NOT_GROWN"));
+    }
+
+    @Test
+    void goingItsOwnWayKeepsItInTheAlbumAndANewEggGrowsAgain() {
+        String roomId = createRoom("henry").id();
+        for (int i = 0; i < BuddyRules.expPerLevel(); i++)
+            buddyService.onMessageSent(roomId).block(); // hatches: EVOLVED
+        setExp(roomId, (BuddyRules.MAX_LEVEL - 1) * BuddyRules.expPerLevel());
+        clock.advance(Duration.ofMinutes(1)); // the new egg is born later than the first
+
+        post("henry", "/api/rooms/me/buddy/graduate", Map.of("buddyName", "Mochi"))
+                .expectStatus()
+                .isOk();
+
+        JsonNode room = roomJson("henry");
+        assertThat(room.get("buddy").get("name").asString()).isEqualTo("Mochi");
+        assertThat(room.get("buddy").get("stage").asString()).isEqualTo("EGG");
+        assertThat(room.get("album")).hasSize(1);
+        assertThat(room.get("album").get(0).get("name").asString()).isEqualTo("Mugi");
+        // The new egg hatches with its own line, not blocked by the first one's.
+        for (int i = 0; i < BuddyRules.expPerLevel(); i++)
+            buddyService.onMessageSent(roomId).block();
+        assertThat(timeline("henry")).containsExactly("EVOLVED", "GRADUATED", "EVOLVED");
+    }
+
+    @Test
+    void bothGraduatingAtOnceGraduatesOnce() {
+        duoRoom("henry", "yuki");
+        String roomId = room("henry").id();
+        setExp(roomId, (BuddyRules.MAX_LEVEL - 1) * BuddyRules.expPerLevel());
+
+        List<Integer> statuses = race(
+                6,
+                i -> post(i % 2 == 0 ? "henry" : "yuki", "/api/rooms/me/buddy/graduate", Map.of("buddyName", "Egg" + i))
+                        .returnResult(Void.class)
+                        .getStatus()
+                        .value());
+
+        assertThat(statuses).containsOnlyOnce(200);
+        assertThat(roomJson("henry").get("album")).hasSize(1);
+        assertThat(timeline("henry")).containsOnlyOnce("GRADUATED");
+    }
+
+    @Test
     void partnerSeesCareLive() {
         duoRoom("henry", "yuki");
         clock.advance(BuddyRules.hungryAfter());
@@ -305,6 +400,26 @@ class BuddyFlowTest {
     }
 
     // --- helpers ---
+
+    private void setExp(String roomId, int exp) {
+        mongo.updateFirst(
+                        Query.query(Criteria.where("_id").is(new ObjectId(roomId))),
+                        new Update().set("buddy.exp", exp),
+                        "rooms")
+                .block();
+    }
+
+    private JsonNode roomJson(String uid) {
+        return http.get()
+                .uri("/api/rooms/me")
+                .header("Authorization", "Bearer " + token(uid))
+                .exchange()
+                .expectStatus()
+                .isOk()
+                .expectBody(JsonNode.class)
+                .returnResult()
+                .getResponseBody();
+    }
 
     private static void await(java.util.function.BooleanSupplier done) {
         for (int i = 0; i < 50 && !done.getAsBoolean(); i++) {

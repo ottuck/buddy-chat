@@ -1,8 +1,8 @@
-// Korean particles that change with the word before them: 이/가, 은/는, 과/와 follow a final
+// Korean particles that change with the word before them: 이/가, 은/는, 과/와, 을/를 follow a final
 // consonant (받침) or not. Names are user-chosen, often Latin letters, so those are guessed from
 // how they are usually read.
 
-export type JosaPair = '이가' | '은는' | '과와';
+export type JosaPair = '이가' | '은는' | '과와' | '을를';
 
 const HANGUL_START = 0xac00;
 const HANGUL_END = 0xd7a3;

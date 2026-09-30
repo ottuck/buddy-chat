@@ -18,7 +18,9 @@ import { GuestExpiryBanner } from '@/features/auth/components/guest-expiry-banne
 import { useGuestDaysLeft } from '@/features/auth/guest-expiry';
 import { BuddySheet } from '@/features/buddy/components/buddy-sheet';
 import { BuddyStage } from '@/features/buddy/components/buddy-stage';
+import { GuideBanner } from '@/features/buddy/components/guide-banner';
 import { stageFoldsOnFocus } from '@/features/buddy/stage-folds-on-focus';
+import { graduateBuddy } from '@/features/buddy/api';
 import { useBuddy } from '@/features/buddy/use-buddy';
 import { ChatHeader } from '@/features/chat/components/chat-header';
 import { MessageComposer } from '@/features/chat/components/message-composer';
@@ -36,13 +38,7 @@ export default function ChatRoute() {
   const { me, room, reload, refreshRoom } = useReadyRoom();
   // Keyed by room: joining another room starts over with a new connection and timeline.
   return (
-    <ChatScreen
-      key={room.id}
-      me={me}
-      room={room}
-      onRoomLost={reload}
-      onMembersChanged={refreshRoom}
-    />
+    <ChatScreen key={room.id} me={me} room={room} onRoomLost={reload} onRoomChanged={refreshRoom} />
   );
 }
 
@@ -50,14 +46,15 @@ type ChatScreenProps = {
   me: Me;
   room: Room;
   onRoomLost: () => void;
-  onMembersChanged: () => void;
+  // Members joined or left, or the album grew: fetch the room again.
+  onRoomChanged: () => void;
 };
 
-function ChatScreen({ me, room, onRoomLost, onMembersChanged }: ChatScreenProps) {
+function ChatScreen({ me, room, onRoomLost, onRoomChanged }: ChatScreenProps) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { buddy, busy, setBuddy, feed, clean } = useBuddy(room.buddy);
-  const chat = useChat({ myId: me.id, onRoomLost, onMembersChanged, onBuddy: setBuddy });
+  const chat = useChat({ myId: me.id, onRoomLost, onRoomChanged, onBuddy: setBuddy });
   const { messages, status, online, typing, reads, unreadWhileAway } = chat;
   const [buddyOpen, setBuddyOpen] = useState(false);
   const { user } = useAuth();
@@ -109,8 +106,10 @@ function ChatScreen({ me, room, onRoomLost, onMembersChanged }: ChatScreenProps)
           connected={status === 'online'}
           onPressInvite={() => setInviteOpen(true)}
           onPressSettings={() => router.push('/settings')}
+          onPressHelp={() => router.push('/guide')}
         />
         <GuestExpiryBanner daysLeft={guestDaysLeft} onPress={() => router.push('/settings')} />
+        <GuideBanner onOpen={() => router.push('/guide')} />
         <BuddyStage
           buddy={buddy}
           busy={busy}
@@ -121,6 +120,7 @@ function ChatScreen({ me, room, onRoomLost, onMembersChanged }: ChatScreenProps)
           onClean={clean}
           onOpenDetail={() => setBuddyOpen(true)}
           reaction={chat.reaction}
+          album={room.album}
         />
         <View style={styles.list}>
           {chat.loaded && messages.length === 0 ? (
@@ -164,6 +164,12 @@ function ChatScreen({ me, room, onRoomLost, onMembersChanged }: ChatScreenProps)
         onClose={() => setBuddyOpen(false)}
         onFeed={feed}
         onClean={clean}
+        album={room.album}
+        onGraduate={async (newName) => {
+          setBuddy(await graduateBuddy(newName));
+          setBuddyOpen(false);
+          onRoomChanged();
+        }}
       />
       <InviteSheet visible={inviteOpen} onClose={() => setInviteOpen(false)} />
     </SafeAreaView>

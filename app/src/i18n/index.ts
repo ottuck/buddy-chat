@@ -39,7 +39,7 @@ i18n.use(initReactI18next).init({
 });
 
 // Korean particles after names, e.g. "{{buddy, 이가}} 배고파졌어요" → "하늘이 배고파졌어요".
-for (const pair of ['이가', '은는', '과와'] satisfies JosaPair[]) {
+for (const pair of ['이가', '은는', '과와', '을를'] satisfies JosaPair[]) {
   i18n.services.formatter?.add(pair, (value) => josa(String(value), pair));
 }
 

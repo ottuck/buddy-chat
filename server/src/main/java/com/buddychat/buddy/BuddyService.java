@@ -13,6 +13,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
@@ -76,7 +77,8 @@ public class BuddyService {
                 noticed.add(chatService.recordBuddyEvent(
                         roomId, "HUNGRY", null, "buddy:hungry:" + buddy.fedAt().toEpochMilli()));
             }
-            for (int i = 1; i <= BuddyRules.poops(buddy, now); i++) {
+            // Keyed by the poop's number in this cycle: one tapped away is not noticed again.
+            for (int i = 1; i <= BuddyRules.poopsMade(buddy, now); i++) {
                 noticed.add(chatService.recordBuddyEvent(
                         roomId,
                         "POOPED",
@@ -107,18 +109,96 @@ public class BuddyService {
                 now);
     }
 
+    /** Cleans up one poop (a tap on it). EXP per poop; the last one leaves CLEANED in the timeline. */
     public Mono<CareResult> clean(String roomId, String actorId) {
+        return cleanUp(roomId, actorId, false);
+    }
+
+    /** Cleans up every poop at once ("청소" in the chat). */
+    public Mono<CareResult> cleanAll(String roomId, String actorId) {
+        return cleanUp(roomId, actorId, true);
+    }
+
+    /**
+     * Compare-and-set on the cleaning state just read: of two taps on the same poop at once, one
+     * cleans it and the other gets {@code changed: false}. A clean floor starts a new cycle (the
+     * clean time moves to now), so poops are counted from there again.
+     */
+    private Mono<CareResult> cleanUp(String roomId, String actorId, boolean all) {
         Instant now = Instant.now(clock);
-        return care(
-                roomId,
-                actorId,
-                orMissing(
-                        "buddy.lastCleanedAt",
-                        where("buddy.lastCleanedAt").lte(BuddyRules.cleanableIfCleanedBefore(now))),
-                new Update().set("buddy.lastCleanedAt", now).inc("buddy.exp", BuddyRules.CLEAN_EXP),
-                "CLEANED",
-                BuddyRules.CLEAN_EXP,
-                now);
+        return load(roomId).flatMap(buddy -> {
+            int poops = BuddyRules.poops(buddy, now);
+            if (poops == 0) return Mono.just(new CareResult(BuddyView.of(buddy, now), false));
+            int removed = all ? poops : 1;
+            boolean floorClean = removed == poops;
+            Update update = floorClean
+                    ? new Update().set("buddy.lastCleanedAt", now).set("buddy.poopsCleaned", 0)
+                    : new Update().set("buddy.poopsCleaned", buddy.cleaned() + removed);
+            int gain = removed * BuddyRules.CLEAN_EXP;
+            Query unchanged = query(where("_id").is(roomId))
+                    .addCriteria(sameOrMissing("buddy.lastCleanedAt", buddy.lastCleanedAt()))
+                    .addCriteria(sameOrMissing("buddy.poopsCleaned", buddy.poopsCleaned()));
+            return mongo.findAndModify(unchanged, update.inc("buddy.exp", gain), RETURN_NEW, RoomBuddy.class, ROOMS)
+                    .flatMap(updated -> (floorClean
+                                    ? chatService
+                                            .recordBuddyEvent(
+                                                    roomId, "CLEANED", actorId, "buddy:CLEANED:" + UUID.randomUUID())
+                                            .doOnNext(message ->
+                                                    hub.publish(roomId, new ServerEvent.NewMessage(message), null))
+                                    : Mono.<Message>empty())
+                            .then(grown(roomId, updated.buddy(), gain, now))
+                            .map(view -> new CareResult(view, true)))
+                    .switchIfEmpty(Mono.defer(() ->
+                            load(roomId).map(current -> new CareResult(BuddyView.of(current, now), false))));
+        });
+    }
+
+    // Growth events happen once per buddy: the key names the buddy by its birth, so the next egg
+    // evolves and levels up again in the timeline.
+    private static String eventKey(Buddy buddy, String what) {
+        return "buddy:" + buddy.bornAt().toEpochMilli() + ":" + what;
+    }
+
+    /**
+     * The grown buddy goes its own way (docs/product.md, 독립과 앨범): it is kept in the room's album
+     * and a new egg takes its place, in one update so neither happens without the other. Only at
+     * the top level; of two members doing it at once, one does (the other gets BUDDY_NOT_GROWN, as
+     * there is only an egg now).
+     */
+    public Mono<BuddyView> graduate(String roomId, String actorId, String newName) {
+        Instant now = Instant.now(clock);
+        return load(roomId).flatMap(buddy -> {
+            if (BuddyRules.level(buddy.exp()) < BuddyRules.MAX_LEVEL) return Mono.error(notGrown());
+            // Still this buddy, still grown: a new egg (EXP 0) never matches, even if born the same moment.
+            Query same = query(where("_id")
+                    .is(roomId)
+                    .and("buddy.bornAt")
+                    .is(buddy.bornAt())
+                    .and("buddy.exp")
+                    .gte(BuddyRules.minExp(BuddyRules.MAX_LEVEL)));
+            Update update = new Update()
+                    .push("album", new AlbumEntry(buddy.name(), buddy.bornAt(), now))
+                    .set("buddy", Buddy.hatch(newName, now));
+            return mongo.findAndModify(same, update, RETURN_NEW, RoomBuddy.class, ROOMS)
+                    .switchIfEmpty(Mono.error(notGrown()))
+                    .flatMap(updated -> chatService
+                            .recordBuddyEvent(roomId, "GRADUATED", buddy.name(), actorId, eventKey(buddy, "graduated"))
+                            .doOnNext(message -> hub.publish(roomId, new ServerEvent.NewMessage(message), null))
+                            .then(Mono.fromSupplier(() -> {
+                                BuddyView view = BuddyView.of(updated.buddy(), now);
+                                hub.publish(roomId, new ServerEvent.BuddyUpdated(view), null);
+                                return view;
+                            })));
+        });
+    }
+
+    private static ApiException notGrown() {
+        return new ApiException(HttpStatus.CONFLICT, "BUDDY_NOT_GROWN");
+    }
+
+    // The field as read: that value, or still absent.
+    private static Criteria sameOrMissing(String field, @Nullable Object value) {
+        return value == null ? where(field).exists(false) : where(field).is(value);
     }
 
     /**
@@ -128,7 +208,7 @@ public class BuddyService {
      */
     public Mono<Void> onMessageSent(String roomId, String senderId, String text) {
         Mono<?> care = CareCommand.of(text)
-                .map(command -> command == CareCommand.FEED ? feed(roomId, senderId) : clean(roomId, senderId))
+                .map(command -> command == CareCommand.FEED ? feed(roomId, senderId) : cleanAll(roomId, senderId))
                 .orElse(Mono.empty());
         return onMessageSent(roomId).then(care).then();
     }
@@ -190,7 +270,15 @@ public class BuddyService {
         BuddyRules.Stage stage = BuddyRules.stage(level);
         Mono<Message> event;
         if (stage != BuddyRules.stage(levelBefore)) {
-            event = chatService.recordBuddyEvent(roomId, "EVOLVED", null, "buddy:evolved:" + stage);
+            event = chatService.recordBuddyEvent(roomId, "EVOLVED", null, eventKey(after, "evolved:" + stage));
+        } else if (level == BuddyRules.MAX_LEVEL && levelBefore < level) {
+            // The top: a thank-you in the timeline instead of one more level.
+            event = chatService.recordBuddyEvent(
+                    roomId,
+                    "MAX_LEVEL",
+                    String.valueOf(level),
+                    null,
+                    eventKey(after, "max:" + BuddyRules.expPerLevel()));
         } else if (level > levelBefore) {
             // Keyed by the level and the EXP per level: the same level reached again under another
             // setting is a new event.
@@ -199,7 +287,7 @@ public class BuddyService {
                     "LEVELED_UP",
                     String.valueOf(level),
                     null,
-                    "buddy:level:" + BuddyRules.expPerLevel() + ":" + level);
+                    eventKey(after, "level:" + BuddyRules.expPerLevel() + ":" + level));
         } else {
             event = Mono.empty();
         }

@@ -5,6 +5,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
 import { WebFrame } from '@/components/web-frame';
+import { clipboardSupported, copyText } from '@/lib/clipboard';
+import { siteUrl } from '@/lib/site-url';
 import { MAX_CONTENT_WIDTH, useColors } from '@/theme';
 
 import { createInvitation, type Invitation } from '../api';
@@ -37,21 +39,13 @@ function InviteContent({ onClose }: { onClose: () => void }) {
   const insets = useSafeAreaInsets();
   const [invitation, setInvitation] = useState<Invitation | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     createInvitation()
       .then(setInvitation)
       .catch((e) => setError(errorMessage(t, e)));
   }, [t]);
-
-  const share = async () => {
-    if (!invitation) return;
-    try {
-      await Share.share({ message: t('invite.shareMessage', { code: invitation.code }) });
-    } catch {
-      // Sharing is unavailable on some browsers; the code is on screen to copy by hand.
-    }
-  };
 
   const expires = invitation
     ? new Intl.DateTimeFormat(i18n.language, {
@@ -61,6 +55,30 @@ function InviteContent({ onClose }: { onClose: () => void }) {
         minute: '2-digit',
       }).format(new Date(invitation.expiresAt))
     : '';
+
+  // A link that opens the join screen with the code filled in, and the code for typing by hand.
+  const share = async () => {
+    if (!invitation) return;
+    const link = `${siteUrl()}/join?code=${invitation.code}`;
+    try {
+      await Share.share({
+        message: t('invite.shareMessage', { link, code: invitation.code, time: expires }),
+      });
+    } catch {
+      // Sharing is unavailable on some browsers; the code can be copied instead.
+    }
+  };
+
+  const copy = async () => {
+    if (!invitation) return;
+    try {
+      await copyText(invitation.code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // The code is selectable on screen too.
+    }
+  };
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
@@ -77,9 +95,27 @@ function InviteContent({ onClose }: { onClose: () => void }) {
         <View style={[styles.codeCard, { backgroundColor: colors.surface }]}>
           {invitation ? (
             <>
-              <Text selectable style={[styles.code, { color: colors.text }]}>
-                {invitation.code}
-              </Text>
+              <View style={styles.codeRow}>
+                <Text selectable style={[styles.code, { color: colors.text }]}>
+                  {invitation.code}
+                </Text>
+                {clipboardSupported ? (
+                  <Pressable
+                    onPress={copy}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('invite.copy')}
+                    hitSlop={8}
+                    style={({ pressed }) => [
+                      styles.copy,
+                      { borderColor: colors.border, opacity: pressed ? 0.6 : 1 },
+                    ]}
+                  >
+                    <Text style={[styles.copyLabel, { color: colors.accent }]}>
+                      {copied ? t('invite.copied') : t('invite.copy')}
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </View>
               <Text style={[styles.expires, { color: colors.textMuted }]}>
                 {t('invite.expires', { time: expires })}
               </Text>
@@ -98,6 +134,21 @@ function InviteContent({ onClose }: { onClose: () => void }) {
 }
 
 const styles = StyleSheet.create({
+  codeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  copy: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  copyLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
   screen: {
     flex: 1,
     alignItems: 'center',
