@@ -1,4 +1,4 @@
-# Server image for Azure Container Apps (docs/server-design.md, 인프라).
+# Server image, built by Railway from this folder (railway.json; docs/server-design.md, 인프라).
 # docker build -t buddy-chat-server server/
 
 FROM eclipse-temurin:25-jdk AS build

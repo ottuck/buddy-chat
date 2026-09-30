@@ -92,14 +92,14 @@ Yuki    싫어 ㅋㅋ
 flowchart LR
     subgraph Client["📱 앱 · 🌐 웹 (Expo · React Native)"]
         App["iOS 앱"]
-        Web["웹 앱<br/>Azure Static Web Apps"]
+        Web["웹 앱<br/>Cloudflare Workers"]
     end
 
     Firebase["Firebase Auth<br/>로그인 · ID 토큰"]
 
-    subgraph Azure["☁️ Azure · Japan East"]
-        Server["Spring WebFlux 서버<br/>Container Apps"]
-        DB[("Azure DocumentDB<br/>MongoDB 호환")]
+    subgraph Cloud["☁️ 싱가포르"]
+        Server["Spring WebFlux 서버<br/>Railway"]
+        DB[("MongoDB Atlas")]
     end
 
     Expo["Expo Push → APNs"]
@@ -118,9 +118,9 @@ flowchart LR
 | --- | --- |
 | 앱 | Expo (React Native), TypeScript, Expo Router — iOS와 웹을 한 코드로 |
 | 서버 | Java 25, Spring Boot 4, WebFlux (reactive), WebSocket |
-| 데이터 | Azure DocumentDB (MongoDB 호환), 트랜잭션 없이 조건부 업데이트와 unique 인덱스로 동시성 처리 |
+| 데이터 | MongoDB Atlas, 트랜잭션 없이 조건부 업데이트와 unique 인덱스로 동시성 처리 |
 | 인증 · 푸시 | Firebase Authentication, Expo 푸시 서비스 |
-| 인프라 | Azure Container Apps · Static Web Apps, Terraform, GitHub Actions (OIDC 배포) |
+| 인프라 | Railway · MongoDB Atlas · Cloudflare Workers, Terraform (state는 R2), GitHub Actions |
 
 작은 서비스에 맞게 **작게** 만들었어요. 서버 한 대가 실시간 연결을 모두 들고 있어서 Redis 같은 중간 저장소가 없고,
 Buddy의 배고픔과 💩은 스케줄러 없이 **볼 때 계산**해요. 자세한 결정과 이유는 [서버 설계](docs/server-design.md)에 있어요.
@@ -132,7 +132,7 @@ Buddy의 배고픔과 💩은 스케줄러 없이 **볼 때 계산**해요. 자�
 ```text
 app/      Expo 앱 (iOS · 웹)
 server/   Spring WebFlux 서버
-infra/    Azure Terraform
+infra/    Terraform (Railway · Atlas · Cloudflare)
 docs/     제품 · 서버 설계 문서
 ```
 
@@ -156,7 +156,7 @@ iPhone에서는 개발용 빌드로 열어요. 자세한 명령은 [CLAUDE.md](C
 - [x] 게스트로 바로 시작, 계정 연결(웹 Google), 방 만들기 · 초대 · 나가기
 - [x] 실시간 채팅 (재연결, 중복 없는 전송, 입력 중 · 읽음 · 접속 표시)
 - [x] Buddy 돌봄과 성장
-- [x] Azure 배포 (서버 · 웹)
+- [x] 배포 (서버 Railway · 웹 Cloudflare Workers · DB Atlas)
 - [ ] iPhone 개발용 빌드와 푸시 알림
 - [x] Buddy 도트 캐릭터와 애니메이션 (먹기 · 💩 · 진화 · 메시지 반응)
 - [ ] Sign in with Apple
