@@ -202,7 +202,7 @@ iPhone / Web ──HTTPS·WSS──▶ Railway (Spring WebFlux, Docker, 싱가�
 - **이전(2026-10)**: 처음에는 Azure(Container Apps, DocumentDB 무료, Static Web Apps)에 ur-manager와 환경·레지스트리·
   state를 공유해 올렸다. 서버를 항상 1대 켜두면 월 약 ¥2,000이 나왔고, 공유 때문에 이름·권한이 ur-manager에 묶였다.
   이 프로젝트만의 작은 구성으로 옮겼다: Railway Hobby(월 $5, 사용량 $5 포함), Atlas M0(무료), Cloudflare(무료).
-  옛 설정은 `infra/azure/`에 두었다가 리소스를 지운 뒤 없앤다.
+  Azure 리소스와 옛 설정(`infra/azure/`)은 2026-10-01에 지웠다.
 - **서버**: Railway 서비스 1개, 싱가포르(`asia-southeast1-eqsg3a`), 복제 1(연결·presence·typing이 메모리에 있다).
   항상 켜져 있어 콜드 스타트가 없다(앱의 미리 깨우기 `app/src/lib/warm-up.ts`는 남아 있다). Railway는 사용한 만큼 과금하므로
   힙을 `-Xmx384m`, SerialGC로 고정한다(`JAVA_TOOL_OPTIONS`). 유휴 연결 타임아웃 때문에 서버가 25초마다 ping을 보낸다.

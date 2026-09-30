@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * Creates indexes explicitly at startup instead of relying on auto index creation, so what exists
- * in production (Azure DocumentDB) is visible in code. Blocking is fine here: it runs once before
+ * in production (MongoDB Atlas) is visible in code. Blocking is fine here: it runs once before
  * the app serves traffic.
  */
 @Component

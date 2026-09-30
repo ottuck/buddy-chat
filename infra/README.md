@@ -4,8 +4,6 @@ puny-chat's infrastructure as Terraform: the server on Railway, MongoDB on Atlas
 state in Cloudflare R2. The web app is a Cloudflare Worker that CI deploys with wrangler
 (`app/wrangler.jsonc`). Decisions and costs: `docs/server-design.md`, 인프라.
 
-`azure/` is the setup this replaced, kept until its resources are destroyed.
-
 ## Accounts and tokens (once, by hand)
 
 Everything below goes into `infra/.env` (copy `.env.example`; ignored by git). Nothing here is committed.

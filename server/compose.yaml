@@ -1,5 +1,5 @@
 # Local development database. Started automatically by `./gradlew bootRun`
-# (spring-boot-docker-compose). Production uses Azure DocumentDB (MongoDB-compatible).
+# (spring-boot-docker-compose). Production uses MongoDB Atlas.
 services:
   mongodb:
     image: 'mongo:8.0'
