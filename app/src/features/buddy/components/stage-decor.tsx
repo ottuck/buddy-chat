@@ -7,6 +7,7 @@ import {
   BUDDY_PALETTE,
   type BowlTier,
   buddyFrame,
+  HEART,
   PLANTS,
   type PlantTier,
   PROP_PALETTE,
@@ -39,6 +40,7 @@ export function decorFor(level: number, album: AlbumEntry[]) {
   const bowl: BowlTier = has('bowl2') ? 2 : has('bowl1') ? 1 : 0;
   return {
     plant,
+    plantScale: plantScale(plant, reached),
     bowl,
     rug: has('rug'),
     // The latest ones, newest on the right.
@@ -54,11 +56,23 @@ export function nextReward(level: number, album: AlbumEntry[]) {
   return REWARDS.find((entry) => entry.level > level) ?? null;
 }
 
-const PLANT_SCALE = 3;
+// Each plant grows a little with every level until the next one replaces it: smallest when it
+// arrives, full size by the next reward (or the top level).
+const PLANT_SMALLEST = 2.2;
+const PLANT_LARGEST = 3.2;
+const PLANT_FROM: Record<PlantTier, number> = { 1: 5, 2: 15, 3: 25 };
+const PLANT_FULL_AT: Record<PlantTier, number> = { 1: 14, 2: 24, 3: 30 };
+
+function plantScale(tier: PlantTier | 0, level: number): number {
+  if (tier === 0) return 0;
+  const grown = (level - PLANT_FROM[tier]) / (PLANT_FULL_AT[tier] - PLANT_FROM[tier]);
+  const progress = Math.min(1, Math.max(0, grown));
+  return PLANT_SMALLEST + (PLANT_LARGEST - PLANT_SMALLEST) * progress;
+}
 
 // Floor the plant takes in the corner, so poops and the walk stay clear of it.
-export function plantRoom(tier: PlantTier | 0): number {
-  return tier === 0 ? 0 : PLANTS[tier][0].length * PLANT_SCALE + 8;
+export function plantRoom(decor: Decor): number {
+  return decor.plant === 0 ? 0 : Math.ceil(PLANTS[decor.plant][0].length * decor.plantScale) + 8;
 }
 
 // Behind the buddy: portraits of buddies gone their own way, and the rug. The plant and the bowl
@@ -66,16 +80,25 @@ export function plantRoom(tier: PlantTier | 0): number {
 export function WallDecor({ decor, floor, top }: { decor: Decor; floor: number; top: number }) {
   return (
     <View style={[StyleSheet.absoluteFill, styles.passThrough]}>
+      {/* Snapshots of buddies gone their own way: smiling, in a pastel frame pinned at a tilt, with
+          a heart, like a photo on a fridge rather than a formal portrait. */}
       {decor.portraits.map((entry, i) => (
         <View
           key={entry.graduatedAt}
           style={[
             styles.frame,
-            { top: top + 6, right: 14 + (decor.portraits.length - 1 - i) * 52 },
+            {
+              top: top + 8,
+              right: 14 + (decor.portraits.length - 1 - i) * 52,
+              transform: [{ rotate: i % 2 === 0 ? '-6deg' : '5deg' }],
+            },
           ]}
           accessibilityLabel={entry.name}
         >
-          <PixelSprite frame={buddyFrame('ADULT', 'idle')} palette={BUDDY_PALETTE} scale={1.5} />
+          <PixelSprite frame={buddyFrame('ADULT', 'happy')} palette={BUDDY_PALETTE} scale={1.5} />
+          <View style={styles.heart}>
+            <PixelSprite frame={HEART} palette={PROP_PALETTE} scale={1.5} />
+          </View>
         </View>
       ))}
       {decor.rug ? (
@@ -87,8 +110,8 @@ export function WallDecor({ decor, floor, top }: { decor: Decor; floor: number; 
   );
 }
 
-export function Plant({ tier }: { tier: PlantTier }) {
-  return <PixelSprite frame={PLANTS[tier]} palette={PROP_PALETTE} scale={PLANT_SCALE} />;
+export function Plant({ tier, scale }: { tier: PlantTier; scale: number }) {
+  return <PixelSprite frame={PLANTS[tier]} palette={PROP_PALETTE} scale={scale} />;
 }
 
 const styles = StyleSheet.create({
@@ -97,10 +120,16 @@ const styles = StyleSheet.create({
   },
   frame: {
     position: 'absolute',
-    padding: 2,
+    padding: 3,
     borderWidth: 3,
-    borderColor: '#A0673C',
-    backgroundColor: '#FFF6E8',
+    borderRadius: 8,
+    borderColor: '#FF9EB5',
+    backgroundColor: '#FFF4F7',
+  },
+  heart: {
+    position: 'absolute',
+    top: -7,
+    right: -7,
   },
   rug: {
     position: 'absolute',

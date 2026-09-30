@@ -117,6 +117,7 @@ function ChatScreen({ me, room, onRoomLost, onRoomChanged }: ChatScreenProps) {
               partnerReadId={partner ? reads[partner.id] : undefined}
               onRetry={chat.retry}
               onLoadOlder={chat.loadOlder}
+              onGraduate={buddy.grown ? () => setBuddyOpen(true) : undefined}
             />
           )}
         </View>

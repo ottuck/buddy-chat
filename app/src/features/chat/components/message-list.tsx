@@ -15,6 +15,8 @@ type Props = {
   partnerReadId?: string;
   onRetry: (clientMessageId: string) => void;
   onLoadOlder: () => void;
+  // The top level's card offers going its own way while the buddy is still the grown one.
+  onGraduate?: () => void;
 };
 
 export function MessageList({
@@ -25,6 +27,7 @@ export function MessageList({
   partnerReadId,
   onRetry,
   onLoadOlder,
+  onGraduate,
 }: Props) {
   const { t, i18n } = useTranslation();
   const nameOf = (id?: string) =>
@@ -66,6 +69,8 @@ export function MessageList({
               <MaxLevelCard
                 title={t('buddyEvent.MAX_LEVEL', { buddy: buddyName, level: item.level })}
                 body={t('chat.maxLevelThanks')}
+                action={onGraduate ? t('buddy.graduate.button') : undefined}
+                onAction={onGraduate}
               />
             </View>
           );
