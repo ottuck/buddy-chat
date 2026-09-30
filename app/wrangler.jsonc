@@ -11,6 +11,8 @@
     "html_handling": "auto-trailing-slash",
     "not_found_handling": "404-page",
   },
-  "workers_dev": true,
+  // Only on puny-chat.com: no workers.dev address (the account has no workers.dev subdomain).
+  "workers_dev": false,
+  "preview_urls": false,
   "routes": [{ "pattern": "puny-chat.com", "custom_domain": true }],
 }
