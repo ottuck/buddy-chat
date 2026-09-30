@@ -73,6 +73,14 @@ locals {
 # --- Server: Azure Container Apps ---
 
 # The app pulls its image with this identity.
+# --- Web Push: this server's VAPID key (RFC 8292), kept in the state like the database password.
+# Replacing it only makes browsers subscribe again the next time the app opens.
+
+resource "tls_private_key" "vapid" {
+  algorithm   = "ECDSA"
+  ecdsa_curve = "P256"
+}
+
 resource "azurerm_user_assigned_identity" "app" {
   name                = "id-${local.name}-prod"
   resource_group_name = azurerm_resource_group.prod.name
@@ -109,6 +117,11 @@ resource "azurerm_container_app" "server" {
     value = local.mongodb_uri
   }
 
+  secret {
+    name  = "vapid-private-key"
+    value = tls_private_key.vapid.private_key_pem_pkcs8
+  }
+
   ingress {
     external_enabled = true
     target_port      = 8080
@@ -139,6 +152,15 @@ resource "azurerm_container_app" "server" {
       env {
         name  = "SPRING_MONGODB_DATABASE"
         value = "buddychat"
+      }
+      # Web Push (docs/server-design.md, 웹 푸시): the key browsers subscribe with.
+      env {
+        name        = "BUDDYCHAT_PUSH_VAPIDPRIVATEKEY"
+        secret_name = "vapid-private-key"
+      }
+      env {
+        name  = "BUDDYCHAT_PUSH_VAPIDPUBLICKEY"
+        value = tls_private_key.vapid.public_key_pem
       }
       dynamic "env" {
         # Testing only: fewer EXP per level so evolutions come after a few messages.
