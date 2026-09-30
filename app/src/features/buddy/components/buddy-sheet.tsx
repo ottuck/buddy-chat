@@ -21,6 +21,8 @@ import { MAX_CONTENT_WIDTH, useColors } from '@/theme';
 
 import type { BuddyView } from '../api';
 import { BuddyAvatar } from './buddy-avatar';
+import { rewardIcon } from './buddy-guide';
+import { nextReward } from './stage-decor';
 
 const MAX_POOPS = 3; // server: BuddyRules.MAX_POOPS
 
@@ -125,6 +127,8 @@ export function BuddySheet({
               />
             </View>
 
+            <NextReward level={buddy.level} album={album ?? []} />
+
             <Text style={[styles.hint, { color: colors.textMuted }]}>{t('buddy.growthHint')}</Text>
 
             {buddy.grown && onGraduate ? (
@@ -135,6 +139,26 @@ export function BuddySheet({
         </View>
       </WebFrame>
     </Modal>
+  );
+}
+
+// Something to look forward to: the next reward and how far it is.
+function NextReward({ level, album }: { level: number; album: AlbumEntry[] }) {
+  const colors = useColors();
+  const { t } = useTranslation();
+  const next = nextReward(level, album);
+  if (!next) return null;
+  return (
+    <View style={[styles.card, styles.nextReward, { backgroundColor: colors.surface }]}>
+      {rewardIcon(next.reward)}
+      <Text style={[styles.body, styles.nextText, { color: colors.text }]}>
+        {t('buddy.nextReward', {
+          level: next.level,
+          reward: t(`buddy.reward.${next.reward}`),
+          count: next.level - level,
+        })}
+      </Text>
+    </View>
   );
 }
 
@@ -301,6 +325,14 @@ const styles = StyleSheet.create({
   column: {
     paddingHorizontal: 20,
     gap: 20,
+  },
+  nextReward: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  nextText: {
+    flex: 1,
   },
   sectionTitle: {
     fontSize: 15,

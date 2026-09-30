@@ -12,6 +12,8 @@ type Props = {
   onPressInvite: () => void;
   // Absent in the tour, which has no settings.
   onPressSettings?: () => void;
+  // How to raise the buddy (the guide).
+  onPressHelp?: () => void;
 };
 
 export function ChatHeader({
@@ -21,6 +23,7 @@ export function ChatHeader({
   connected,
   onPressInvite,
   onPressSettings,
+  onPressHelp,
 }: Props) {
   const colors = useColors();
   const { t } = useTranslation();
@@ -64,13 +67,26 @@ export function ChatHeader({
             {t('chat.connecting')}
           </Text>
         ) : null}
+        {onPressHelp ? (
+          <Pressable
+            onPress={onPressHelp}
+            accessibilityRole="button"
+            accessibilityLabel={t('guide.title')}
+            hitSlop={12}
+            style={styles.settingsButton}
+          >
+            <Text style={[styles.help, { color: colors.textMuted, borderColor: colors.textMuted }]}>
+              ?
+            </Text>
+          </Pressable>
+        ) : null}
         {onPressSettings ? (
           <Pressable
             onPress={onPressSettings}
             accessibilityRole="button"
             accessibilityLabel={t('settings.title')}
             hitSlop={12}
-            style={styles.settingsButton}
+            style={onPressHelp ? styles.nextToHelp : styles.settingsButton}
           >
             <Text style={[styles.settingsIcon, { color: colors.textMuted }]}>⚙︎</Text>
           </Pressable>
@@ -81,6 +97,16 @@ export function ChatHeader({
 }
 
 const styles = StyleSheet.create({
+  help: {
+    width: 20,
+    height: 20,
+    borderWidth: 1.5,
+    borderRadius: 10,
+    fontSize: 12,
+    fontWeight: '700',
+    textAlign: 'center',
+    lineHeight: 17,
+  },
   container: {
     paddingHorizontal: 16,
     paddingTop: 8,
@@ -107,6 +133,10 @@ const styles = StyleSheet.create({
   },
   settingsButton: {
     marginLeft: 'auto',
+  },
+  // The "?" takes the push to the right; settings sits beside it.
+  nextToHelp: {
+    marginLeft: 16,
   },
   settingsIcon: {
     fontSize: 20,

@@ -123,6 +123,17 @@ export default function SettingsScreen() {
 
         {state.status === 'ready' ? <RoomCard room={state.room} myId={state.me.id} /> : null}
 
+        <Pressable
+          onPress={() => router.push('/guide')}
+          accessibilityRole="button"
+          style={({ pressed }) => [
+            styles.card,
+            { backgroundColor: colors.surface, opacity: pressed ? 0.7 : 1 },
+          ]}
+        >
+          <Text style={[styles.row, { color: colors.text }]}>{t('guide.title')}</Text>
+        </Pressable>
+
         {/* For someone who started solo and got a friend's code later. */}
         <Pressable
           onPress={() => router.push('/join')}

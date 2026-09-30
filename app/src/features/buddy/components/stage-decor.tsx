@@ -5,30 +5,42 @@ import type { AlbumEntry } from '@/features/room/api';
 import { PixelSprite } from '../pixel/pixel-sprite';
 import {
   BUDDY_PALETTE,
+  type BowlTier,
   buddyFrame,
-  flag,
-  PLANT,
+  PLANTS,
+  type PlantTier,
   PROP_PALETTE,
   RUG,
-  seasonMark,
 } from '../pixel/sprites';
 
-// The stage's decorations (docs/product.md, 무대 꾸미기). They belong to the room: things come with
-// levels (a plant at 7, a rug at 15, a garland at 25) and stay once a buddy has gone its own way,
-// whose portrait then hangs on the wall. A mark of the season is always up.
+// The stage's decorations (docs/product.md, 무대 꾸미기). Levels bring a reward every five levels,
+// mostly making what is already there finer, so the stage does not fill up. They belong to the
+// room: once a buddy has gone its own way, everything stays, and its portrait hangs on the wall.
 
-export const PLANT_FROM = 7;
-export const RUG_FROM = 15;
-export const GARLAND_FROM = 25;
+export type Reward = 'plant1' | 'bowl1' | 'plant2' | 'rug' | 'plant3' | 'bowl2';
+
+// Shown in the guide and the buddy sheet ("next: Lv.10 silver bowl") as well.
+export const REWARDS: readonly { level: number; reward: Reward }[] = [
+  { level: 5, reward: 'plant1' },
+  { level: 10, reward: 'bowl1' },
+  { level: 15, reward: 'plant2' },
+  { level: 20, reward: 'rug' },
+  { level: 25, reward: 'plant3' },
+  { level: 30, reward: 'bowl2' },
+];
+
 const FRAMES_SHOWN = 3;
-const FLAG_COLORS = ['r', 'y', 'a'] as const;
 
 export function decorFor(level: number, album: AlbumEntry[]) {
-  const grownBefore = album.length > 0;
+  const reached = album.length > 0 ? Infinity : level;
+  const has = (reward: Reward) =>
+    REWARDS.some((entry) => entry.reward === reward && reached >= entry.level);
+  const plant: PlantTier | 0 = has('plant3') ? 3 : has('plant2') ? 2 : has('plant1') ? 1 : 0;
+  const bowl: BowlTier = has('bowl2') ? 2 : has('bowl1') ? 1 : 0;
   return {
-    plant: grownBefore || level >= PLANT_FROM,
-    rug: grownBefore || level >= RUG_FROM,
-    garland: grownBefore || level >= GARLAND_FROM,
+    plant,
+    bowl,
+    rug: has('rug'),
     // The latest ones, newest on the right.
     portraits: album.slice(-FRAMES_SHOWN),
   };
@@ -36,50 +48,30 @@ export function decorFor(level: number, album: AlbumEntry[]) {
 
 export type Decor = ReturnType<typeof decorFor>;
 
-// Width of the plant on the floor, so poops and the walk stay clear of it.
-export const PLANT_ROOM = 34;
+// The next reward to look forward to, if any.
+export function nextReward(level: number, album: AlbumEntry[]) {
+  if (album.length > 0) return null;
+  return REWARDS.find((entry) => entry.level > level) ?? null;
+}
 
-// Behind the buddy: garland, season mark, portraits and the rug. The plant is drawn by the stage,
-// on the floor next to the poops.
-export function WallDecor({
-  decor,
-  width,
-  floor,
-  top,
-}: {
-  decor: Decor;
-  width: number;
-  floor: number;
-  // Below the name and level row.
-  top: number;
-}) {
-  const flags = Math.max(0, Math.floor((width - 24) / 22));
+const PLANT_SCALE = 3;
+
+// Floor the plant takes in the corner, so poops and the walk stay clear of it.
+export function plantRoom(tier: PlantTier | 0): number {
+  return tier === 0 ? 0 : PLANTS[tier][0].length * PLANT_SCALE + 8;
+}
+
+// Behind the buddy: portraits of buddies gone their own way, and the rug. The plant and the bowl
+// are drawn by the stage.
+export function WallDecor({ decor, floor, top }: { decor: Decor; floor: number; top: number }) {
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      {decor.garland ? (
-        <View style={[styles.garland, { top }]}>
-          {Array.from({ length: flags }, (_, i) => (
-            <PixelSprite
-              key={i}
-              frame={flag(FLAG_COLORS[i % FLAG_COLORS.length])}
-              palette={PROP_PALETTE}
-              scale={3}
-            />
-          ))}
-        </View>
-      ) : null}
-      <View style={[styles.season, { top: top + (decor.garland ? 18 : 4) }]}>
-        <PixelSprite frame={seasonMark(new Date().getMonth())} palette={PROP_PALETTE} scale={3} />
-      </View>
+    <View style={[StyleSheet.absoluteFill, styles.passThrough]}>
       {decor.portraits.map((entry, i) => (
         <View
           key={entry.graduatedAt}
           style={[
             styles.frame,
-            {
-              top: top + (decor.garland ? 20 : 6),
-              right: 14 + (decor.portraits.length - 1 - i) * 52,
-            },
+            { top: top + 6, right: 14 + (decor.portraits.length - 1 - i) * 52 },
           ]}
           accessibilityLabel={entry.name}
         >
@@ -95,24 +87,13 @@ export function WallDecor({
   );
 }
 
-export function Plant() {
-  return <PixelSprite frame={PLANT} palette={PROP_PALETTE} scale={3} />;
+export function Plant({ tier }: { tier: PlantTier }) {
+  return <PixelSprite frame={PLANTS[tier]} palette={PROP_PALETTE} scale={PLANT_SCALE} />;
 }
 
 const styles = StyleSheet.create({
-  garland: {
-    position: 'absolute',
-    left: 12,
-    right: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    borderTopWidth: 2,
-    borderTopColor: '#A0673C',
-    paddingTop: 0,
-  },
-  season: {
-    position: 'absolute',
-    left: 16,
+  passThrough: {
+    pointerEvents: 'none',
   },
   frame: {
     position: 'absolute',
@@ -123,7 +104,6 @@ const styles = StyleSheet.create({
   },
   rug: {
     position: 'absolute',
-    alignSelf: 'center',
     left: 0,
     right: 0,
     alignItems: 'center',

@@ -222,13 +222,17 @@ export const PROP_PALETTE: Palette = {
   a: '#7FB3D5', // bowl
   r: '#FF6B81', // heart
   y: '#FFD166', // sparkles
-  u: '#F07A4A', // level up, autumn leaf
+  u: '#F07A4A', // level up
   g: '#8BCB6B', // plant
   G: '#5DA14E', // plant shade
   o: '#E0875F', // flower pot
   m: '#F4B8A8', // rug
   n: '#FFF1E6', // rug stripes
-  f: '#FF9EB5', // blossom
+  f: '#FF9EB5', // flowers
+  S: '#C8CED6', // silver bowl
+  Y: '#EFBF3A', // gold bowl
+  e: '#C96F4A', // pot rim
+  B: '#4F86B8', // glazed pot
 };
 
 // prettier-ignore
@@ -241,15 +245,22 @@ export const POOP: Frame = [
   'kkkkkkkk',
 ];
 
-// prettier-ignore
-const BOWL_BASE = [
-  'kkkkkkkkkkkk',
-  '.kaaaaaaaak.',
-  '..kaaaaaak..',
-  '...kkkkkk...',
-];
-export const BOWL_FULL: Frame = ['...wwwwww...', '..wwwwwwww..', ...BOWL_BASE];
-export const BOWL_EMPTY: Frame = ['............', '............', ...BOWL_BASE];
+// The bowl gets finer with levels: blue, then silver (with a shine), then gold.
+export type BowlTier = 0 | 1 | 2;
+const BOWL_COLOR = ['a', 'S', 'Y'] as const;
+
+export function bowl(full: boolean, tier: BowlTier): Frame {
+  const c = BOWL_COLOR[tier];
+  const shine = tier > 0 ? 'w' : c;
+  return [
+    full ? '...wwwwww...' : '............',
+    full ? '..wwwwwwww..' : '............',
+    'kkkkkkkkkkkk',
+    '.k' + c + shine + c.repeat(6) + 'k.',
+    '..k' + c.repeat(6) + 'k..',
+    '...kkkkkk...',
+  ];
+}
 
 // prettier-ignore
 export const HEART: Frame = [
@@ -312,19 +323,60 @@ export const NOTE: Frame = [
 
 // --- Decorations (docs/product.md, 무대 꾸미기) ---
 
+// The plant in the corner grows finer with levels: a sprout in a clay pot, a leafy plant in a
+// rimmed pot, then flowers in a glazed pot.
 // prettier-ignore
-export const PLANT: Frame = [
+const PLANT_1: Frame = [
   '..g...g..',
   '.gGg.gGg.',
   '.gGGgGGg.',
   '..gGGGg..',
   '...gGg...',
   '....G....',
-  '.kkkkkkkk',
+  '.kkkkkkk.',
   '.kooooook',
   '..kooook.',
   '..kkkkkk.',
 ];
+
+// prettier-ignore
+const PLANT_2: Frame = [
+  '..g..g..g..',
+  '.gGg.gGgGg.',
+  'gGgGgGgGgGg',
+  '.gGgGgGgGg.',
+  '..gGgGgGg..',
+  '...gGGGg...',
+  '.....G.....',
+  'k'.repeat(11),
+  'k' + 'e'.repeat(9) + 'k',
+  '.k' + 'o'.repeat(7) + 'k.',
+  '.k' + 'o'.repeat(7) + 'k.',
+  '..k' + 'o'.repeat(5) + 'k..',
+  '..' + 'k'.repeat(7) + '..',
+];
+
+// prettier-ignore
+const PLANT_3: Frame = [
+  '...f.....f...',
+  '..fyf...fyf..',
+  '...f.gGg.f...',
+  '..gGg.G.gGg..',
+  '.gGgGgGgGgGg.',
+  'gGgGgfyfgGgGg',
+  '.gGgGgfgGgGg.',
+  '..gGgGgGgGg..',
+  '......G......',
+  'k'.repeat(13),
+  'k' + 'a'.repeat(11) + 'k',
+  '.k' + 'awawawawa' + 'k.',
+  '.k' + 'B'.repeat(9) + 'k.',
+  '..k' + 'B'.repeat(7) + 'k..',
+  '..' + 'k'.repeat(9) + '..',
+];
+
+export type PlantTier = 1 | 2 | 3;
+export const PLANTS: Record<PlantTier, Frame> = { 1: PLANT_1, 2: PLANT_2, 3: PLANT_3 };
 
 export const RUG: Frame = [
   '..' + 'm'.repeat(26) + '..',
@@ -332,60 +384,3 @@ export const RUG: Frame = [
   '.' + 'nmm'.repeat(9) + 'm.',
   '..' + 'm'.repeat(26) + '..',
 ];
-
-// One flag of the garland, in the given color key.
-export function flag(color: 'r' | 'y' | 'a'): Frame {
-  return [color.repeat(5), '.' + color.repeat(3) + '.', '..' + color + '..'];
-}
-
-// prettier-ignore
-const LEAF: Frame = [
-  '...u...',
-  '.u.u.u.',
-  '.uuuuu.',
-  'uuuuuuu',
-  '.uuuuu.',
-  '...c...',
-  '...c...',
-];
-
-// prettier-ignore
-const SNOW: Frame = [
-  '...a...',
-  '.a.a.a.',
-  '..aaa..',
-  'aaaaaaa',
-  '..aaa..',
-  '.a.a.a.',
-  '...a...',
-];
-
-// prettier-ignore
-const BLOSSOM: Frame = [
-  '..f.f..',
-  '.fffff.',
-  'ffyyyff',
-  '.fyyyf.',
-  'ffyyyff',
-  '.fffff.',
-  '..f.f..',
-];
-
-// prettier-ignore
-const SUN: Frame = [
-  'y..y..y',
-  '.y.y.y.',
-  '..uuu..',
-  'yyuuuyy',
-  '..uuu..',
-  '.y.y.y.',
-  'y..y..y',
-];
-
-// The season's mark on the wall, by month (0 = January).
-export function seasonMark(month: number): Frame {
-  if (month >= 2 && month <= 4) return BLOSSOM;
-  if (month >= 5 && month <= 7) return SUN;
-  if (month >= 8 && month <= 10) return LEAF;
-  return SNOW;
-}

@@ -18,6 +18,7 @@ import { GuestExpiryBanner } from '@/features/auth/components/guest-expiry-banne
 import { useGuestDaysLeft } from '@/features/auth/guest-expiry';
 import { BuddySheet } from '@/features/buddy/components/buddy-sheet';
 import { BuddyStage } from '@/features/buddy/components/buddy-stage';
+import { GuideBanner } from '@/features/buddy/components/guide-banner';
 import { stageFoldsOnFocus } from '@/features/buddy/stage-folds-on-focus';
 import { graduateBuddy } from '@/features/buddy/api';
 import { useBuddy } from '@/features/buddy/use-buddy';
@@ -105,8 +106,10 @@ function ChatScreen({ me, room, onRoomLost, onRoomChanged }: ChatScreenProps) {
           connected={status === 'online'}
           onPressInvite={() => setInviteOpen(true)}
           onPressSettings={() => router.push('/settings')}
+          onPressHelp={() => router.push('/guide')}
         />
         <GuestExpiryBanner daysLeft={guestDaysLeft} onPress={() => router.push('/settings')} />
+        <GuideBanner onOpen={() => router.push('/guide')} />
         <BuddyStage
           buddy={buddy}
           busy={busy}

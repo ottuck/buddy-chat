@@ -98,6 +98,10 @@ function RootNavigator() {
           name="settings"
           options={{ headerShown: true, title: t('settings.title'), headerBackTitle: '' }}
         />
+        <Stack.Screen
+          name="guide"
+          options={{ headerShown: true, title: t('guide.title'), headerBackTitle: '' }}
+        />
       </Stack.Protected>
       <Stack.Protected guard={signedIn && state.status === 'none' && named}>
         <Stack.Screen name="welcome" />

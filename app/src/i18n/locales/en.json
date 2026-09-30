@@ -114,7 +114,17 @@
       "title": "Album",
       "together_one": "{{from}} – {{to}} · {{count}} day together",
       "together_other": "{{from}} – {{to}} · {{count}} days together"
-    }
+    },
+    "reward": {
+      "plant1": "Sprout pot",
+      "bowl1": "Silver bowl",
+      "plant2": "Leafy plant",
+      "rug": "Rug",
+      "plant3": "Flowers in a glazed pot",
+      "bowl2": "Gold bowl"
+    },
+    "nextReward_one": "Next reward: Lv.{{level}} {{reward}} · {{count}} level to go",
+    "nextReward_other": "Next reward: Lv.{{level}} {{reward}} · {{count}} levels to go"
   },
   "buddyEvent": {
     "HUNGRY": "{{buddy}} is hungry 🍚",
@@ -211,5 +221,34 @@
     "endTitle": "{{buddy}} is all grown up!",
     "endBody": "Ready to raise your own buddy? Start right away, no sign-up.",
     "replay": "Watch again"
+  },
+  "guide": {
+    "title": "Raising your buddy",
+    "banner": {
+      "title": "🥚 How to raise your buddy",
+      "body": "It grows as you chat and take care of it, with a reward on the stage every 5 levels. At level 30 it can go its own way.",
+      "open": "See the guide ›"
+    },
+    "care": {
+      "title": "🍚 Care",
+      "feed": "When it is hungry the bowl is empty. Tap the bowl, or send just \"food\" in the chat.",
+      "clean": "Each tap cleans up one 💩. Send \"clean\" in the chat to clean them all.",
+      "pet": "Tap your buddy and it cheers, dances or sings."
+    },
+    "grow": {
+      "title": "🌱 Growing",
+      "exp": "EXP: +1 per message (up to 50 a day), +2 for a meal, +2 per 💩 cleaned.",
+      "stages": "Egg → baby (Lv.2) → child (Lv.5) → adult (Lv.10). From child on, it talks."
+    },
+    "rewards": {
+      "title": "🎁 Level rewards",
+      "body": "Every 5 levels the stage gets a little finer."
+    },
+    "graduate": {
+      "title": "🎓 Its own way",
+      "top": "The top level is 30. Then you can let your buddy go its own way from its details.",
+      "album": "It stays in the album and hangs on the wall in a frame. A new egg comes to the stage.",
+      "keep": "The rewards you collected stay with the new egg."
+    }
   }
 }

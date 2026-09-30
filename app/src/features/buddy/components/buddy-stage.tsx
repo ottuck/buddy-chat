@@ -19,8 +19,7 @@ import type { AlbumEntry } from '@/features/room/api';
 import type { BuddyView } from '../api';
 import { PixelSprite } from '../pixel/pixel-sprite';
 import {
-  BOWL_EMPTY,
-  BOWL_FULL,
+  bowl,
   BUDDY_PALETTE,
   buddyFrame,
   EXCLAIM,
@@ -37,7 +36,7 @@ import {
 import type { Reaction, ReactionKind } from '../reactions';
 import { type Line, pick, useBuddyTalk } from '../use-buddy-talk';
 import { SpeechBubble } from './speech-bubble';
-import { decorFor, Plant, PLANT_ROOM, WallDecor } from './stage-decor';
+import { decorFor, Plant, plantRoom as plantRoomFor, WallDecor } from './stage-decor';
 
 // The buddy's stage above the chat (docs/product.md, 핵심 경험): the buddy walks around, waits by
 // an empty bowl when hungry, leaves poops on the floor and sleeps at night. Tapping the bowl or a
@@ -215,7 +214,7 @@ function ExpandedStage({
   // The walkable strip: right of the bowl, left of the poops.
   const minX = 16 + bowlWidth + 8;
   const decor = decorFor(buddy.level, album ?? []);
-  const plantRoom = decor.plant ? PLANT_ROOM : 0;
+  const plantRoom = plantRoomFor(decor.plant);
   const maxX = Math.max(minX, width - spriteWidth - 16 - (companionEgg ? EGG_ROOM : 0) - plantRoom);
   const eating = active?.kind === 'fed';
   const settled = sleeping || buddy.hungry || egg || eating || evolving;
@@ -580,10 +579,10 @@ function ExpandedStage({
         ]}
       />
 
-      {width > 0 ? <WallDecor decor={decor} width={width} floor={FLOOR} top={34} /> : null}
+      <WallDecor decor={decor} floor={FLOOR} top={34} />
       {decor.plant ? (
         <View style={[styles.poop, { bottom: FLOOR - 2, right: 8 }]} pointerEvents="none">
-          <Plant />
+          <Plant tier={decor.plant} />
         </View>
       ) : null}
 
@@ -606,7 +605,7 @@ function ExpandedStage({
         >
           {/* Full, but empty while the buddy is hungry. */}
           <PixelSprite
-            frame={bowlFull ? BOWL_FULL : BOWL_EMPTY}
+            frame={bowl(bowlFull, decor.bowl)}
             palette={PROP_PALETTE}
             scale={PROP_SCALE}
           />
