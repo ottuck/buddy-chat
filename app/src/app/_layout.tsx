@@ -3,30 +3,47 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Platform, useColorScheme } from 'react-native';
+import { Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import '@/i18n';
+import i18n, { detectLanguage } from '@/i18n';
 import { StatusScreen } from '@/components/status-screen';
 import { WebFrame } from '@/components/web-frame';
 import { AuthProvider, useAuth } from '@/features/auth/auth-provider';
 import { RoomProvider, useRoom } from '@/features/room/room-provider';
+import { loadPreferences, usePreferences } from '@/lib/preferences';
 import { rememberInviteFromUrl, takePendingInvite } from '@/lib/pending-invite';
+import { registerServiceWorker } from '@/lib/service-worker';
 import { warmUpServer } from '@/lib/warm-up';
+import { useColorMode } from '@/theme';
 
 // Keep the splash screen up until we know where the user belongs (signed out, no room yet, or
 // their room), so no screen flashes by on launch.
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
+  const colorScheme = useColorMode();
+  const { language } = usePreferences();
 
   // Wake the server (it may have scaled to zero) before the first real request needs it.
   useEffect(() => {
     warmUpServer();
+    loadPreferences();
+    registerServiceWorker();
     // A friend's invite link (join?code=…) may arrive before the friend has signed in.
     rememberInviteFromUrl();
   }, []);
+
+  // The language chosen in settings, or the device's.
+  useEffect(() => {
+    const next = language === 'system' ? detectLanguage() : language;
+    if (i18n.language !== next) i18n.changeLanguage(next);
+  }, [language]);
+
+  // Web: the page around the app (background, frame) follows the chosen mode too (app/+html.tsx).
+  useEffect(() => {
+    if (Platform.OS === 'web') document.documentElement.dataset.theme = colorScheme;
+  }, [colorScheme]);
 
   return (
     <SafeAreaProvider>
@@ -38,7 +55,7 @@ export default function RootLayout() {
             </WebFrame>
           </RoomProvider>
         </AuthProvider>
-        <StatusBar style="auto" />
+        <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       </ThemeProvider>
     </SafeAreaProvider>
   );

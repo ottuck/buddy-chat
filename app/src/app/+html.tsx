@@ -36,6 +36,12 @@ export default function Root({ children }: PropsWithChildren) {
           content="A chat between two people with a pixel buddy on a small stage above it"
         />
         <meta name="twitter:card" content="summary_large_image" />
+        {/* Installable (home screen, standalone), which an iPhone needs for notifications. */}
+        <link rel="manifest" href="/manifest.webmanifest" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-title" content={TITLE} />
         <meta name="theme-color" content="#F6F4F1" media="(prefers-color-scheme: light)" />
         <meta name="theme-color" content="#16161A" media="(prefers-color-scheme: dark)" />
         <ScrollViewStyleReset />
@@ -72,6 +78,18 @@ body { background-color: #F6F4F1; }
 @media (min-width: 768px) and (prefers-color-scheme: dark) {
   body, #web-backdrop { background-color: #0C0C0F; }
   #web-frame { border-color: #2E2E35; background-color: #16161A; box-shadow: none; }
+}
+html[data-theme="light"] body { background-color: #F6F4F1; }
+html[data-theme="dark"] body { background-color: #16161A; }
+@media (min-width: 768px) {
+  html[data-theme="light"] body, html[data-theme="light"] #web-backdrop { background-color: #E8E3DC; }
+  html[data-theme="light"] #web-frame {
+    border-color: #E7E2DC;
+    background-color: #F6F4F1;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+  }
+  html[data-theme="dark"] body, html[data-theme="dark"] #web-backdrop { background-color: #0C0C0F; }
+  html[data-theme="dark"] #web-frame { border-color: #2E2E35; background-color: #16161A; box-shadow: none; }
 }
 * { scrollbar-width: thin; }
 html:lang(ko) body { word-break: keep-all; overflow-wrap: anywhere; }`;

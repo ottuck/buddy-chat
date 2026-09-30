@@ -11,6 +11,8 @@ import com.buddychat.room.Invitation;
 import com.buddychat.room.Room;
 import com.buddychat.user.User;
 import java.net.URI;
+import java.security.GeneralSecurityException;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -73,6 +75,24 @@ class NotificationFlowTest {
         }
     }
 
+    /** Records what would have gone to browsers' push services; endpoints can be marked as gone. */
+    static class FakeWebPush extends WebPush {
+        final List<String> sentTo = new CopyOnWriteArrayList<>();
+        final List<String> payloads = new CopyOnWriteArrayList<>();
+        final Set<String> gone = ConcurrentHashMap.newKeySet();
+
+        FakeWebPush(NotificationProperties properties, Clock clock) throws GeneralSecurityException {
+            super(properties, clock);
+        }
+
+        @Override
+        Mono<Boolean> send(PushToken subscription, String payloadJson) {
+            sentTo.add(subscription.token());
+            payloads.add(payloadJson);
+            return Mono.just(gone.contains(subscription.token()));
+        }
+    }
+
     @TestConfiguration(proxyBeanMethods = false)
     static class FakePush {
         @Bean
@@ -80,7 +100,15 @@ class NotificationFlowTest {
         FakeSender fakeSender() {
             return new FakeSender();
         }
+
+        @Bean
+        @Primary
+        FakeWebPush fakeWebPush(NotificationProperties properties, Clock clock) throws GeneralSecurityException {
+            return new FakeWebPush(properties, clock);
+        }
     }
+
+    static final String YUKI_BROWSER = "https://fcm.googleapis.com/fcm/send/yuki-browser";
 
     @LocalServerPort
     int port;
@@ -95,6 +123,9 @@ class NotificationFlowTest {
     FakeSender push;
 
     @Autowired
+    FakeWebPush webPush;
+
+    @Autowired
     NotificationService notifications;
 
     private final List<TestSocket> sockets = new ArrayList<>();
@@ -107,6 +138,9 @@ class NotificationFlowTest {
                 .then(mongo.remove(new Query(), "reads"))
                 .block();
         push.sent.clear();
+        webPush.sentTo.clear();
+        webPush.payloads.clear();
+        webPush.gone.clear();
         push.rejectedNow.clear();
         push.rejectedLater.clear();
         http = WebTestClient.bindToServer().baseUrl("http://localhost:" + port).build();
@@ -115,6 +149,41 @@ class NotificationFlowTest {
     @AfterEach
     void closeSockets() {
         sockets.forEach(TestSocket::close);
+    }
+
+    @Test
+    void notifiesABrowserAndForgetsOneThatIsGone() {
+        duoRoom("henry", "yuki");
+        registerBrowser("yuki", YUKI_BROWSER);
+        TestSocket henry = connect("henry");
+
+        sendText(henry, "웹으로도 와?");
+        await(() -> !webPush.sentTo.isEmpty());
+        assertThat(webPush.sentTo).containsExactly(YUKI_BROWSER);
+        assertThat(webPush.payloads.getFirst()).contains("henry").contains("웹으로도 와?");
+
+        webPush.gone.add(YUKI_BROWSER); // yuki turned notifications off in the browser
+        sendText(henry, "안 오네");
+        await(() -> mongo.findById(YUKI_BROWSER, PushToken.class).block() == null);
+    }
+
+    @Test
+    void onlyKnownPushServicesAreAccepted() {
+        createRoom("yuki");
+        post("yuki", "/api/me/web-push", Map.of("endpoint", "https://attacker.example/x", "p256dh", "k", "auth", "a"))
+                .expectStatus()
+                .isBadRequest();
+        JsonNode key = http.get()
+                .uri("/api/me/web-push/key")
+                .header("Authorization", "Bearer " + token("yuki"))
+                .exchange()
+                .expectStatus()
+                .isOk()
+                .expectBody(JsonNode.class)
+                .returnResult()
+                .getResponseBody();
+        assertThat(java.util.Base64.getUrlDecoder().decode(key.get("publicKey").asString()))
+                .hasSize(65);
     }
 
     @Test
@@ -240,6 +309,24 @@ class NotificationFlowTest {
     }
 
     // --- helpers ---
+
+    private void registerBrowser(String uid, String endpoint) {
+        post(uid, "/api/me/web-push", Map.of("endpoint", endpoint, "p256dh", "BPk", "auth", "au"))
+                .expectStatus()
+                .isNoContent();
+    }
+
+    private static void await(java.util.function.BooleanSupplier done) {
+        for (int i = 0; i < 60 && !done.getAsBoolean(); i++) {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+        }
+        assertThat(done.getAsBoolean()).isTrue();
+    }
 
     private User user(String uid) {
         return mongo.findOne(Query.query(Criteria.where("firebaseUid").is(uid)), User.class)

@@ -14,6 +14,7 @@ export type Line =
   | 'digestion'
   | 'hungry'
   | 'full'
+  | 'alreadyClean'
   | 'longTime'
   | 'morning'
   | 'afternoon'

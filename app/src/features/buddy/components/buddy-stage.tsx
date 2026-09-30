@@ -34,6 +34,7 @@ import {
   ZZZ,
 } from '../pixel/sprites';
 import type { Reaction, ReactionKind } from '../reactions';
+import type { ChatWord } from '../chat-words';
 import { type Line, pick, useBuddyTalk } from '../use-buddy-talk';
 import { SpeechBubble } from './speech-bubble';
 import { decorFor, Plant, plantRoom as plantRoomFor, WallDecor } from './stage-decor';
@@ -42,8 +43,9 @@ import { decorFor, Plant, plantRoom as plantRoomFor, WallDecor } from './stage-d
 // an empty bowl when hungry, leaves poops on the floor and sleeps at night. Tapping the bowl or a
 // poop takes care of it right there, and it reacts to what happens in the room: eating when fed,
 // straining when it poops, sparkling when cleaned, hopping at a new message, and evolving. Left
-// alone it dances or sings now and then, and once grown it talks (use-buddy-talk.ts).
-// Folds into one row while typing or reading back.
+// alone it dances or sings now and then, and once grown it talks (use-buddy-talk.ts). It keeps its
+// size while typing and reading back: a stage that folds and unfolds moved the chat under the
+// finger and broke scrolling.
 
 const FLOOR = 22;
 const PROP_SCALE = 3;
@@ -53,8 +55,9 @@ const FAST_TICK_MS = 90;
 const PET_MS = 1800;
 // Things the buddy does by itself: a dance, a song, or shaking its head at a full bowl.
 type Act = 'dance' | 'sing' | 'refuse';
-// The tour's script asking for a dance or a song.
-export type AskedAct = { id: string; act: 'dance' | 'sing' };
+// A one-word message for the buddy ("밥", "춤", …, features/buddy/chat-words.ts), or the tour's
+// script asking for a dance or a song.
+export type Cue = { id: string; kind: ChatWord };
 const ACT_MS: Record<Act, number> = { dance: 3000, sing: 3200, refuse: 900 };
 // How often, left alone, it dances or sings.
 const IDLE_ACT_MIN_MS = 20_000;
@@ -92,9 +95,7 @@ type Props = {
   buddy: BuddyView;
   // A feed or clean request is in flight.
   busy: boolean;
-  expanded: boolean;
   height: number;
-  onExpand: () => void;
   onFeed: () => void;
   onClean: () => void;
   onOpenDetail: () => void;
@@ -104,14 +105,10 @@ type Props = {
   companionEgg?: boolean;
   // Greets on opening ("good morning"); off in the tour.
   greets?: boolean;
-  askedAct?: AskedAct | null;
+  cue?: Cue | null;
   // Buddies gone their own way: their portraits hang on the wall, and the decorations stay.
   album?: AlbumEntry[];
 };
-
-export function BuddyStage(props: Props) {
-  return props.expanded ? <ExpandedStage {...props} /> : <FoldedStage {...props} />;
-}
 
 // Local night hours, checked once a minute.
 function useSleeping(): boolean {
@@ -158,7 +155,7 @@ function gridScale(height: number, gridHeight: number): number {
   return Math.max(3, Math.min(5, Math.floor((height - 84) / gridHeight)));
 }
 
-function ExpandedStage({
+export function BuddyStage({
   buddy,
   busy,
   height,
@@ -168,7 +165,7 @@ function ExpandedStage({
   reaction: latest,
   companionEgg,
   greets = true,
-  askedAct: latestAct,
+  cue: latestCue,
   album,
 }: Props) {
   const colors = useColors();
@@ -178,8 +175,8 @@ function ExpandedStage({
   const [mountedAfter] = useState(latest?.id);
   const reaction = latest && latest.id !== mountedAfter ? latest : null;
   const active = useActiveReaction(reaction);
-  const [actMountedAfter] = useState(latestAct?.id);
-  const askedAct = latestAct && latestAct.id !== actMountedAfter ? latestAct : null;
+  const [cueMountedAfter] = useState(latestCue?.id);
+  const cue = latestCue && latestCue.id !== cueMountedAfter ? latestCue : null;
   const evolving = active?.kind === 'evolved' && active.phase === 'main';
   const [act, setAct] = useState<Act | null>(null);
   const actTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -285,17 +282,28 @@ function ExpandedStage({
     };
   }, [width, settled, acting, eating, buddy.hungry, minX, maxX, x]);
 
-  // Asked by the tour's script.
+  // A one-word message: dance or sing; for "밥" when full or "청소" with nothing to clean, an
+  // answer instead of nothing (the care itself, when needed, comes from the server as an event).
+  const canFeed = buddy.canFeed;
+  const poops = buddy.poops;
   useEffect(() => {
-    if (!askedAct || egg) return;
-    const kind = askedAct.act;
-    const timer = setTimeout(() => perform(kind), 0);
+    if (!cue || egg) return;
+    const timer = setTimeout(() => {
+      if (cue.kind === 'dance' || cue.kind === 'sing') perform(cue.kind);
+      else if (cue.kind === 'feed' && !canFeed) {
+        perform('refuse');
+        say('full');
+      } else if (cue.kind === 'clean' && poops === 0) say('alreadyClean');
+    }, 0);
     return () => clearTimeout(timer);
-  }, [askedAct, egg, perform]);
+    // Answer each cue once, with the state as it was when it came.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cue]);
 
-  // Something happening in the room ends a dance or a song.
+  // Care or growth in the room ends a dance or a song. A new message does not: "노래" from the
+  // other one is a message too, and asks for the song.
   useEffect(() => {
-    if (!reaction) return;
+    if (!reaction || reaction.kind === 'message') return;
     const timer = setTimeout(() => {
       if (actTimer.current) clearTimeout(actTimer.current);
       setAct(null);
@@ -770,37 +778,6 @@ function ExpandedStage({
       {/* The evolution's quick flash as the new look settles, over the whole stage. */}
       <Animated.View style={[StyleSheet.absoluteFill, styles.flash, { opacity: flash }]} />
     </View>
-  );
-}
-
-function FoldedStage({ buddy, onExpand }: Props) {
-  const colors = useColors();
-  const { t } = useTranslation();
-  const frame = buddyFrame(buddy.stage, buddy.hungry ? 'hungry' : 'idle');
-  return (
-    <Pressable
-      onPress={onExpand}
-      accessibilityRole="button"
-      accessibilityLabel={t('buddy.showStage', { buddy: buddy.name })}
-      style={({ pressed }) => [
-        styles.folded,
-        { backgroundColor: colors.stage, opacity: pressed ? 0.8 : 1 },
-      ]}
-    >
-      {/* About 32 points tall whatever the stage's grid size. */}
-      <PixelSprite frame={frame} palette={BUDDY_PALETTE} scale={32 / frame.length} />
-      <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
-        {buddy.name}
-      </Text>
-      <Text style={[styles.level, { color: colors.textMuted }]}>
-        {t('buddy.level', { level: buddy.level })}
-      </Text>
-      <View style={styles.foldedBar}>
-        <ProgressBar progress={buddy.levelProgress} />
-      </View>
-      {buddy.hungry ? <Text style={styles.status}>🍚</Text> : null}
-      {buddy.poops > 0 ? <Text style={styles.status}>{'💩'.repeat(buddy.poops)}</Text> : null}
-    </Pressable>
   );
 }
 

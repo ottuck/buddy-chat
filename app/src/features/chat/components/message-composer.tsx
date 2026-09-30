@@ -13,10 +13,9 @@ type Props = {
   onSend: (text: string) => void;
   // Called on every change with whether there is something typed (drives "typing…").
   onTyping: (hasDraft: boolean) => void;
-  onFocusChange?: (focused: boolean) => void;
 };
 
-export function MessageComposer({ onSend, onTyping, onFocusChange }: Props) {
+export function MessageComposer({ onSend, onTyping }: Props) {
   const colors = useColors();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -51,14 +50,8 @@ export function MessageComposer({ onSend, onTyping, onFocusChange }: Props) {
         placeholderTextColor={colors.textMuted}
         multiline
         {...webSingleRow}
-        onFocus={() => {
-          setFocused(true);
-          onFocusChange?.(true);
-        }}
-        onBlur={() => {
-          setFocused(false);
-          onFocusChange?.(false);
-        }}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
         style={[
           styles.input,
           {

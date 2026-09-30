@@ -15,7 +15,12 @@ const pages = fs
   .map((file) => file.slice(0, -'.html'.length));
 
 const config = {
-  routes: pages.map((page) => ({ route: `/${page}`, rewrite: `/${page}.html` })),
+  routes: [
+    ...pages.map((page) => ({ route: `/${page}`, rewrite: `/${page}.html` })),
+    // Browsers check the service worker for updates; it must not be served stale.
+    { route: '/sw.js', headers: { 'Cache-Control': 'no-cache' } },
+  ],
+  mimeTypes: { '.webmanifest': 'application/manifest+json' },
   responseOverrides: { 404: { rewrite: '/+not-found.html' } },
   globalHeaders: {
     'X-Content-Type-Options': 'nosniff',

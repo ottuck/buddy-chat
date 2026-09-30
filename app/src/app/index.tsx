@@ -1,10 +1,7 @@
 import { router } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
-  type FlatList,
-  Keyboard,
   KeyboardAvoidingView,
-  LayoutAnimation,
   Platform,
   StyleSheet,
   useWindowDimensions,
@@ -19,14 +16,12 @@ import { useGuestDaysLeft } from '@/features/auth/guest-expiry';
 import { BuddySheet } from '@/features/buddy/components/buddy-sheet';
 import { BuddyStage } from '@/features/buddy/components/buddy-stage';
 import { GuideBanner } from '@/features/buddy/components/guide-banner';
-import { stageFoldsOnFocus } from '@/features/buddy/stage-folds-on-focus';
 import { graduateBuddy } from '@/features/buddy/api';
 import { useBuddy } from '@/features/buddy/use-buddy';
 import { ChatHeader } from '@/features/chat/components/chat-header';
 import { MessageComposer } from '@/features/chat/components/message-composer';
 import { EmptyChat } from '@/features/chat/components/empty-chat';
 import { MessageList } from '@/features/chat/components/message-list';
-import type { Message } from '@/features/chat/types';
 import { useChat } from '@/features/chat/use-chat';
 import { registerForPush } from '@/features/notifications/push';
 import { InviteSheet } from '@/features/room/components/invite-sheet';
@@ -67,24 +62,9 @@ function ChatScreen({ me, room, onRoomLost, onRoomChanged }: ChatScreenProps) {
   const [inviteOpen, setInviteOpen] = useState(false);
   const partner = room.members.find((member) => member.id !== me.id);
 
-  // The buddy's stage takes about a third of the screen, and folds into one row while typing or
-  // reading back through older messages, so the chat keeps its room (docs/product.md, 핵심 경험).
+  // The buddy's stage takes about a third of the screen and keeps it (docs/product.md, 핵심 경험).
   const { height: windowHeight } = useWindowDimensions();
   const stageHeight = Math.round(Math.min(280, Math.max(180, windowHeight * 0.3)));
-  const [typingMessage, setTypingMessage] = useState(false);
-  const [readingBack, setReadingBack] = useState(false);
-  const stageOpen = !typingMessage && !readingBack;
-  const listRef = useRef<FlatList<Message>>(null);
-  const animateStage = () => {
-    if (Platform.OS === 'ios') LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-  };
-  const expandStage = () => {
-    animateStage();
-    Keyboard.dismiss();
-    listRef.current?.scrollToOffset({ offset: 0, animated: true });
-    setTypingMessage(false);
-    setReadingBack(false);
-  };
 
   return (
     <SafeAreaView edges={['top']} style={[styles.screen, { backgroundColor: colors.background }]}>
@@ -113,13 +93,12 @@ function ChatScreen({ me, room, onRoomLost, onRoomChanged }: ChatScreenProps) {
         <BuddyStage
           buddy={buddy}
           busy={busy}
-          expanded={stageOpen}
           height={stageHeight}
-          onExpand={expandStage}
           onFeed={feed}
           onClean={clean}
           onOpenDetail={() => setBuddyOpen(true)}
           reaction={chat.reaction}
+          cue={chat.cue}
           album={room.album}
         />
         <View style={styles.list}>
@@ -138,23 +117,10 @@ function ChatScreen({ me, room, onRoomLost, onRoomChanged }: ChatScreenProps) {
               partnerReadId={partner ? reads[partner.id] : undefined}
               onRetry={chat.retry}
               onLoadOlder={chat.loadOlder}
-              listRef={listRef}
-              onReadingBack={(value) => {
-                if (value === readingBack) return;
-                animateStage();
-                setReadingBack(value);
-              }}
             />
           )}
         </View>
-        <MessageComposer
-          onSend={chat.send}
-          onTyping={chat.notifyTyping}
-          onFocusChange={(focused) => {
-            animateStage();
-            setTypingMessage(focused && stageFoldsOnFocus());
-          }}
-        />
+        <MessageComposer onSend={chat.send} onTyping={chat.notifyTyping} />
       </KeyboardAvoidingView>
 
       <BuddySheet

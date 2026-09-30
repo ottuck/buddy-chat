@@ -99,7 +99,8 @@
       "evening": "こんばんは！",
       "ateYet": "ごはん食べた？",
       "whatsUp": "何かあった？",
-      "howWasToday": "今日はどうだった？"
+      "howWasToday": "今日はどうだった？",
+      "alreadyClean": "もうきれいだよ！"
     },
     "graduate": {
       "title": "独り立ち",
@@ -173,7 +174,15 @@
     "deleteSolo": "{{buddy}}と会話、名前とアカウントがすべて削除されます。元に戻せません。",
     "deleteDuo": "名前とアカウントが削除され、ルームから退出します。{{buddy}}は{{partner}}さんと一緒に過ごし、やり取りした会話は{{partner}}さんの側に残ります。元に戻せません。",
     "deleteConfirm": "削除",
-    "deleteFailed": "アカウントを削除できませんでした。もう一度お試しください。"
+    "deleteFailed": "アカウントを削除できませんでした。もう一度お試しください。",
+    "display": "表示",
+    "language": "言語",
+    "theme": "画面モード",
+    "followDevice": "端末の設定",
+    "light": "ライト",
+    "dark": "ダーク",
+    "notificationsDeniedWeb": "ブラウザでbuddy-chatの通知がブロックされています。サイトの設定で通知を許可してください。",
+    "notificationsInstall": "iPhoneではホーム画面に追加したアプリで通知を受け取れます。Safariの共有ボタン →「ホーム画面に追加」を押して、ホーム画面のbuddy-chatから通知をオンにしてください。"
   },
   "systemEvent": {
     "MEMBER_LEFT": "{{name}}さんが退出しました"

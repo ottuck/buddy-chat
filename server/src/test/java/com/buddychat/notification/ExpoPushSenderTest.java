@@ -66,7 +66,10 @@ class ExpoPushSenderTest {
                 "http://localhost:" + server.port() + "/--/api/v2/push",
                 null,
                 Duration.ofSeconds(3),
-                Duration.ofMinutes(15)));
+                Duration.ofMinutes(15),
+                null,
+                null,
+                "https://example.com"));
     }
 
     @AfterEach

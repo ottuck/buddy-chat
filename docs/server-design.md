@@ -169,7 +169,26 @@ server → client
 - **무효 토큰**: 보낼 때 받는 ticket과 약 15분 뒤 조회하는 receipt에서 `DeviceNotRegistered`면 토큰을 지운다.
   receipt 확인은 스케줄러 없이 메모리에서 지연 실행하므로 재배포되면 그 사이 것은 빠진다(다음 전송에서 다시 걸린다).
 - **끄기**: 앱 설정의 알림 스위치는 기기별이다. 끄면 그 기기 토큰을 서버에서 지워서 아예 보내지 않는다. 서버에 사용자별
-  알림 설정은 두지 않는다. 웹은 푸시가 없어 스위치도 없다.
+  알림 설정은 두지 않는다.
+
+### 웹 푸시
+
+아이폰 앱(개발용 빌드)이 나오기 전에도 휴대폰 웹으로 채팅앱처럼 쓸 수 있게, 같은 규칙(3초 뒤에도 안 읽었으면)으로 브라우저에도
+보낸다. 브라우저 표준 Web Push라 Apple 계정·네이티브 모듈이 필요 없다.
+
+- **앱(웹)**: `public/manifest.webmanifest`와 아이콘으로 설치할 수 있고(홈 화면, 전체 화면), `public/sw.js`(서비스 워커)가 알림을
+  띄우고 누르면 채팅을 연다. 설정의 알림 스위치에서만 권한을 묻는다(브라우저는 사용자 동작 중에만 허용). 켜면 서버 키로 구독해
+  `POST /api/me/web-push { endpoint, p256dh, auth }`, 끄거나 로그아웃하면 `DELETE /api/me/web-push?endpoint=`. 앱을 열 때마다 다시
+  구독해서 서버 키가 바뀌어도 이어진다.
+- **아이폰**: iOS 16.4부터, 홈 화면에 추가한 웹 앱에서만 알림을 받는다. Safari에서는 설정 카드가 "홈 화면에 추가" 방법을 안내한다.
+  Android Chrome과 PC 브라우저는 그냥 허용하면 된다.
+- **서버**(`notification/WebPush`, `WebPushCrypto`): 메시지를 구독 키로 암호화하고(RFC 8291 aes128gcm) VAPID(RFC 8292, ES256 JWT)로
+  서명해 브라우저의 푸시 서비스로 POST한다. JDK 암호화만 쓰고(라이브러리는 블로킹 HTTP와 BouncyCastle을 끌고 온다) WebClient로
+  보낸다. 암호화는 RFC 8291 부록의 예제로 테스트한다. 구독은 `push_tokens`에 endpoint를 키로(`p256dh`, `auth` 추가) 저장한다.
+  404/410이면 구독을 지운다.
+- **SSRF 방지**: endpoint는 클라이언트가 보내는 URL이라, 알려진 푸시 서비스(FCM, Mozilla, Apple, Windows)의 https 주소만 받는다.
+- **키**: Terraform `tls_private_key`(P-256)로 만들어 state에 두고(DB 비밀번호와 같다) Container App 비밀값으로 넣는다(PEM).
+  없으면 서버가 실행마다 임시 키를 쓴다(로컬 개발용).
 - 설정: `buddychat.push.grace-period`(3s), `receipt-delay`(15m), `expo-access-token`(Expo의 강화 보안을 켤 때).
 
 ## 인프라 (S7)

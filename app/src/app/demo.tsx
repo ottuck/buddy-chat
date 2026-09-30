@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
-  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -19,7 +18,6 @@ import { PageTitle } from '@/components/page-title';
 import { isCancelledSignIn, signInAsGuest } from '@/features/auth/actions';
 import { BuddySheet } from '@/features/buddy/components/buddy-sheet';
 import { BuddyStage } from '@/features/buddy/components/buddy-stage';
-import { stageFoldsOnFocus } from '@/features/buddy/stage-folds-on-focus';
 import { ChatHeader } from '@/features/chat/components/chat-header';
 import { MessageComposer } from '@/features/chat/components/message-composer';
 import { MessageList } from '@/features/chat/components/message-list';
@@ -50,8 +48,6 @@ function DemoScreen({ onReplay }: { onReplay: () => void }) {
     { id: DEMO_ME, displayName: t('demo.me') },
     { id: DEMO_PARTNER, displayName: t('demo.partner') },
   ];
-  const [typingMessage, setTypingMessage] = useState(false);
-  const [readingBack, setReadingBack] = useState(false);
   const [buddyOpen, setBuddyOpen] = useState(false);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -104,20 +100,14 @@ function DemoScreen({ onReplay }: { onReplay: () => void }) {
         <BuddyStage
           buddy={demo.buddy}
           busy={false}
-          expanded={!typingMessage && !readingBack}
           height={stageHeight}
-          onExpand={() => {
-            Keyboard.dismiss();
-            setTypingMessage(false);
-            setReadingBack(false);
-          }}
           onFeed={demo.feed}
           onClean={demo.clean}
           onOpenDetail={() => setBuddyOpen(true)}
           reaction={demo.reaction}
           companionEgg={demo.finished}
           greets={false}
-          askedAct={demo.askedAct}
+          cue={demo.cue}
         />
         <View style={styles.list}>
           <MessageList
@@ -128,7 +118,6 @@ function DemoScreen({ onReplay }: { onReplay: () => void }) {
             partnerReadId={demo.partnerReadId}
             onRetry={() => {}}
             onLoadOlder={() => {}}
-            onReadingBack={setReadingBack}
           />
         </View>
         {demo.finished ? (
@@ -155,11 +144,7 @@ function DemoScreen({ onReplay }: { onReplay: () => void }) {
             {error ? <Text style={[styles.endBody, { color: colors.accent }]}>{error}</Text> : null}
           </View>
         ) : null}
-        <MessageComposer
-          onSend={demo.send}
-          onTyping={() => {}}
-          onFocusChange={(focused) => setTypingMessage(focused && stageFoldsOnFocus())}
-        />
+        <MessageComposer onSend={demo.send} onTyping={() => {}} />
       </KeyboardAvoidingView>
 
       <BuddySheet

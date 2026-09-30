@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   Linking,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -23,7 +24,7 @@ import {
   switchToGoogle,
 } from '@/features/auth/google-sign-in';
 import {
-  pushEnabled,
+  registerForPush,
   type PushState,
   pushSupported,
   setPushEnabled,
@@ -32,6 +33,7 @@ import { leaveRoom, type Room } from '@/features/room/api';
 import { errorMessage } from '@/features/room/error-message';
 import { useRoom } from '@/features/room/room-provider';
 import { confirm } from '@/lib/confirm';
+import { setLanguagePreference, setThemePreference, usePreferences } from '@/lib/preferences';
 import { MAX_CONTENT_WIDTH, useColors } from '@/theme';
 
 // Who you are, your account, notifications, the room, and leaving, signing out or deleting the
@@ -119,6 +121,8 @@ export default function SettingsScreen() {
 
         <AccountCard guest={guest} daysLeft={daysLeft} email={user?.email ?? null} />
 
+        <DisplayCard />
+
         {pushSupported ? <NotificationsCard /> : null}
 
         {state.status === 'ready' ? <RoomCard room={state.room} myId={state.me.id} /> : null}
@@ -180,6 +184,83 @@ export default function SettingsScreen() {
         ) : null}
       </View>
     </ScrollView>
+  );
+}
+
+// Language and light or dark, for this device (lib/preferences).
+function DisplayCard() {
+  const colors = useColors();
+  const { t } = useTranslation();
+  const { theme, language } = usePreferences();
+  return (
+    <View style={[styles.card, { backgroundColor: colors.surface }]}>
+      <Text style={[styles.label, { color: colors.textMuted }]}>{t('settings.display')}</Text>
+      <Text style={[styles.row, styles.section, { color: colors.text }]}>
+        {t('settings.language')}
+      </Text>
+      <Choices
+        value={language}
+        onChange={setLanguagePreference}
+        options={[
+          ['system', t('settings.followDevice')],
+          // Each language in its own words.
+          ['ko', '한국어'],
+          ['ja', '日本語'],
+          ['en', 'English'],
+        ]}
+      />
+      <Text style={[styles.row, styles.section, { color: colors.text }]}>
+        {t('settings.theme')}
+      </Text>
+      <Choices
+        value={theme}
+        onChange={setThemePreference}
+        options={[
+          ['system', t('settings.followDevice')],
+          ['light', t('settings.light')],
+          ['dark', t('settings.dark')],
+        ]}
+      />
+    </View>
+  );
+}
+
+function Choices<T extends string>({
+  value,
+  onChange,
+  options,
+}: {
+  value: T;
+  onChange: (value: T) => void;
+  options: [T, string][];
+}) {
+  const colors = useColors();
+  return (
+    <View style={styles.choices} accessibilityRole="radiogroup">
+      {options.map(([option, label]) => {
+        const selected = option === value;
+        return (
+          <Pressable
+            key={option}
+            onPress={() => onChange(option)}
+            accessibilityRole="radio"
+            accessibilityState={{ selected }}
+            style={({ pressed }) => [
+              styles.choice,
+              {
+                borderColor: selected ? colors.accent : colors.border,
+                backgroundColor: selected ? colors.accent : 'transparent',
+                opacity: pressed ? 0.7 : 1,
+              },
+            ]}
+          >
+            <Text style={[styles.choiceLabel, { color: selected ? colors.onAccent : colors.text }]}>
+              {label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
   );
 }
 
@@ -284,8 +365,8 @@ function NotificationsCard() {
 
   useEffect(() => {
     let cancelled = false;
-    pushEnabled()
-      .then((enabled) => (enabled ? setPushEnabled(true) : ('off' as const)))
+    // Where things stand; asking for permission waits for the switch.
+    registerForPush()
       .then((next) => !cancelled && setState(next))
       .catch((e) => {
         console.warn(e);
@@ -318,12 +399,16 @@ function NotificationsCard() {
         <Switch
           value={state === 'on'}
           onValueChange={toggle}
-          disabled={state === null || state === 'unavailable'}
+          disabled={state === null || state === 'unavailable' || state === 'needsInstall'}
           trackColor={{ true: colors.accent }}
           accessibilityLabel={t('settings.notifications')}
         />
       </View>
-      {state === 'denied' ? (
+      {state === 'denied' && Platform.OS === 'web' ? (
+        <Text style={[styles.email, styles.section, { color: colors.textMuted }]}>
+          {t('settings.notificationsDeniedWeb')}
+        </Text>
+      ) : state === 'denied' ? (
         <>
           <Text style={[styles.email, styles.section, { color: colors.textMuted }]}>
             {t('settings.notificationsDenied')}
@@ -339,6 +424,13 @@ function NotificationsCard() {
             </Text>
           </Pressable>
         </>
+      ) : state === 'needsInstall' ? (
+        <Text
+          lineBreakStrategyIOS="hangul-word"
+          style={[styles.email, styles.section, { color: colors.textMuted }]}
+        >
+          {t('settings.notificationsInstall')}
+        </Text>
       ) : state === 'unavailable' ? (
         <Text style={[styles.email, styles.section, { color: colors.textMuted }]}>
           {t('settings.notificationsUnavailable')}
@@ -418,6 +510,22 @@ function RoomCard({ room, myId }: { room: Room; myId: string }) {
 }
 
 const styles = StyleSheet.create({
+  choices: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 4,
+  },
+  choice: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+  },
+  choiceLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
   link: {
     alignSelf: 'flex-start',
     marginTop: 6,
