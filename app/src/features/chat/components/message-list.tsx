@@ -1,13 +1,10 @@
 import { useTranslation } from 'react-i18next';
-import { type RefObject } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 
 import { formatTime, runPosition } from '../timeline';
 import type { Member, Message } from '../types';
 import { BuddyEventRow, MaxLevelCard } from './buddy-event-row';
 import { MessageBubble } from './message-bubble';
-
-const READING_BACK_OFFSET = 80;
 
 type Props = {
   messages: Message[]; // newest first
@@ -18,9 +15,6 @@ type Props = {
   partnerReadId?: string;
   onRetry: (clientMessageId: string) => void;
   onLoadOlder: () => void;
-  // True while scrolled up into older messages (the list is inverted: offset 0 is the newest).
-  onReadingBack?: (readingBack: boolean) => void;
-  listRef?: RefObject<FlatList<Message> | null>;
 };
 
 export function MessageList({
@@ -31,8 +25,6 @@ export function MessageList({
   partnerReadId,
   onRetry,
   onLoadOlder,
-  onReadingBack,
-  listRef,
 }: Props) {
   const { t, i18n } = useTranslation();
   const nameOf = (id?: string) =>
@@ -48,10 +40,7 @@ export function MessageList({
     // Inverted: the newest message sits at the bottom and new ones stay in view. The list's
     // "end" is the top, so reaching it loads older history.
     <FlatList
-      ref={listRef}
       inverted
-      onScroll={(e) => onReadingBack?.(e.nativeEvent.contentOffset.y > READING_BACK_OFFSET)}
-      scrollEventThrottle={100}
       data={messages}
       keyExtractor={(message) => message.clientMessageId}
       keyboardDismissMode="interactive"

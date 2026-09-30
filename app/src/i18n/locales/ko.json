@@ -99,7 +99,8 @@
       "evening": "좋은 저녁이야",
       "ateYet": "밥 먹었어?",
       "whatsUp": "무슨 일 있어?",
-      "howWasToday": "오늘 어땠어?"
+      "howWasToday": "오늘 어땠어?",
+      "alreadyClean": "이미 깨끗해!"
     },
     "graduate": {
       "title": "독립시키기",
@@ -173,7 +174,13 @@
     "deleteSolo": "{{buddy, 과와}} 대화 내용, 이름과 계정이 모두 지워져요. 되돌릴 수 없어요.",
     "deleteDuo": "이름과 계정이 지워지고 방에서 나가요. {{buddy, 은는}} {{partner}}님과 계속 지내고, 주고받은 대화는 {{partner}}님에게 남아요. 되돌릴 수 없어요.",
     "deleteConfirm": "삭제",
-    "deleteFailed": "계정을 삭제하지 못했어요. 다시 시도해 주세요."
+    "deleteFailed": "계정을 삭제하지 못했어요. 다시 시도해 주세요.",
+    "display": "화면",
+    "language": "언어",
+    "theme": "화면 모드",
+    "followDevice": "기기 설정",
+    "light": "라이트",
+    "dark": "다크"
   },
   "systemEvent": {
     "MEMBER_LEFT": "{{name}}님이 나갔어요"

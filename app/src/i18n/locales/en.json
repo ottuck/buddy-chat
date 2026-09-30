@@ -99,7 +99,8 @@
       "evening": "Good evening!",
       "ateYet": "Have you eaten?",
       "whatsUp": "Everything okay?",
-      "howWasToday": "How was your day?"
+      "howWasToday": "How was your day?",
+      "alreadyClean": "Already clean!"
     },
     "graduate": {
       "title": "Its own way",
@@ -173,7 +174,13 @@
     "deleteSolo": "{{buddy}}, your messages, your name and your account will all be deleted. This can’t be undone.",
     "deleteDuo": "Your name and account will be deleted and you’ll leave the room. {{buddy}} stays with {{partner}}, and the messages you shared stay with {{partner}}. This can’t be undone.",
     "deleteConfirm": "Delete",
-    "deleteFailed": "Couldn’t delete your account. Please try again."
+    "deleteFailed": "Couldn’t delete your account. Please try again.",
+    "display": "Display",
+    "language": "Language",
+    "theme": "Appearance",
+    "followDevice": "Device setting",
+    "light": "Light",
+    "dark": "Dark"
   },
   "systemEvent": {
     "MEMBER_LEFT": "{{name}} left"

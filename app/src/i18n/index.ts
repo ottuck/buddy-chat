@@ -22,7 +22,7 @@ function isLanguage(code: string | null): code is Language {
 }
 
 // First supported language in the user's device order, otherwise English.
-function detectLanguage(): Language {
+export function detectLanguage(): Language {
   for (const { languageCode } of getLocales()) {
     if (isLanguage(languageCode)) return languageCode;
   }

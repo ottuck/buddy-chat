@@ -1,6 +1,8 @@
 import { useSyncExternalStore } from 'react';
 import { Appearance } from 'react-native';
 
+import { usePreferences } from '@/lib/preferences';
+
 const light = {
   background: '#F6F4F1',
   surface: '#FFFFFF',
@@ -56,8 +58,16 @@ function scheme() {
   return Appearance.getColorScheme();
 }
 
+/** Light or dark as shown: the choice in settings, else the device's. */
+export function useColorMode(): 'light' | 'dark' {
+  const device = useSyncExternalStore(subscribe, scheme, scheme);
+  const { theme } = usePreferences();
+  if (theme !== 'system') return theme;
+  return device === 'dark' ? 'dark' : 'light';
+}
+
 export function useColors(): Colors {
-  return useSyncExternalStore(subscribe, scheme, scheme) === 'dark' ? dark : light;
+  return useColorMode() === 'dark' ? dark : light;
 }
 
 // Web shows the same mobile layout, centered and capped at this width (docs/product.md, 플랫폼).

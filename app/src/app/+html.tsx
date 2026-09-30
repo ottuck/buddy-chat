@@ -73,5 +73,17 @@ body { background-color: #F6F4F1; }
   body, #web-backdrop { background-color: #0C0C0F; }
   #web-frame { border-color: #2E2E35; background-color: #16161A; box-shadow: none; }
 }
+html[data-theme="light"] body { background-color: #F6F4F1; }
+html[data-theme="dark"] body { background-color: #16161A; }
+@media (min-width: 768px) {
+  html[data-theme="light"] body, html[data-theme="light"] #web-backdrop { background-color: #E8E3DC; }
+  html[data-theme="light"] #web-frame {
+    border-color: #E7E2DC;
+    background-color: #F6F4F1;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+  }
+  html[data-theme="dark"] body, html[data-theme="dark"] #web-backdrop { background-color: #0C0C0F; }
+  html[data-theme="dark"] #web-frame { border-color: #2E2E35; background-color: #16161A; box-shadow: none; }
+}
 * { scrollbar-width: thin; }
 html:lang(ko) body { word-break: keep-all; overflow-wrap: anywhere; }`;

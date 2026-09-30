@@ -3,6 +3,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Platform } from 'react-native';
 
 import type { BuddyView } from '@/features/buddy/api';
+import { chatWord } from '@/features/buddy/chat-words';
+import type { Cue } from '@/features/buddy/components/buddy-stage';
 import { missedEvolution, type Reaction, reactionTo } from '@/features/buddy/reactions';
 
 import { fetchNewer, fetchNewest, fetchOlder } from './api';
@@ -72,6 +74,13 @@ export function useChat({ myId, onRoomLost, onRoomChanged, onBuddy }: Options) {
   myIdRef.current = myId;
   // The latest live event for the buddy to react to (see reactionTo).
   const [reaction, setReaction] = useState<Reaction | null>(null);
+  // The latest one-word message ("밥", "춤", …) from either of us, for the buddy to answer.
+  const [cue, setCue] = useState<Cue | null>(null);
+  const cueFrom = useCallback((message: ServerMessage) => {
+    const kind = message.type === 'TEXT' && message.text ? chatWord(message.text) : null;
+    // A resent message is acked again with the same id: answered once.
+    if (kind) setCue((prev) => (prev?.id === message.id ? prev : { id: message.id, kind }));
+  }, []);
 
   const apply = useCallback((incoming: ServerMessage[]) => {
     setMessages((prev) => merge(prev, incoming));
@@ -147,13 +156,17 @@ export function useChat({ myId, onRoomLost, onRoomChanged, onBuddy }: Options) {
         typingSentAt.current = 0;
         catchUp(readsNow[myIdRef.current]).catch((e) => console.warn('catch-up failed', e));
       },
-      onAck: (_clientMessageId, message) => apply([message]),
+      onAck: (_clientMessageId, message) => {
+        apply([message]);
+        cueFrom(message);
+      },
       onMessage: (message) => {
         // The message they were typing has arrived.
         if (message.senderId) setTypingOf(message.senderId, false);
         apply([message]);
         const next = reactionTo(message, myIdRef.current);
         if (next) setReaction(next);
+        cueFrom(message);
         // A buddy went its own way: the album has a new page.
         if (message.type === 'BUDDY_EVENT' && message.buddyEvent === 'GRADUATED') {
           onRoomChangedRef.current();
@@ -198,7 +211,7 @@ export function useChat({ myId, onRoomLost, onRoomChanged, onBuddy }: Options) {
       for (const timer of timers.values()) clearTimeout(timer);
       timers.clear();
     };
-  }, [apply, markStatus, setTypingOf]);
+  }, [apply, cueFrom, markStatus, setTypingOf]);
 
   // While the chat is on screen, tell the others how far I have read: up to the newest message
   // that is not my own. Hex ids sort by time, so comparing strings compares age.
@@ -285,6 +298,7 @@ export function useChat({ myId, onRoomLost, onRoomChanged, onBuddy }: Options) {
     reads,
     unreadWhileAway,
     reaction,
+    cue,
     loaded,
     send,
     retry,
