@@ -1,4 +1,4 @@
-# buddy-chat
+# buddy-chat (서비스 이름: puny-chat)
 
 1~2명이 작은 가상 생명체(Buddy)를 함께 키우며 쓰는 초경량 1:1 실시간 채팅 앱.
 **Chat first. Buddy makes it fun.** iOS가 기준 플랫폼이고 Web은 보조, Android는 나중.
@@ -30,7 +30,7 @@
 - `pnpm exec expo-doctor` — 의존성·설정 진단
 - Node 24+, pnpm (버전은 `app/package.json`의 `packageManager`)
 - 처음 한 번: `app/.env.example`을 `app/.env.local`로 복사하고 Firebase 웹 앱 설정값을 채운다(공개 설정값, git 제외).
-- 서버 주소는 `EXPO_PUBLIC_API_URL`(`.env.local`, 예: https://buddy-api.pokepidia.com). 비우면 Metro를 띄운 PC의 :8080 로컬 서버
+- 서버 주소는 `EXPO_PUBLIC_API_URL`(`.env.local`, 예: https://api.puny-chat.com). 비우면 Metro를 띄운 PC의 :8080 로컬 서버
   (`./gradlew bootRun`)로 정해진다(`app/src/lib/api-url.ts`). 아이폰에서 로컬 서버를 쓰려면 Windows 방화벽에서 8080을 허용한다.
 
 ## App structure

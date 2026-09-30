@@ -8,21 +8,21 @@ variable "cloudflare_account_id" {
   type = string
 }
 
-# pokepidia.com: the spare domain for trying the app, not the product's name.
+# puny-chat.com, bought through Cloudflare Registrar, so the zone is there already.
 variable "cloudflare_zone_id" {
   type = string
 }
 
 # The web app (a Cloudflare Worker with static assets, deployed by CI with wrangler: app/wrangler.jsonc)
-# and the server, on the same spare domain.
+# and the server, on the same domain.
 variable "web_domain" {
   type    = string
-  default = "buddy.pokepidia.com"
+  default = "puny-chat.com"
 }
 
 variable "api_subdomain" {
   type    = string
-  default = "buddy-api"
+  default = "api"
 }
 
 # Railway's Southeast Asia region (Singapore), close to users in Korea and Japan; Atlas is in

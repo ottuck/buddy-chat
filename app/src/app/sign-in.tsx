@@ -50,7 +50,7 @@ export default function SignInScreen() {
       <View style={styles.column}>
         <View style={styles.hero}>
           <BuddyAvatar stage="EGG" size={80} />
-          <Text style={[styles.title, { color: colors.text }]}>buddy-chat</Text>
+          <Text style={[styles.title, { color: colors.text }]}>puny-chat</Text>
           <Text
             lineBreakStrategyIOS="hangul-word"
             style={[styles.tagline, { color: colors.textMuted }]}

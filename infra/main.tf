@@ -1,4 +1,4 @@
-# buddy-chat's infrastructure (docs/server-design.md, 인프라): the server on Railway, MongoDB on
+# puny-chat's infrastructure (repository: buddy-chat) (docs/server-design.md, 인프라): the server on Railway, MongoDB on
 # Atlas, DNS on Cloudflare. The web app is a Cloudflare Worker deployed by CI with wrangler; its
 # custom domain comes with that deploy (app/wrangler.jsonc). The Azure setup it replaced is in
 # infra/azure until that is destroyed.
@@ -21,13 +21,13 @@ data "cloudflare_zone" "site" {
 # --- Database: MongoDB Atlas, free M0 ---
 
 resource "mongodbatlas_project" "this" {
-  name   = "buddy-chat"
+  name   = "puny-chat"
   org_id = var.atlas_org_id
 }
 
 resource "mongodbatlas_advanced_cluster" "db" {
   project_id   = mongodbatlas_project.this.id
-  name         = "buddy-chat"
+  name         = "puny-chat"
   cluster_type = "REPLICASET"
 
   replication_specs = [
@@ -74,7 +74,7 @@ resource "mongodbatlas_project_ip_access_list" "anywhere" {
 
 locals {
   db_host     = trimprefix(mongodbatlas_advanced_cluster.db.connection_strings.standard_srv, "mongodb+srv://")
-  mongodb_uri = "mongodb+srv://buddychat:${random_password.db.result}@${local.db_host}/?retryWrites=true&w=majority&appName=buddy-chat"
+  mongodb_uri = "mongodb+srv://buddychat:${random_password.db.result}@${local.db_host}/?retryWrites=true&w=majority&appName=puny-chat"
 }
 
 # --- Web Push: this server's VAPID key (RFC 8292), kept in the state like the database password.
@@ -88,8 +88,8 @@ resource "tls_private_key" "vapid" {
 # --- Server: Railway ---
 
 resource "railway_project" "this" {
-  name        = "buddy-chat"
-  description = "buddy-chat server (Spring Boot)"
+  name        = "puny-chat"
+  description = "puny-chat server (Spring Boot)"
   default_environment = {
     name = "production"
   }

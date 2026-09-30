@@ -1,12 +1,12 @@
 <div align="center">
 
-# 🥚 buddy-chat
+# 🥚 puny-chat
 
 **좋아하는 사람과 대화하며, 작은 Buddy를 함께 키워요.**
 
 *Chat with someone you like, and raise a tiny buddy together.*
 
-**[👀 로그인 없이 구경하기](https://buddy.pokepidia.com/demo)** · [웹에서 시작하기](https://buddy.pokepidia.com) · [제품 문서](docs/product.md) · [서버 설계](docs/server-design.md)
+**[👀 로그인 없이 구경하기](https://puny-chat.com/demo)** · [웹에서 시작하기](https://puny-chat.com) · [제품 문서](docs/product.md) · [서버 설계](docs/server-design.md)
 
 <br>
 
@@ -20,7 +20,7 @@
 
 ## 이런 앱이에요
 
-buddy-chat은 **딱 두 사람을 위한 메신저**예요. 그리고 두 사람 사이에는 작은 생명체 하나가 살고 있어요.
+puny-chat은 **딱 두 사람을 위한 메신저**예요. 그리고 두 사람 사이에는 작은 생명체 하나가 살고 있어요.
 
 ```text
 18:02   버디가 💩을 쌌어요

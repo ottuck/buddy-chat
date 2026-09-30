@@ -2,7 +2,7 @@ name: Deploy
 
 # Deploys the server to Railway and the web app to a Cloudflare Worker (docs/server-design.md,
 # 인프라). Called by CI after it passes on a push to main, or run by hand on main.
-# Secrets: RAILWAY_TOKEN (a project token for buddy-chat's production environment),
+# Secrets: RAILWAY_TOKEN (a project token for puny-chat's production environment),
 # CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID (Workers deploy). Variables: EXPO_PUBLIC_API_URL
 # and the app's public Firebase settings EXPO_PUBLIC_FIREBASE_{API_KEY,AUTH_DOMAIN,PROJECT_ID,APP_ID}.
 on:

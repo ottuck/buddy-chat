@@ -195,13 +195,13 @@ server → client
 
 ```text
 iPhone / Web ──HTTPS·WSS──▶ Railway (Spring WebFlux, Docker, 싱가포르) ──▶ MongoDB Atlas M0 (싱가포르)
-웹 앱: Cloudflare Worker (정적 자산)            DNS·Terraform state: Cloudflare (pokepidia.com, R2)
+웹 앱: Cloudflare Worker (정적 자산)            DNS·Terraform state: Cloudflare (puny-chat.com, R2)
 외부: Firebase Authentication, Web Push(FCM·Apple·Mozilla 푸시 서비스), Expo 푸시(S8)
 ```
 
 - **이전(2026-10)**: 처음에는 Azure(Container Apps, DocumentDB 무료, Static Web Apps)에 ur-manager와 환경·레지스트리·
   state를 공유해 올렸다. 서버를 항상 1대 켜두면 월 약 ¥2,000이 나왔고, 공유 때문에 이름·권한이 ur-manager에 묶였다.
-  buddy-chat만의 작은 구성으로 옮겼다: Railway Hobby(월 $5, 사용량 $5 포함), Atlas M0(무료), Cloudflare(무료).
+  이 프로젝트만의 작은 구성으로 옮겼다: Railway Hobby(월 $5, 사용량 $5 포함), Atlas M0(무료), Cloudflare(무료).
   옛 설정은 `infra/azure/`에 두었다가 리소스를 지운 뒤 없앤다.
 - **서버**: Railway 서비스 1개, 싱가포르(`asia-southeast1-eqsg3a`), 복제 1(연결·presence·typing이 메모리에 있다).
   항상 켜져 있어 콜드 스타트가 없다(앱의 미리 깨우기 `app/src/lib/warm-up.ts`는 남아 있다). Railway는 사용한 만큼 과금하므로
@@ -215,10 +215,11 @@ iPhone / Web ──HTTPS·WSS──▶ Railway (Spring WebFlux, Docker, 싱가�
 - **웹 앱**: Cloudflare Worker의 정적 자산(스크립트 없음, `app/wrangler.jsonc`). Cloudflare가 새 프로젝트에 Pages보다
   Workers를 권장한다. `pnpm build:web`이 `expo export -p web` 뒤에 `app/scripts/worker-assets.mjs`로 404 페이지와
   `_headers`(서비스 워커 no-cache 등)를 만든다. route마다 생기는 `join.html`은 `html_handling: auto-trailing-slash`가
-  `/join`으로 연결한다. 커스텀 도메인 `buddy.pokepidia.com`은 wrangler 배포가 붙인다(DNS 레코드와 인증서를 Cloudflare가
+  `/join`으로 연결한다. 커스텀 도메인 `puny-chat.com`은 wrangler 배포가 붙인다(DNS 레코드와 인증서를 Cloudflare가
   만든다. 같은 이름의 CNAME이 있으면 안 된다). `EXPO_PUBLIC_*`는 빌드에 들어가는 공개 값이라 repo variables로 둔다.
-- **도메인**: 웹 `buddy.pokepidia.com`(Worker), 서버 `buddy-api.pokepidia.com`(Railway 커스텀 도메인, CNAME + 확인용 TXT를
-  Terraform이 Cloudflare에 만든다, 프록시 없음). pokepidia.com은 시험용 여분 도메인이지 제품 이름이 아니다. Firebase 콘솔의
+- **도메인**: 웹 `puny-chat.com`(Worker), 서버 `api.puny-chat.com`(Railway 커스텀 도메인, CNAME + 확인용 TXT를
+  Terraform이 Cloudflare에 만든다, 프록시 없음). puny-chat.com은 Cloudflare Registrar에서 샀다(2026-09-30). 전에 쓰던
+  buddy.pokepidia.com은 새 주소로 리다이렉트한다. Firebase 콘솔의
   승인된 도메인에 웹 도메인이 있어야 Google 로그인이 된다. 서버 CORS에는 웹 도메인과 로컬 Expo dev 서버가 들어간다.
 - **Terraform**(`infra/`, 사용법은 `infra/README.md`): Atlas 프로젝트·M0·DB 사용자·접근 목록, Railway 프로젝트·서비스·변수·
   커스텀 도메인, Cloudflare DNS, VAPID 키. state는 Cloudflare R2(S3 호환 backend)에 둔다. 인증 정보는 `infra/.env`(git 제외)에만
