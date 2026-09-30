@@ -14,6 +14,8 @@ import {
 import { ProgressBar } from '@/components/progress-bar';
 import { useColors } from '@/theme';
 
+import type { AlbumEntry } from '@/features/room/api';
+
 import type { BuddyView } from '../api';
 import { PixelSprite } from '../pixel/pixel-sprite';
 import {
@@ -35,6 +37,7 @@ import {
 import type { Reaction, ReactionKind } from '../reactions';
 import { type Line, pick, useBuddyTalk } from '../use-buddy-talk';
 import { SpeechBubble } from './speech-bubble';
+import { decorFor, Plant, PLANT_ROOM, WallDecor } from './stage-decor';
 
 // The buddy's stage above the chat (docs/product.md, 핵심 경험): the buddy walks around, waits by
 // an empty bowl when hungry, leaves poops on the floor and sleeps at night. Tapping the bowl or a
@@ -103,6 +106,8 @@ type Props = {
   // Greets on opening ("good morning"); off in the tour.
   greets?: boolean;
   askedAct?: AskedAct | null;
+  // Buddies gone their own way: their portraits hang on the wall, and the decorations stay.
+  album?: AlbumEntry[];
 };
 
 export function BuddyStage(props: Props) {
@@ -165,6 +170,7 @@ function ExpandedStage({
   companionEgg,
   greets = true,
   askedAct: latestAct,
+  album,
 }: Props) {
   const colors = useColors();
   const { t } = useTranslation();
@@ -208,7 +214,9 @@ function ExpandedStage({
   const bowlWidth = 12 * PROP_SCALE;
   // The walkable strip: right of the bowl, left of the poops.
   const minX = 16 + bowlWidth + 8;
-  const maxX = Math.max(minX, width - spriteWidth - 16 - (companionEgg ? EGG_ROOM : 0));
+  const decor = decorFor(buddy.level, album ?? []);
+  const plantRoom = decor.plant ? PLANT_ROOM : 0;
+  const maxX = Math.max(minX, width - spriteWidth - 16 - (companionEgg ? EGG_ROOM : 0) - plantRoom);
   const eating = active?.kind === 'fed';
   const settled = sleeping || buddy.hungry || egg || eating || evolving;
   const acting = act !== null;
@@ -572,6 +580,13 @@ function ExpandedStage({
         ]}
       />
 
+      {width > 0 ? <WallDecor decor={decor} width={width} floor={FLOOR} top={34} /> : null}
+      {decor.plant ? (
+        <View style={[styles.poop, { bottom: FLOOR - 2, right: 8 }]} pointerEvents="none">
+          <Plant />
+        </View>
+      ) : null}
+
       <Animated.View
         style={[
           styles.bowl,
@@ -603,7 +618,11 @@ function ExpandedStage({
           key={i}
           style={[
             styles.poop,
-            { bottom: FLOOR - 2, right: 16 + i * 30, transform: [{ translateY: nudge }] },
+            {
+              bottom: FLOOR - 2,
+              right: 16 + plantRoom + i * 30,
+              transform: [{ translateY: nudge }],
+            },
           ]}
         >
           <Pressable
@@ -618,7 +637,7 @@ function ExpandedStage({
       ))}
 
       {companionEgg ? (
-        <View style={[styles.poop, { bottom: FLOOR - 2, right: 20 }]}>
+        <View style={[styles.poop, { bottom: FLOOR - 2, right: 20 + plantRoom }]}>
           <PixelSprite frame={buddyFrame('EGG', 'idle')} palette={BUDDY_PALETTE} scale={3} />
         </View>
       ) : null}

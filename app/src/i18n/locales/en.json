@@ -13,7 +13,8 @@
     "INVITATION_EXPIRED": "That invite has expired. Ask for a new one.",
     "INVITATION_USED": "That invite was already used. Ask for a new one.",
     "ALREADY_MEMBER": "You're already in this room.",
-    "ALREADY_IN_ROOM": "You're already chatting with someone in another room."
+    "ALREADY_IN_ROOM": "You're already chatting with someone in another room.",
+    "BUDDY_NOT_GROWN": "A new egg is already here."
   },
   "signIn": {
     "tagline": "Chat with someone you like, and raise a tiny buddy together.",
@@ -99,6 +100,20 @@
       "ateYet": "Have you eaten?",
       "whatsUp": "Everything okay?",
       "howWasToday": "How was your day?"
+    },
+    "graduate": {
+      "title": "Its own way",
+      "body": "{{buddy}} is all grown up. Let it go its own way: it stays in the album, and a new egg comes to the stage. Your decorations stay.",
+      "namePlaceholder": "Name for the new egg",
+      "button": "Let it go its own way",
+      "confirmTitle": "Let {{buddy}} go its own way?",
+      "confirmMessage": "{{buddy}} goes into the album, and a new egg, {{name}}, comes to the stage. This can’t be undone.",
+      "confirm": "Let it go"
+    },
+    "album": {
+      "title": "Album",
+      "together_one": "{{from}} – {{to}} · {{count}} day together",
+      "together_other": "{{from}} – {{to}} · {{count}} days together"
     }
   },
   "buddyEvent": {
@@ -108,7 +123,8 @@
     "CLEANED": "{{actor}} cleaned up after {{buddy}}",
     "LEVELED_UP": "{{buddy}} leveled up! Lv.{{level}} ⬆️",
     "EVOLVED": "{{buddy}} evolved! ✨",
-    "MAX_LEVEL": "🎉 {{buddy}} reached the top level, Lv.{{level}}!"
+    "MAX_LEVEL": "🎉 {{buddy}} reached the top level, Lv.{{level}}!",
+    "GRADUATED": "🎓 {{name}} went its own way and is in the album now. A new egg arrived!"
   },
   "settings": {
     "title": "Settings",

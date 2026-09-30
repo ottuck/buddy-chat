@@ -41,6 +41,7 @@
   `clientMessageId`로 다시 보낸다. 서버 에러 코드의 문구는 `errors.*` 번역 키로 보여준다.
 - web은 Node에서 미리 렌더링되므로 모듈 최상위에서 `window`에 접근하지 않는다.
 - Buddy 상태(레벨, 배고픔, 똥, 돌볼 수 있는지)는 서버가 계산한 `BuddyView`를 그대로 보여준다. 앱에서 규칙을 다시 계산하지 않는다.
+  무대 꾸미기(`stage-decor.tsx`)는 서버가 준 레벨과 앨범으로 앱이 고른다(표시 규칙이라 서버에 없음).
   예외는 로그인 전 "구경하기"(`app/demo.tsx`, `features/demo`)뿐이다. 대본으로 채팅 화면 부품을 그대로 재생하고 서버를 쓰지 않는다.
 - Buddy 무대(`features/buddy/components/buddy-stage.tsx`): 채팅 화면 위쪽 약 1/3, 입력 중이거나 위로 스크롤하면 한 줄로 접힌다.
   입력 중 접기는 화면 키보드가 있는 기기만(`stage-folds-on-focus`, PC 웹은 접지 않음). 펼칠 때마다 새로 마운트되므로

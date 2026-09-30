@@ -1,9 +1,22 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ProgressBar } from '@/components/progress-bar';
 import { WebFrame } from '@/components/web-frame';
+import type { AlbumEntry } from '@/features/room/api';
+import { errorMessage } from '@/features/room/error-message';
+import { confirm } from '@/lib/confirm';
 import { MAX_CONTENT_WIDTH, useColors } from '@/theme';
 
 import type { BuddyView } from '../api';
@@ -19,11 +32,26 @@ type Props = {
   onClose: () => void;
   onFeed: () => void;
   onClean: () => void;
+  // Buddies gone their own way; none in the tour.
+  album?: AlbumEntry[];
+  // At the top level: the buddy goes into the album and a new egg with this name arrives.
+  onGraduate?: (newName: string) => Promise<void>;
 };
 
-// Buddy detail: stats and the two care actions (docs/product.md). A native page sheet on
-// iOS, so it can be swiped down.
-export function BuddySheet({ visible, buddy, busy, onClose, onFeed, onClean }: Props) {
+const MAX_NAME_LENGTH = 12; // server: Buddy.MAX_NAME_LENGTH
+
+// Buddy detail: stats, the two care actions, going its own way once grown, and the album
+// (docs/product.md). A native page sheet on iOS, so it can be swiped down.
+export function BuddySheet({
+  visible,
+  buddy,
+  busy,
+  onClose,
+  onFeed,
+  onClean,
+  album,
+  onGraduate,
+}: Props) {
   const colors = useColors();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -38,7 +66,10 @@ export function BuddySheet({ visible, buddy, busy, onClose, onFeed, onClean }: P
       {/* Web shows the sheet in the same frame as the app (components/web-frame.web.tsx). */}
       <WebFrame>
         <View style={[styles.screen, { backgroundColor: colors.background }]}>
-          <View style={[styles.column, { paddingBottom: 16 + insets.bottom }]}>
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={[styles.column, { paddingBottom: 16 + insets.bottom }]}
+          >
             <View style={styles.topBar}>
               <Pressable onPress={onClose} accessibilityRole="button" hitSlop={12}>
                 <Text style={[styles.close, { color: colors.accent }]}>{t('common.close')}</Text>
@@ -95,10 +126,124 @@ export function BuddySheet({ visible, buddy, busy, onClose, onFeed, onClean }: P
             </View>
 
             <Text style={[styles.hint, { color: colors.textMuted }]}>{t('buddy.growthHint')}</Text>
-          </View>
+
+            {buddy.grown && onGraduate ? (
+              <GraduateCard buddyName={buddy.name} onGraduate={onGraduate} />
+            ) : null}
+            {album && album.length > 0 ? <AlbumCard album={album} /> : null}
+          </ScrollView>
         </View>
       </WebFrame>
     </Modal>
+  );
+}
+
+function GraduateCard({
+  buddyName,
+  onGraduate,
+}: {
+  buddyName: string;
+  onGraduate: (newName: string) => Promise<void>;
+}) {
+  const colors = useColors();
+  const { t } = useTranslation();
+  const [name, setName] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const newName = name.trim();
+
+  const graduate = async () => {
+    const ok = await confirm({
+      title: t('buddy.graduate.confirmTitle', { buddy: buddyName }),
+      message: t('buddy.graduate.confirmMessage', { buddy: buddyName, name: newName }),
+      confirmLabel: t('buddy.graduate.confirm'),
+      cancelLabel: t('common.cancel'),
+    });
+    if (!ok) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await onGraduate(newName);
+    } catch (e) {
+      setError(errorMessage(t, e));
+      setBusy(false);
+    }
+  };
+
+  return (
+    <View style={[styles.card, { backgroundColor: colors.surface }]}>
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>
+        🎓 {t('buddy.graduate.title')}
+      </Text>
+      <Text lineBreakStrategyIOS="hangul-word" style={[styles.body, { color: colors.textMuted }]}>
+        {t('buddy.graduate.body', { buddy: buddyName })}
+      </Text>
+      <TextInput
+        value={name}
+        onChangeText={setName}
+        placeholder={t('buddy.graduate.namePlaceholder')}
+        placeholderTextColor={colors.textMuted}
+        maxLength={MAX_NAME_LENGTH}
+        style={[
+          styles.input,
+          { color: colors.text, borderColor: colors.border, backgroundColor: colors.background },
+        ]}
+      />
+      {busy ? (
+        <ActivityIndicator color={colors.accent} />
+      ) : (
+        <Pressable
+          onPress={graduate}
+          disabled={!newName}
+          accessibilityRole="button"
+          style={({ pressed }) => [
+            styles.careButton,
+            { backgroundColor: colors.accent, opacity: !newName ? 0.4 : pressed ? 0.7 : 1 },
+          ]}
+        >
+          <Text style={[styles.careLabel, { color: colors.onAccent }]}>
+            {t('buddy.graduate.button')}
+          </Text>
+        </Pressable>
+      )}
+      {error ? <Text style={[styles.body, { color: colors.accent }]}>{error}</Text> : null}
+    </View>
+  );
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// Newest first: the one who just left is on top.
+function AlbumCard({ album }: { album: AlbumEntry[] }) {
+  const colors = useColors();
+  const { t, i18n } = useTranslation();
+  const date = new Intl.DateTimeFormat(i18n.language, { month: 'short', day: 'numeric' });
+  return (
+    <View style={[styles.card, { backgroundColor: colors.surface }]}>
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>📖 {t('buddy.album.title')}</Text>
+      {[...album].reverse().map((entry) => {
+        const born = new Date(entry.bornAt);
+        const left = new Date(entry.graduatedAt);
+        const days = Math.max(1, Math.ceil((left.getTime() - born.getTime()) / DAY_MS));
+        return (
+          <View key={entry.graduatedAt} style={styles.albumRow}>
+            <View style={[styles.portrait, { borderColor: colors.border }]}>
+              <BuddyAvatar stage="ADULT" size={36} />
+            </View>
+            <View style={styles.albumText}>
+              <Text style={[styles.statLabel, { color: colors.text }]}>{entry.name}</Text>
+              <Text style={[styles.statValue, { color: colors.textMuted }]}>
+                {t('buddy.album.together', {
+                  from: date.format(born),
+                  to: date.format(left),
+                  count: days,
+                })}
+              </Text>
+            </View>
+          </View>
+        );
+      })}
+    </View>
   );
 }
 
@@ -149,12 +294,42 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
   },
-  column: {
-    flex: 1,
+  scroll: {
     width: '100%',
     maxWidth: MAX_CONTENT_WIDTH,
+  },
+  column: {
     paddingHorizontal: 20,
     gap: 20,
+  },
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  body: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  input: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 16,
+  },
+  albumRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  portrait: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 4,
+  },
+  albumText: {
+    flex: 1,
+    gap: 2,
   },
   topBar: {
     flexDirection: 'row',

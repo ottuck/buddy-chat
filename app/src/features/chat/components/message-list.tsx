@@ -89,6 +89,7 @@ export function MessageList({
                   buddy: buddyName,
                   actor: nameOf(item.actorId),
                   level: item.level,
+                  name: item.detail,
                 })}
               />
             </View>

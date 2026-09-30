@@ -4,7 +4,15 @@ import { api, ApiError } from '@/lib/api';
 // Shapes returned by the server (server/src/main/java/com/buddychat/room/RoomView.java).
 export type Me = { id: string; displayName: string | null; roomId: string | null };
 export type RoomMember = { id: string; displayName: string | null };
-export type Room = { id: string; members: RoomMember[]; buddy: BuddyView; createdAt: string };
+// A buddy that grew up and went its own way, kept in the room's album.
+export type AlbumEntry = { name: string; bornAt: string; graduatedAt: string };
+export type Room = {
+  id: string;
+  members: RoomMember[];
+  buddy: BuddyView;
+  createdAt: string;
+  album: AlbumEntry[];
+};
 export type Invitation = { code: string; expiresAt: string };
 
 export const fetchMe = () => api<Me>('/api/me');

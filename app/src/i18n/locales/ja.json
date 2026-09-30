@@ -13,7 +13,8 @@
     "INVITATION_EXPIRED": "招待の期限が切れています。新しいコードをもらってください。",
     "INVITATION_USED": "この招待はもう使われています。新しいコードをもらってください。",
     "ALREADY_MEMBER": "すでにこのルームに参加しています。",
-    "ALREADY_IN_ROOM": "ほかのルームで誰かとおしゃべり中です。"
+    "ALREADY_IN_ROOM": "ほかのルームで誰かとおしゃべり中です。",
+    "BUDDY_NOT_GROWN": "もう新しいたまごが届いています。"
   },
   "signIn": {
     "tagline": "好きな人とおしゃべりしながら、小さなBuddyをいっしょに育てよう。",
@@ -99,6 +100,20 @@
       "ateYet": "ごはん食べた？",
       "whatsUp": "何かあった？",
       "howWasToday": "今日はどうだった？"
+    },
+    "graduate": {
+      "title": "独り立ち",
+      "body": "{{buddy}}は大きくなりました。独り立ちするとアルバムに残り、ステージには新しいたまごが来ます。飾りはそのままです。",
+      "namePlaceholder": "新しいたまごの名前",
+      "button": "独り立ちさせる",
+      "confirmTitle": "{{buddy}}を独り立ちさせますか？",
+      "confirmMessage": "{{buddy}}はアルバムへ、新しいたまご{{name}}がステージに来ます。元に戻せません。",
+      "confirm": "独り立ちさせる"
+    },
+    "album": {
+      "title": "アルバム",
+      "together_one": "{{from}}〜{{to}} · {{count}}日いっしょ",
+      "together_other": "{{from}}〜{{to}} · {{count}}日いっしょ"
     }
   },
   "buddyEvent": {
@@ -108,7 +123,8 @@
     "CLEANED": "{{actor}}が{{buddy}}のうんちを片付けました",
     "LEVELED_UP": "{{buddy}}がレベルアップしました！Lv.{{level}} ⬆️",
     "EVOLVED": "{{buddy}}が進化しました！✨",
-    "MAX_LEVEL": "🎉 {{buddy}}が最高レベル Lv.{{level}}に到達しました！"
+    "MAX_LEVEL": "🎉 {{buddy}}が最高レベル Lv.{{level}}に到達しました！",
+    "GRADUATED": "🎓 {{name}}が独り立ちしてアルバムに残りました。新しいたまごが届きました！"
   },
   "settings": {
     "title": "設定",

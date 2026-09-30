@@ -13,7 +13,8 @@
     "INVITATION_EXPIRED": "초대가 만료됐어요. 새 코드를 받아 주세요.",
     "INVITATION_USED": "이미 사용된 초대예요. 새 코드를 받아 주세요.",
     "ALREADY_MEMBER": "이미 이 방에 있어요.",
-    "ALREADY_IN_ROOM": "이미 다른 방에서 누군가와 대화 중이에요."
+    "ALREADY_IN_ROOM": "이미 다른 방에서 누군가와 대화 중이에요.",
+    "BUDDY_NOT_GROWN": "이미 새 알이 왔어요."
   },
   "signIn": {
     "tagline": "좋아하는 사람과 대화하며 작은 Buddy를 함께 키워요.",
@@ -99,6 +100,20 @@
       "ateYet": "밥 먹었어?",
       "whatsUp": "무슨 일 있어?",
       "howWasToday": "오늘 어땠어?"
+    },
+    "graduate": {
+      "title": "독립시키기",
+      "body": "{{buddy, 이가}} 다 자랐어요. 독립시키면 앨범에 남고, 무대에는 새 알이 와요. 꾸민 소품은 그대로예요.",
+      "namePlaceholder": "새 알의 이름",
+      "button": "독립시키기",
+      "confirmTitle": "{{buddy, 을를}} 독립시킬까요?",
+      "confirmMessage": "{{buddy, 은는}} 앨범으로 가고, 새 알 {{name, 이가}} 무대에 와요. 되돌릴 수 없어요.",
+      "confirm": "독립시키기"
+    },
+    "album": {
+      "title": "앨범",
+      "together_one": "{{from}} ~ {{to}} · {{count}}일 함께",
+      "together_other": "{{from}} ~ {{to}} · {{count}}일 함께"
     }
   },
   "buddyEvent": {
@@ -108,7 +123,8 @@
     "CLEANED": "{{actor}}님이 {{buddy}}의 💩을 치웠어요",
     "LEVELED_UP": "{{buddy, 이가}} 레벨 업했어요! Lv.{{level}} ⬆️",
     "EVOLVED": "{{buddy, 이가}} 진화했어요! ✨",
-    "MAX_LEVEL": "🎉 {{buddy, 이가}} 최고 레벨 Lv.{{level}}에 도달했어요!"
+    "MAX_LEVEL": "🎉 {{buddy, 이가}} 최고 레벨 Lv.{{level}}에 도달했어요!",
+    "GRADUATED": "🎓 {{name, 이가}} 독립해서 앨범에 남았어요. 새 알이 도착했어요!"
   },
   "settings": {
     "title": "설정",

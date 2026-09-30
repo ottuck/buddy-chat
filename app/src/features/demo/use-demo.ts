@@ -41,6 +41,7 @@ function egg(name: string): BuddyView {
     hungry: false,
     canFeed: false,
     canClean: false,
+    grown: false,
   };
 }
 
@@ -54,6 +55,7 @@ function afterEvent(buddy: BuddyView, event: BuddyEvent): BuddyView | null {
       return { ...buddy, stage, level: LEVEL_OF[stage], levelProgress: 0.1 };
     }
     case 'MAX_LEVEL':
+    case 'GRADUATED':
       return null; // not in the script
     case 'LEVELED_UP':
       return { ...buddy, level: buddy.level + 1, levelProgress: 0.1 };

@@ -38,11 +38,11 @@ type Options = {
   // The server no longer knows this user's room (e.g. it changed on another device).
   onRoomLost: () => void;
   // A friend joined or left: the room's members changed.
-  onMembersChanged: () => void;
+  onRoomChanged: () => void;
   onBuddy: (buddy: BuddyView) => void;
 };
 
-export function useChat({ myId, onRoomLost, onMembersChanged, onBuddy }: Options) {
+export function useChat({ myId, onRoomLost, onRoomChanged, onBuddy }: Options) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [status, setStatus] = useState<ConnectionStatus>('connecting');
   const [hasOlder, setHasOlder] = useState(false);
@@ -64,8 +64,8 @@ export function useChat({ myId, onRoomLost, onMembersChanged, onBuddy }: Options
   const socketRef = useRef<ChatSocket | null>(null);
   const onRoomLostRef = useRef(onRoomLost);
   onRoomLostRef.current = onRoomLost;
-  const onMembersChangedRef = useRef(onMembersChanged);
-  onMembersChangedRef.current = onMembersChanged;
+  const onRoomChangedRef = useRef(onRoomChanged);
+  onRoomChangedRef.current = onRoomChanged;
   const onBuddyRef = useRef(onBuddy);
   onBuddyRef.current = onBuddy;
   const myIdRef = useRef(myId);
@@ -154,6 +154,10 @@ export function useChat({ myId, onRoomLost, onMembersChanged, onBuddy }: Options
         apply([message]);
         const next = reactionTo(message, myIdRef.current);
         if (next) setReaction(next);
+        // A buddy went its own way: the album has a new page.
+        if (message.type === 'BUDDY_EVENT' && message.buddyEvent === 'GRADUATED') {
+          onRoomChangedRef.current();
+        }
       },
       onPresence: (userId, isOnline) => {
         setOnline((prev) => {
@@ -168,7 +172,7 @@ export function useChat({ myId, onRoomLost, onMembersChanged, onBuddy }: Options
           (prev[userId] ?? '') >= messageId ? prev : { ...prev, [userId]: messageId },
         ),
       onSendFailed: (clientMessageId) => markStatus(clientMessageId, 'failed'),
-      onMembersChanged: () => onMembersChangedRef.current(),
+      onMembersChanged: () => onRoomChangedRef.current(),
       onBuddy: (buddy) => onBuddyRef.current(buddy),
       onFatal: () => onRoomLostRef.current(),
     });

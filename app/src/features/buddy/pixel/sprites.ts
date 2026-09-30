@@ -222,7 +222,13 @@ export const PROP_PALETTE: Palette = {
   a: '#7FB3D5', // bowl
   r: '#FF6B81', // heart
   y: '#FFD166', // sparkles
-  u: '#F07A4A', // level up
+  u: '#F07A4A', // level up, autumn leaf
+  g: '#8BCB6B', // plant
+  G: '#5DA14E', // plant shade
+  o: '#E0875F', // flower pot
+  m: '#F4B8A8', // rug
+  n: '#FFF1E6', // rug stripes
+  f: '#FF9EB5', // blossom
 };
 
 // prettier-ignore
@@ -303,3 +309,83 @@ export const NOTE: Frame = [
   'kkkk.',
   '.kk..',
 ];
+
+// --- Decorations (docs/product.md, 무대 꾸미기) ---
+
+// prettier-ignore
+export const PLANT: Frame = [
+  '..g...g..',
+  '.gGg.gGg.',
+  '.gGGgGGg.',
+  '..gGGGg..',
+  '...gGg...',
+  '....G....',
+  '.kkkkkkkk',
+  '.kooooook',
+  '..kooook.',
+  '..kkkkkk.',
+];
+
+export const RUG: Frame = [
+  '..' + 'm'.repeat(26) + '..',
+  '.' + 'mmn'.repeat(9) + 'm.',
+  '.' + 'nmm'.repeat(9) + 'm.',
+  '..' + 'm'.repeat(26) + '..',
+];
+
+// One flag of the garland, in the given color key.
+export function flag(color: 'r' | 'y' | 'a'): Frame {
+  return [color.repeat(5), '.' + color.repeat(3) + '.', '..' + color + '..'];
+}
+
+// prettier-ignore
+const LEAF: Frame = [
+  '...u...',
+  '.u.u.u.',
+  '.uuuuu.',
+  'uuuuuuu',
+  '.uuuuu.',
+  '...c...',
+  '...c...',
+];
+
+// prettier-ignore
+const SNOW: Frame = [
+  '...a...',
+  '.a.a.a.',
+  '..aaa..',
+  'aaaaaaa',
+  '..aaa..',
+  '.a.a.a.',
+  '...a...',
+];
+
+// prettier-ignore
+const BLOSSOM: Frame = [
+  '..f.f..',
+  '.fffff.',
+  'ffyyyff',
+  '.fyyyf.',
+  'ffyyyff',
+  '.fffff.',
+  '..f.f..',
+];
+
+// prettier-ignore
+const SUN: Frame = [
+  'y..y..y',
+  '.y.y.y.',
+  '..uuu..',
+  'yyuuuyy',
+  '..uuu..',
+  '.y.y.y.',
+  'y..y..y',
+];
+
+// The season's mark on the wall, by month (0 = January).
+export function seasonMark(month: number): Frame {
+  if (month >= 2 && month <= 4) return BLOSSOM;
+  if (month >= 5 && month <= 7) return SUN;
+  if (month >= 8 && month <= 10) return LEAF;
+  return SNOW;
+}
