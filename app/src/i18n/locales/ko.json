@@ -180,7 +180,9 @@
     "theme": "화면 모드",
     "followDevice": "기기 설정",
     "light": "라이트",
-    "dark": "다크"
+    "dark": "다크",
+    "notificationsDeniedWeb": "브라우저에서 buddy-chat 알림이 차단돼 있어요. 사이트 설정에서 알림을 허용해 주세요.",
+    "notificationsInstall": "iPhone에서는 홈 화면에 추가한 앱에서 알림을 받을 수 있어요. Safari의 공유 버튼 → '홈 화면에 추가'를 누른 뒤, 홈 화면의 buddy-chat에서 알림을 켜 주세요."
   },
   "systemEvent": {
     "MEMBER_LEFT": "{{name}}님이 나갔어요"

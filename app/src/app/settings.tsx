@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   Linking,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -23,7 +24,7 @@ import {
   switchToGoogle,
 } from '@/features/auth/google-sign-in';
 import {
-  pushEnabled,
+  registerForPush,
   type PushState,
   pushSupported,
   setPushEnabled,
@@ -364,8 +365,8 @@ function NotificationsCard() {
 
   useEffect(() => {
     let cancelled = false;
-    pushEnabled()
-      .then((enabled) => (enabled ? setPushEnabled(true) : ('off' as const)))
+    // Where things stand; asking for permission waits for the switch.
+    registerForPush()
       .then((next) => !cancelled && setState(next))
       .catch((e) => {
         console.warn(e);
@@ -398,12 +399,16 @@ function NotificationsCard() {
         <Switch
           value={state === 'on'}
           onValueChange={toggle}
-          disabled={state === null || state === 'unavailable'}
+          disabled={state === null || state === 'unavailable' || state === 'needsInstall'}
           trackColor={{ true: colors.accent }}
           accessibilityLabel={t('settings.notifications')}
         />
       </View>
-      {state === 'denied' ? (
+      {state === 'denied' && Platform.OS === 'web' ? (
+        <Text style={[styles.email, styles.section, { color: colors.textMuted }]}>
+          {t('settings.notificationsDeniedWeb')}
+        </Text>
+      ) : state === 'denied' ? (
         <>
           <Text style={[styles.email, styles.section, { color: colors.textMuted }]}>
             {t('settings.notificationsDenied')}
@@ -419,6 +424,13 @@ function NotificationsCard() {
             </Text>
           </Pressable>
         </>
+      ) : state === 'needsInstall' ? (
+        <Text
+          lineBreakStrategyIOS="hangul-word"
+          style={[styles.email, styles.section, { color: colors.textMuted }]}
+        >
+          {t('settings.notificationsInstall')}
+        </Text>
       ) : state === 'unavailable' ? (
         <Text style={[styles.email, styles.section, { color: colors.textMuted }]}>
           {t('settings.notificationsUnavailable')}

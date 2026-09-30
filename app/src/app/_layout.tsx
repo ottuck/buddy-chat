@@ -13,6 +13,7 @@ import { AuthProvider, useAuth } from '@/features/auth/auth-provider';
 import { RoomProvider, useRoom } from '@/features/room/room-provider';
 import { loadPreferences, usePreferences } from '@/lib/preferences';
 import { rememberInviteFromUrl, takePendingInvite } from '@/lib/pending-invite';
+import { registerServiceWorker } from '@/lib/service-worker';
 import { warmUpServer } from '@/lib/warm-up';
 import { useColorMode } from '@/theme';
 
@@ -28,6 +29,7 @@ export default function RootLayout() {
   useEffect(() => {
     warmUpServer();
     loadPreferences();
+    registerServiceWorker();
     // A friend's invite link (join?code=…) may arrive before the friend has signed in.
     rememberInviteFromUrl();
   }, []);

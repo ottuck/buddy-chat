@@ -21,7 +21,8 @@ Notifications.setNotificationHandler({
 export const pushSupported = true;
 
 // 'denied': the user said no to the system prompt; only the Settings app can change that now.
-export type PushState = 'on' | 'off' | 'denied' | 'unavailable';
+// 'needsInstall' only happens on the web (push.web.ts).
+export type PushState = 'on' | 'off' | 'denied' | 'unavailable' | 'needsInstall';
 
 // The user's choice in the app's settings, per device. On unless turned off.
 const ENABLED_KEY = 'push-enabled';

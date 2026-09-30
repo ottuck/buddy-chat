@@ -180,7 +180,9 @@
     "theme": "Appearance",
     "followDevice": "Device setting",
     "light": "Light",
-    "dark": "Dark"
+    "dark": "Dark",
+    "notificationsDeniedWeb": "Notifications for buddy-chat are blocked in this browser. Allow them in the site settings.",
+    "notificationsInstall": "On iPhone, notifications come to the app on your home screen. In Safari, tap Share → “Add to Home Screen”, then turn notifications on in buddy-chat from your home screen."
   },
   "systemEvent": {
     "MEMBER_LEFT": "{{name}} left"

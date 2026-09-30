@@ -36,6 +36,12 @@ export default function Root({ children }: PropsWithChildren) {
           content="A chat between two people with a pixel buddy on a small stage above it"
         />
         <meta name="twitter:card" content="summary_large_image" />
+        {/* Installable (home screen, standalone), which an iPhone needs for notifications. */}
+        <link rel="manifest" href="/manifest.webmanifest" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-title" content={TITLE} />
         <meta name="theme-color" content="#F6F4F1" media="(prefers-color-scheme: light)" />
         <meta name="theme-color" content="#16161A" media="(prefers-color-scheme: dark)" />
         <ScrollViewStyleReset />

@@ -180,7 +180,9 @@
     "theme": "画面モード",
     "followDevice": "端末の設定",
     "light": "ライト",
-    "dark": "ダーク"
+    "dark": "ダーク",
+    "notificationsDeniedWeb": "ブラウザでbuddy-chatの通知がブロックされています。サイトの設定で通知を許可してください。",
+    "notificationsInstall": "iPhoneではホーム画面に追加したアプリで通知を受け取れます。Safariの共有ボタン →「ホーム画面に追加」を押して、ホーム画面のbuddy-chatから通知をオンにしてください。"
   },
   "systemEvent": {
     "MEMBER_LEFT": "{{name}}さんが退出しました"
