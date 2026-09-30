@@ -20,7 +20,9 @@ import org.springframework.data.mongodb.core.FindAndReplaceOptions;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Push notifications for new messages (docs/server-design.md, 푸시). A recipient is notified when
@@ -37,6 +39,8 @@ public class NotificationService {
 
     private final ReactiveMongoTemplate mongo;
     private final PushSender sender;
+    private final WebPush webPush;
+    private final JsonMapper json;
     private final RoomService roomService;
     private final ChatService chatService;
     private final NotificationProperties properties;
@@ -45,12 +49,16 @@ public class NotificationService {
     NotificationService(
             ReactiveMongoTemplate mongo,
             PushSender sender,
+            WebPush webPush,
+            JsonMapper json,
             RoomService roomService,
             ChatService chatService,
             NotificationProperties properties,
             Clock clock) {
         this.mongo = mongo;
         this.sender = sender;
+        this.webPush = webPush;
+        this.json = json;
         this.roomService = roomService;
         this.chatService = chatService;
         this.properties = properties;
@@ -64,9 +72,25 @@ public class NotificationService {
         }
         return mongo.findAndReplace(
                         query(where("_id").is(token)),
-                        new PushToken(token, user.id(), Instant.now(clock)),
+                        new PushToken(token, user.id(), Instant.now(clock), null, null),
                         FindAndReplaceOptions.options().upsert())
                 .then();
+    }
+
+    /** Remembers a browser's Web Push subscription for the user, as with an app's token. */
+    Mono<Void> registerWeb(User user, @Nullable String endpoint, @Nullable String p256dh, @Nullable String auth) {
+        if (endpoint == null || p256dh == null || auth == null || !WebPush.isPushService(endpoint)) {
+            return Mono.error(new ApiException(HttpStatus.BAD_REQUEST, "INVALID_REQUEST"));
+        }
+        return mongo.findAndReplace(
+                        query(where("_id").is(endpoint)),
+                        new PushToken(endpoint, user.id(), Instant.now(clock), p256dh, auth),
+                        FindAndReplaceOptions.options().upsert())
+                .then();
+    }
+
+    String webPushKey() {
+        return webPush.publicKey();
     }
 
     /** Forgets the token, e.g. on sign-out. Only the user it belongs to can remove it. */
@@ -98,14 +122,35 @@ public class NotificationService {
                         .toList())
                 .filter(unread -> !unread.isEmpty())
                 .flatMap(unread -> mongo.find(query(where("userId").in(unread)), PushToken.class)
-                        .map(token -> toPush(token.token(), message.roomId(), text, from))
                         .collectList())
-                .flatMap(sender::send)
+                .flatMap(tokens -> Mono.when(
+                        sendToApps(
+                                tokens.stream().filter(token -> !token.isWeb()).toList(), message, text, from),
+                        sendToBrowsers(tokens.stream().filter(PushToken::isWeb).toList(), message, text, from)))
+                .subscribe(null, e -> log.warn("Could not send push notifications: {}", e.toString()));
+    }
+
+    private Mono<Void> sendToApps(List<PushToken> tokens, Message message, String text, User from) {
+        if (tokens.isEmpty()) return Mono.empty();
+        return sender.send(tokens.stream()
+                        .map(token -> toPush(token.token(), message.roomId(), text, from))
+                        .toList())
                 .flatMap(sent -> {
                     checkReceiptsLater(sent.pending());
                     return forget(sent.invalidTokens());
-                })
-                .subscribe(null, e -> log.warn("Could not send push notifications: {}", e.toString()));
+                });
+    }
+
+    // Same title and text as the app's; the service worker (app: public/sw.js) shows it.
+    private Mono<Void> sendToBrowsers(List<PushToken> subscriptions, Message message, String text, User from) {
+        if (subscriptions.isEmpty()) return Mono.empty();
+        PushMessage push = toPush("", message.roomId(), text, from);
+        String payload = json.writeValueAsString(Map.of("title", push.title(), "body", push.body(), "url", "/"));
+        return Flux.fromIterable(subscriptions)
+                .flatMap(subscription ->
+                        webPush.send(subscription, payload).filter(gone -> gone).map(gone -> subscription.token()))
+                .collectList()
+                .flatMap(this::forget);
     }
 
     private static PushMessage toPush(String token, String roomId, String text, User from) {
