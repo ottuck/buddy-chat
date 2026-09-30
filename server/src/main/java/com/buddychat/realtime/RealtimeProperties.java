@@ -6,8 +6,8 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
 
 /**
  * @param authTimeout how long a new connection may take to send its {@code auth} message
- * @param pingInterval WebSocket ping frames keep idle connections open through Azure Container
- *     Apps' idle timeout (docs/server-design.md, 인프라)
+ * @param pingInterval WebSocket ping frames keep idle connections open through the hosting
+ *     proxy's idle timeout (docs/server-design.md, 인프라)
  */
 @ConfigurationProperties("buddychat.realtime")
 record RealtimeProperties(

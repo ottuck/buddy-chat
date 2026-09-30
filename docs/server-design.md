@@ -82,7 +82,7 @@ push_tokens  { _id: <Expo push token>, userId, updatedAt }
 - **히스토리**: `{ roomId: 1, _id: -1 }` 인덱스, `_id < cursor` 커서 페이지네이션.
 - **Buddy 상태는 조회 시점에 계산**: 배고픔·똥은 `lastFedAt`·`lastCleanedAt`과 현재 시각으로 계산한다. 스케줄러 없음.
 - 한 사용자는 room 하나에만 속한다(MVP). `users.roomId`로 찾는다.
-- MVP에서는 트랜잭션, change stream, 복잡한 aggregation에 기대지 않는다(DocumentDB가 지원하더라도). 단순함,
+- MVP에서는 트랜잭션, change stream, 복잡한 aggregation에 기대지 않는다(DB가 지원하더라도). 단순함,
   MongoDB 호환 범위를 좁게 유지하기, 이식성 때문이다. 동시성은 조건부 atomic update와 unique 인덱스로 해결한다.
 - **메시지 순서는 `_id` 하나로 정한다.** 히스토리 페이지네이션, 재연결 catch-up, 앱의 타임라인 정렬, 읽음 위치가
   모두 `_id` 순서를 쓴다. ObjectId는 대략적인 시간순일 뿐이지만(초 단위 + 프로세스별 random + counter) 한 서버
@@ -202,7 +202,8 @@ iPhone / Web ──HTTPS·WSS──▶ Railway (Spring WebFlux, Docker, 싱가�
 - **이전(2026-10)**: 처음에는 Azure(Container Apps, DocumentDB 무료, Static Web Apps)에 ur-manager와 환경·레지스트리·
   state를 공유해 올렸다. 서버를 항상 1대 켜두면 월 약 ¥2,000이 나왔고, 공유 때문에 이름·권한이 ur-manager에 묶였다.
   이 프로젝트만의 작은 구성으로 옮겼다: Railway Hobby(월 $5, 사용량 $5 포함), Atlas M0(무료), Cloudflare(무료).
-  옛 설정은 `infra/azure/`에 두었다가 리소스를 지운 뒤 없앤다.
+  2026-10-01에 전환했다: 서버 health `UP`, `puny-chat.com`에서 게스트 로그인·방·메시지 확인. 그 뒤 Azure 리소스,
+  공유 레지스트리의 서버 이미지, 옛 설정(`infra/azure/`)을 지웠다.
 - **서버**: Railway 서비스 1개, 싱가포르(`asia-southeast1-eqsg3a`), 복제 1(연결·presence·typing이 메모리에 있다).
   항상 켜져 있어 콜드 스타트가 없다(앱의 미리 깨우기 `app/src/lib/warm-up.ts`는 남아 있다). Railway는 사용한 만큼 과금하므로
   힙을 `-Xmx384m`, SerialGC로 고정한다(`JAVA_TOOL_OPTIONS`). 유휴 연결 타임아웃 때문에 서버가 25초마다 ping을 보낸다.
@@ -219,7 +220,7 @@ iPhone / Web ──HTTPS·WSS──▶ Railway (Spring WebFlux, Docker, 싱가�
   만든다. 같은 이름의 CNAME이 있으면 안 된다). `EXPO_PUBLIC_*`는 빌드에 들어가는 공개 값이라 repo variables로 둔다.
 - **도메인**: 웹 `puny-chat.com`(Worker), 서버 `api.puny-chat.com`(Railway 커스텀 도메인, CNAME + 확인용 TXT를
   Terraform이 Cloudflare에 만든다, 프록시 없음). puny-chat.com은 Cloudflare Registrar에서 샀다(2026-09-30). 전에 쓰던
-  buddy.pokepidia.com은 새 주소로 리다이렉트한다. Firebase 콘솔의
+  buddy.pokepidia.com은 리다이렉트하지 않고 Azure와 함께 정리했다. Firebase 콘솔의
   승인된 도메인에 웹 도메인이 있어야 Google 로그인이 된다. 서버 CORS에는 웹 도메인과 로컬 Expo dev 서버가 들어간다.
 - **Terraform**(`infra/`, 사용법은 `infra/README.md`): Atlas 프로젝트·M0·DB 사용자·접근 목록, Railway 프로젝트·서비스·변수·
   커스텀 도메인, Cloudflare DNS, VAPID 키. state는 Cloudflare R2(S3 호환 backend)에 둔다. 인증 정보는 `infra/.env`(git 제외)에만
@@ -240,7 +241,7 @@ iPhone / Web ──HTTPS·WSS──▶ Railway (Spring WebFlux, Docker, 싱가�
 4. **S4 앱 연결**: 목업을 서버 데이터로 교체, 재연결
 5. **S5 Buddy**: 서버 규칙, 밥주기·청소(동시성), 타임라인 이벤트, 메시지 EXP 하루 상한
 6. **S6 Presence·Typing·Read**
-7. **S7 배포**: Container Apps, DocumentDB, Terraform. 배포 후 확인할 것:
+7. **S7 배포**: 처음에는 Azure Container Apps, DocumentDB, Terraform(2026-10 Railway·Atlas·Cloudflare로 이전, 위 인프라). 배포 후 확인할 것:
    - WebSocket을 15분 이상 유지: 25초 ping이 계속되고, 그 뒤 메시지를 보내고 받는다. 일반 HTTP 요청 timeout(240초)이나
      유휴 timeout이 업그레이드된 연결에 어떻게 적용되는지 문서로 가정하지 않고 실제로 본다.
    - 아이폰 백그라운드 → 포그라운드 → 재연결(2026-09-27 확인: 웹에서 보낸 메시지를 복귀 즉시 받음), 토큰 만료 뒤 재연결
@@ -249,7 +250,7 @@ iPhone / Web ──HTTPS·WSS──▶ Railway (Spring WebFlux, Docker, 싱가�
    - **결과(2026-09-27, PR #4)**: 서버 테스트 58개를 실제 DocumentDB에서 전부 통과. 배포된 서버에서 16분 idle 뒤에도
      WebSocket 유지(240초 요청 timeout은 업그레이드된 연결에 적용되지 않음), 재연결 0.14초, 토큰 만료 시각에
      `TOKEN_EXPIRED` → 새 토큰으로 재연결, 아이폰 백그라운드 복귀 정상. 메시지 전달 30~400ms.
-   - scale-to-zero 뒤 첫 접속은 약 21초였다. 그래서 `minReplicas = 1`로 바꿨다(위 콜드 스타트 결정, 적용 후 응답 0.1초 이내).
+   - scale-to-zero 뒤 첫 접속은 약 21초였다. 그래서 `minReplicas = 1`로 바꿨다(적용 후 응답 0.1초 이내). 지금 Railway도 항상 1대가 켜져 있다.
      `main` 자동 배포(CI 안의 deploy job)는 확인 완료.
 8. **S8 Push**: FCM / APNs. 상대가 오프라인일 때 상대 메시지만 알린다(Buddy 알림 없음).
    iOS는 결국 APNs를 거치므로 `expo-notifications`로 할지 FCM으로 할지 이때 정한다. 개발용 빌드와
@@ -339,7 +340,7 @@ App Store Guideline 5.1.1(v)(앱에서 만든 계정은 앱에서 지울 수 있
 
 Firebase가 30일 지난 익명 계정을 지워도 서버의 사용자·방·메시지는 남는다. 링크를 공개하면 방문자마다 게스트가 생기므로
 서버가 **매주 월요일 04:00(일본 시간)** 정리한다(`account/GuestCleanup`, Spring `@Scheduled`). 서버가 항상 1대 떠 있어서
-가능하다(인프라의 콜드 스타트 결정). 배포 중 2대가 겹쳐 두 번 돌아도 삭제는 여러 번 해도 같다.
+가능하다(인프라: Railway 서비스는 항상 켜져 있다). 배포 중 2대가 겹쳐 두 번 돌아도 삭제는 여러 번 해도 같다.
 
 - **게스트 판단**: 토큰의 `firebase.sign_in_provider`가 `anonymous`이고 `firebase.identities`가 비어 있으면 게스트.
   Google을 연결하면 uid와 로그인 방식은 그대로지만 identity가 생겨서 게스트가 아니다.
