@@ -153,6 +153,49 @@ public class BuddyService {
         });
     }
 
+    // Growth events happen once per buddy: the key names the buddy by its birth, so the next egg
+    // evolves and levels up again in the timeline.
+    private static String eventKey(Buddy buddy, String what) {
+        return "buddy:" + buddy.bornAt().toEpochMilli() + ":" + what;
+    }
+
+    /**
+     * The grown buddy goes its own way (docs/product.md, 독립과 앨범): it is kept in the room's album
+     * and a new egg takes its place, in one update so neither happens without the other. Only at
+     * the top level; of two members doing it at once, one does (the other gets BUDDY_NOT_GROWN, as
+     * there is only an egg now).
+     */
+    public Mono<BuddyView> graduate(String roomId, String actorId, String newName) {
+        Instant now = Instant.now(clock);
+        return load(roomId).flatMap(buddy -> {
+            if (BuddyRules.level(buddy.exp()) < BuddyRules.MAX_LEVEL) return Mono.error(notGrown());
+            // Still this buddy, still grown: a new egg (EXP 0) never matches, even if born the same moment.
+            Query same = query(where("_id")
+                    .is(roomId)
+                    .and("buddy.bornAt")
+                    .is(buddy.bornAt())
+                    .and("buddy.exp")
+                    .gte(BuddyRules.minExp(BuddyRules.MAX_LEVEL)));
+            Update update = new Update()
+                    .push("album", new AlbumEntry(buddy.name(), buddy.bornAt(), now))
+                    .set("buddy", Buddy.hatch(newName, now));
+            return mongo.findAndModify(same, update, RETURN_NEW, RoomBuddy.class, ROOMS)
+                    .switchIfEmpty(Mono.error(notGrown()))
+                    .flatMap(updated -> chatService
+                            .recordBuddyEvent(roomId, "GRADUATED", buddy.name(), actorId, eventKey(buddy, "graduated"))
+                            .doOnNext(message -> hub.publish(roomId, new ServerEvent.NewMessage(message), null))
+                            .then(Mono.fromSupplier(() -> {
+                                BuddyView view = BuddyView.of(updated.buddy(), now);
+                                hub.publish(roomId, new ServerEvent.BuddyUpdated(view), null);
+                                return view;
+                            })));
+        });
+    }
+
+    private static ApiException notGrown() {
+        return new ApiException(HttpStatus.CONFLICT, "BUDDY_NOT_GROWN");
+    }
+
     // The field as read: that value, or still absent.
     private static Criteria sameOrMissing(String field, @Nullable Object value) {
         return value == null ? where(field).exists(false) : where(field).is(value);
@@ -227,11 +270,15 @@ public class BuddyService {
         BuddyRules.Stage stage = BuddyRules.stage(level);
         Mono<Message> event;
         if (stage != BuddyRules.stage(levelBefore)) {
-            event = chatService.recordBuddyEvent(roomId, "EVOLVED", null, "buddy:evolved:" + stage);
+            event = chatService.recordBuddyEvent(roomId, "EVOLVED", null, eventKey(after, "evolved:" + stage));
         } else if (level == BuddyRules.MAX_LEVEL && levelBefore < level) {
             // The top: a thank-you in the timeline instead of one more level.
             event = chatService.recordBuddyEvent(
-                    roomId, "MAX_LEVEL", String.valueOf(level), null, "buddy:max:" + BuddyRules.expPerLevel());
+                    roomId,
+                    "MAX_LEVEL",
+                    String.valueOf(level),
+                    null,
+                    eventKey(after, "max:" + BuddyRules.expPerLevel()));
         } else if (level > levelBefore) {
             // Keyed by the level and the EXP per level: the same level reached again under another
             // setting is a new event.
@@ -240,7 +287,7 @@ public class BuddyService {
                     "LEVELED_UP",
                     String.valueOf(level),
                     null,
-                    "buddy:level:" + BuddyRules.expPerLevel() + ":" + level);
+                    eventKey(after, "level:" + BuddyRules.expPerLevel() + ":" + level));
         } else {
             event = Mono.empty();
         }

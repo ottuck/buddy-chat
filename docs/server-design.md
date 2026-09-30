@@ -304,6 +304,11 @@ Storage는 이름이 ur-manager에 묶여 있어(`cae-ur-manager-prod` 안에 bu
 - **동시성**: 밥주기는 `lastFedAt < 지금 - 30분` 조건부 update, 청소는 읽은 `lastCleanedAt`·`poopsCleaned`가 그대로일 때만
   바꾸는 compare-and-set. 둘이 동시에 눌러도
   한 번만 적용되고, 진 쪽은 `changed: false`와 현재 상태를 받는다. 메시지 EXP 상한도 조건부 update 두 단계로 지킨다.
+- **독립**(`POST /api/rooms/me/buddy/graduate` `{ buddyName }`): 30레벨(`BuddyView.grown`)일 때만. 지금 버디를 room의 `album`
+  (`{ name, bornAt, graduatedAt }`)에 push하고 `buddy`를 새 알로 바꾸는 것을 한 번의 조건부 update로 한다(같은 `bornAt`이고 EXP가
+  30레벨 이상일 때만: 새 알은 EXP 0이라 같은 순간에 태어나도 걸리지 않는다). 둘이 동시에 하면 한 명만 되고 다른 쪽은
+  `BUDDY_NOT_GROWN`(409). 타임라인 `GRADUATED`(`text` = 떠난 버디 이름), 상대 앱은 이 메시지를 받으면 room을 다시 읽는다(앨범).
+  진화·레벨·최고 레벨 이벤트 키에 버디의 `bornAt`을 넣어서 새 알이 다시 진화하면 새로 기록된다.
 - API: `POST /api/rooms/me/buddy/feed`, `POST /api/rooms/me/buddy/clean` → `{ buddy, changed }`.
   변화는 room 전체에 `message`(타임라인 이벤트)와 `buddy`(새 상태) WebSocket 이벤트로 전달된다.
 
@@ -361,6 +366,7 @@ Firebase가 30일 지난 익명 계정을 지워도 서버의 사용자·방·�
 | --- | --- | --- |
 | `INVALID_REQUEST` | 400 | 요청 값 검증 실패(Buddy 이름 비었거나 12자 초과 등) |
 | `ROOM_NOT_FOUND` | 404 | 아직 room이 없음 |
+| `BUDDY_NOT_GROWN` | 409 | 30레벨이 아닌데 독립(또는 상대가 방금 독립시켜 새 알) |
 | `ROOM_ALREADY_EXISTS` | 409 | 이미 room이 있는데 만들려고 함 |
 | `ROOM_FULL` | 409 | 2명이 찬 room에 초대·참가 |
 | `INVITATION_NOT_FOUND` | 404 | 없는 코드 |

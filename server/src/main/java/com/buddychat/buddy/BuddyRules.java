@@ -76,6 +76,11 @@ public final class BuddyRules {
         return Math.min(MAX_LEVEL, exp / expPerLevel + 1);
     }
 
+    /** The EXP a level starts at. */
+    static int minExp(int level) {
+        return (level - 1) * expPerLevel;
+    }
+
     /** How far into the current level, 0..1; full at the highest level. */
     public static double levelProgress(int exp) {
         if (level(exp) == MAX_LEVEL) return 1;

@@ -172,7 +172,8 @@ public class RoomService {
                         room.id(),
                         members(room, byId),
                         BuddyView.of(room.buddy(), Instant.now(clock)),
-                        room.createdAt()));
+                        room.createdAt(),
+                        room.album() != null ? room.album() : List.of()));
     }
 
     // Keeps join order (the room's creator first).

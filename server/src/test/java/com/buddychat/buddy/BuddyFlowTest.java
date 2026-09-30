@@ -280,6 +280,58 @@ class BuddyFlowTest {
     }
 
     @Test
+    void onlyATopLevelBuddyCanGoItsOwnWay() {
+        createRoom("henry");
+
+        post("henry", "/api/rooms/me/buddy/graduate", Map.of("buddyName", "Mochi"))
+                .expectStatus()
+                .isEqualTo(409)
+                .expectBody(JsonNode.class)
+                .value(body -> assertThat(body.get("code").asString()).isEqualTo("BUDDY_NOT_GROWN"));
+    }
+
+    @Test
+    void goingItsOwnWayKeepsItInTheAlbumAndANewEggGrowsAgain() {
+        String roomId = createRoom("henry").id();
+        for (int i = 0; i < BuddyRules.expPerLevel(); i++)
+            buddyService.onMessageSent(roomId).block(); // hatches: EVOLVED
+        setExp(roomId, (BuddyRules.MAX_LEVEL - 1) * BuddyRules.expPerLevel());
+        clock.advance(Duration.ofMinutes(1)); // the new egg is born later than the first
+
+        post("henry", "/api/rooms/me/buddy/graduate", Map.of("buddyName", "Mochi"))
+                .expectStatus()
+                .isOk();
+
+        JsonNode room = roomJson("henry");
+        assertThat(room.get("buddy").get("name").asString()).isEqualTo("Mochi");
+        assertThat(room.get("buddy").get("stage").asString()).isEqualTo("EGG");
+        assertThat(room.get("album")).hasSize(1);
+        assertThat(room.get("album").get(0).get("name").asString()).isEqualTo("Mugi");
+        // The new egg hatches with its own line, not blocked by the first one's.
+        for (int i = 0; i < BuddyRules.expPerLevel(); i++)
+            buddyService.onMessageSent(roomId).block();
+        assertThat(timeline("henry")).containsExactly("EVOLVED", "GRADUATED", "EVOLVED");
+    }
+
+    @Test
+    void bothGraduatingAtOnceGraduatesOnce() {
+        duoRoom("henry", "yuki");
+        String roomId = room("henry").id();
+        setExp(roomId, (BuddyRules.MAX_LEVEL - 1) * BuddyRules.expPerLevel());
+
+        List<Integer> statuses = race(
+                6,
+                i -> post(i % 2 == 0 ? "henry" : "yuki", "/api/rooms/me/buddy/graduate", Map.of("buddyName", "Egg" + i))
+                        .returnResult(Void.class)
+                        .getStatus()
+                        .value());
+
+        assertThat(statuses).containsOnlyOnce(200);
+        assertThat(roomJson("henry").get("album")).hasSize(1);
+        assertThat(timeline("henry")).containsOnlyOnce("GRADUATED");
+    }
+
+    @Test
     void partnerSeesCareLive() {
         duoRoom("henry", "yuki");
         clock.advance(BuddyRules.hungryAfter());
@@ -348,6 +400,26 @@ class BuddyFlowTest {
     }
 
     // --- helpers ---
+
+    private void setExp(String roomId, int exp) {
+        mongo.updateFirst(
+                        Query.query(Criteria.where("_id").is(new ObjectId(roomId))),
+                        new Update().set("buddy.exp", exp),
+                        "rooms")
+                .block();
+    }
+
+    private JsonNode roomJson(String uid) {
+        return http.get()
+                .uri("/api/rooms/me")
+                .header("Authorization", "Bearer " + token(uid))
+                .exchange()
+                .expectStatus()
+                .isOk()
+                .expectBody(JsonNode.class)
+                .returnResult()
+                .getResponseBody();
+    }
 
     private static void await(java.util.function.BooleanSupplier done) {
         for (int i = 0; i < 50 && !done.getAsBoolean(); i++) {
