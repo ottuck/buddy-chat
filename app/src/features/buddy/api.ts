@@ -2,6 +2,9 @@ import { api } from '@/lib/api';
 
 export type BuddyStage = 'EGG' | 'BABY' | 'CHILD' | 'ADULT';
 
+// Once a day, when both members have sent a message that day. server: BuddyRules.TOGETHER_EXP
+export const TOGETHER_EXP = 10;
+
 // Computed by the server (server/src/main/java/com/buddychat/buddy/BuddyView.java); the app only
 // displays it and does not re-derive the rules.
 export type BuddyView = {
@@ -17,6 +20,9 @@ export type BuddyView = {
   canClean: boolean;
   // At the top level: ready to go its own way.
   grown: boolean;
+  // Members who sent a message today (Japan time), and whether both have: the day's bonus is in.
+  talkedToday: string[];
+  togetherToday: boolean;
 };
 
 // changed: false when it was not needed, or the other member just did it.

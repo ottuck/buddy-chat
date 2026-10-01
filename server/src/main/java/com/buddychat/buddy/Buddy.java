@@ -1,6 +1,7 @@
 package com.buddychat.buddy;
 
 import java.time.Instant;
+import java.util.List;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -13,6 +14,9 @@ import org.jspecify.annotations.Nullable;
  * @param poopsCleaned poops tapped away one by one since {@code lastCleanedAt}; null means none
  * @param expDay the day (Asia/Tokyo) {@code messageExpToday} counts for
  * @param messageExpToday null on rooms created before the daily cap existed
+ * @param talkDay the day (Asia/Tokyo) {@code talkers} counts for; null until the first message
+ * @param talkers members who sent a message on {@code talkDay}
+ * @param togetherDay the last day both members talked (and the buddy got the bonus for it)
  */
 public record Buddy(
         String name,
@@ -22,12 +26,15 @@ public record Buddy(
         @Nullable Instant lastCleanedAt,
         @Nullable String expDay,
         @Nullable Integer messageExpToday,
-        @Nullable Integer poopsCleaned) {
+        @Nullable Integer poopsCleaned,
+        @Nullable String talkDay,
+        @Nullable List<String> talkers,
+        @Nullable String togetherDay) {
 
     public static final int MAX_NAME_LENGTH = 12;
 
     public static Buddy hatch(String name, Instant now) {
-        return new Buddy(name, 0, now, now, now, null, 0, 0);
+        return new Buddy(name, 0, now, now, now, null, 0, 0, null, null, null);
     }
 
     Instant fedAt() {
@@ -40,5 +47,15 @@ public record Buddy(
 
     int cleaned() {
         return poopsCleaned != null ? poopsCleaned : 0;
+    }
+
+    /** The egg that takes this grown buddy's place. Today's talk carries over: one bonus a day. */
+    Buddy next(String name, Instant now) {
+        return new Buddy(name, 0, now, now, now, null, 0, 0, talkDay, talkers, togetherDay);
+    }
+
+    /** Members who sent a message on that day. */
+    List<String> talkedOn(String day) {
+        return day.equals(talkDay) && talkers != null ? talkers : List.of();
     }
 }
