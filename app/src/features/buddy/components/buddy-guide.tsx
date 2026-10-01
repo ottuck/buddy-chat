@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { useColors } from '@/theme';
 
+import { TOGETHER_EXP } from '../api';
 import { type Frame, PixelSprite } from '../pixel/pixel-sprite';
 import { bowl, PLANTS, PROP_PALETTE, RUG } from '../pixel/sprites';
 import { type Reward, REWARDS } from './stage-decor';
@@ -52,7 +53,11 @@ export function BuddyGuide() {
         t('guide.care.clean'),
         t('guide.care.pet'),
       ])}
-      {section(t('guide.grow.title'), [t('guide.grow.exp'), t('guide.grow.stages')])}
+      {section(t('guide.grow.title'), [
+        t('guide.grow.exp'),
+        t('guide.grow.together', { exp: TOGETHER_EXP }),
+        t('guide.grow.stages'),
+      ])}
 
       <View style={[styles.card, { backgroundColor: colors.surface }]}>
         <Text style={[styles.title, { color: colors.text }]}>{t('guide.rewards.title')}</Text>

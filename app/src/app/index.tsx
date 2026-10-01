@@ -132,6 +132,11 @@ function ChatScreen({ me, room, onRoomLost, onRoomChanged }: ChatScreenProps) {
         onFeed={feed}
         onClean={clean}
         album={room.album}
+        together={
+          partner
+            ? { myId: me.id, partnerId: partner.id, partnerName: partner.displayName ?? '' }
+            : undefined
+        }
         onGraduate={async (newName) => {
           setBuddy(await graduateBuddy(newName));
           setBuddyOpen(false);

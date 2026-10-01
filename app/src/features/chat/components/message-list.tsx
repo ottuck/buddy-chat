@@ -3,7 +3,7 @@ import { FlatList, StyleSheet, View } from 'react-native';
 
 import { formatTime, runPosition } from '../timeline';
 import type { Member, Message } from '../types';
-import { BuddyEventRow, MaxLevelCard } from './buddy-event-row';
+import { BuddyEventRow, EventCard } from './buddy-event-row';
 import { MessageBubble } from './message-bubble';
 
 type Props = {
@@ -66,11 +66,21 @@ export function MessageList({
         if (item.type === 'BUDDY_EVENT' && item.event === 'MAX_LEVEL') {
           return (
             <View style={styles.spaced}>
-              <MaxLevelCard
+              <EventCard
                 title={t('buddyEvent.MAX_LEVEL', { buddy: buddyName, level: item.level })}
                 body={t('chat.maxLevelThanks')}
-                action={onGraduate ? t('buddy.graduate.button') : undefined}
+                action={onGraduate ? `🎓 ${t('buddy.graduate.button')}` : undefined}
                 onAction={onGraduate}
+              />
+            </View>
+          );
+        }
+        if (item.type === 'BUDDY_EVENT' && item.event === 'TOGETHER') {
+          return (
+            <View style={styles.spaced}>
+              <EventCard
+                title={t('buddyEvent.TOGETHER', { exp: Number(item.detail) })}
+                body={t('chat.togetherBody', { buddy: buddyName })}
               />
             </View>
           );

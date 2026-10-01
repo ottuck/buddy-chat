@@ -53,7 +53,8 @@
     "emptySolo": "{{buddy}} has hatched!\nInvite a friend to raise it together.",
     "emptySoloHint": "While you wait for a friend, try sending a message.\n{{buddy}} grows as you chat.",
     "emptyDuo": "You and {{partner}} are together now.\nSay hello!",
-    "maxLevelThanks": "Thank you so much! New characters, a collection and more are on the way. Stay tuned!"
+    "maxLevelThanks": "Thank you so much! New characters, a collection and more are on the way. Stay tuned!",
+    "togetherBody": "{{buddy}} is thrilled. When you both send a message on the same day, you get it once a day."
   },
   "invite": {
     "button": "Invite a friend",
@@ -100,7 +101,8 @@
       "ateYet": "Have you eaten?",
       "whatsUp": "Everything okay?",
       "howWasToday": "How was your day?",
-      "alreadyClean": "Already clean!"
+      "alreadyClean": "Already clean!",
+      "together": "You're both here!"
     },
     "graduate": {
       "title": "Its own way",
@@ -125,7 +127,16 @@
       "bowl2": "Gold bowl"
     },
     "nextReward_one": "Next reward: Lv.{{level}} {{reward}} · {{count}} level to go",
-    "nextReward_other": "Next reward: Lv.{{level}} {{reward}} · {{count}} levels to go"
+    "nextReward_other": "Next reward: Lv.{{level}} {{reward}} · {{count}} levels to go",
+    "together": {
+      "title": "🤝 Together",
+      "done": "You were both here today. +{{exp}} EXP earned!",
+      "waitPartner": "When {{name}} sends a message today, you both get +{{exp}} EXP.",
+      "waitMe": "{{name}} already came by today. Send a message to get +{{exp}} EXP.",
+      "none": "When you both send a message today, you get +{{exp}} EXP once a day.",
+      "me": "You",
+      "badge": "You were both here today"
+    }
   },
   "buddyEvent": {
     "HUNGRY": "{{buddy}} is hungry 🍚",
@@ -135,7 +146,8 @@
     "LEVELED_UP": "{{buddy}} leveled up! Lv.{{level}} ⬆️",
     "EVOLVED": "{{buddy}} evolved! ✨",
     "MAX_LEVEL": "🎉 {{buddy}} reached the top level, Lv.{{level}}!",
-    "GRADUATED": "🎓 {{name}} went its own way and is in the album now. A new egg arrived!"
+    "GRADUATED": "🎓 {{name}} went its own way and is in the album now. A new egg arrived!",
+    "TOGETHER": "🤝 You both showed up today! Together bonus +{{exp}} EXP"
   },
   "settings": {
     "title": "Settings",
@@ -235,7 +247,7 @@
     "title": "Raising your buddy",
     "banner": {
       "title": "🥚 How to raise your buddy",
-      "body": "It grows as you chat and take care of it, with a reward on the stage every 5 levels. At level 30 it can go its own way.",
+      "body": "It grows as you chat and take care of it, with a bonus when you both talk on the same day. A reward appears on the stage every 5 levels, and at level 30 it can go its own way.",
       "open": "See the guide ›"
     },
     "care": {
@@ -247,7 +259,8 @@
     "grow": {
       "title": "🌱 Growing",
       "exp": "EXP: +1 per message (up to 50 a day), +2 for a meal, +2 per 💩 cleaned.",
-      "stages": "Egg → baby (Lv.2) → child (Lv.5) → adult (Lv.10). From child on, it talks."
+      "stages": "Egg → baby (Lv.3) → child (Lv.10) → adult (Lv.20). From child on, it talks.",
+      "together": "When you both send a message on the same day, you get a together bonus of +{{exp}} EXP once a day. 🤝"
     },
     "rewards": {
       "title": "🎁 Level rewards",
