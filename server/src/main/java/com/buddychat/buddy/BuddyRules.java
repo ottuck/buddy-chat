@@ -19,6 +19,8 @@ public final class BuddyRules {
     public static final int MESSAGE_EXP = 1;
     // Stops "ㅎ ㅎ ㅎ" spam from levelling the buddy.
     public static final int MESSAGE_EXP_DAILY_CAP = 50;
+    // Once a day, when both members have sent a message that day (docs/product.md, 둘이 함께).
+    public static final int TOGETHER_EXP = 10;
 
     // Fullness drops from 100 to 0 over this long after a meal (2.5 h: feedable again after 30
     // minutes, hungry after 1 h 45 min). Set from BuddyProperties.
@@ -87,10 +89,15 @@ public final class BuddyRules {
         return (exp % expPerLevel) / (double) expPerLevel;
     }
 
+    // The level each stage starts at.
+    static final int BABY_AT = 3;
+    static final int CHILD_AT = 10;
+    static final int ADULT_AT = 20;
+
     public static Stage stage(int level) {
-        if (level >= 10) return Stage.ADULT;
-        if (level >= 5) return Stage.CHILD;
-        if (level >= 2) return Stage.BABY;
+        if (level >= ADULT_AT) return Stage.ADULT;
+        if (level >= CHILD_AT) return Stage.CHILD;
+        if (level >= BABY_AT) return Stage.BABY;
         return Stage.EGG;
     }
 
