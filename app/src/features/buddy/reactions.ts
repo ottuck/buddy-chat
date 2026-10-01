@@ -1,7 +1,8 @@
 import type { ServerMessage } from '@/features/chat/types';
 
 // Something that just happened in the room, for the buddy on its stage to react to.
-export type ReactionKind = 'message' | 'fed' | 'cleaned' | 'pooped' | 'levelUp' | 'evolved';
+export type ReactionKind =
+  'message' | 'fed' | 'cleaned' | 'pooped' | 'levelUp' | 'evolved' | 'together';
 export type Reaction = { id: string; kind: ReactionKind };
 
 const BY_EVENT: Partial<Record<string, ReactionKind>> = {
@@ -13,6 +14,7 @@ const BY_EVENT: Partial<Record<string, ReactionKind>> = {
   // The new egg arrives with the same rings of light as an evolution.
   GRADUATED: 'evolved',
   EVOLVED: 'evolved',
+  TOGETHER: 'together',
 };
 
 // Only for messages arriving live; history loaded after a reconnect is not reacted to. Care and

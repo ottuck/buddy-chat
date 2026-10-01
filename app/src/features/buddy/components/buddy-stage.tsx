@@ -77,6 +77,7 @@ const REACTION_MS: Record<ReactionKind, number> = {
   pooped: 1400,
   levelUp: 1600,
   evolved: 2600,
+  together: 2400,
 };
 // Of 'fed', the part spent chewing; the rest is a happy heart.
 const CHEW_MS = 2400;
@@ -446,6 +447,7 @@ export function BuddyStage({
     if (active?.kind === 'fed' && active.phase === 'after')
       next = pick(['thanks', 'yummy'] as const);
     else if (active?.kind === 'cleaned') next = pick(['refreshed', 'digestion'] as const);
+    else if (active?.kind === 'together') next = 'together';
     if (!next) return;
     const say_ = next;
     const timer = setTimeout(() => say(say_), 0);
@@ -530,6 +532,8 @@ export function BuddyStage({
       pooped: shake,
       levelUp: Animated.sequence([jump(10), jump(6)]),
       evolved: transform,
+      // Both came today: two big happy jumps.
+      together: Animated.sequence([jump(16), jump(16)]),
     };
     const move = moves[reaction.kind];
     move?.start();
@@ -581,6 +585,7 @@ export function BuddyStage({
             ? 'idle'
             : active?.kind === 'cleaned' ||
                 active?.kind === 'levelUp' ||
+                active?.kind === 'together' ||
                 (active?.kind === 'evolved' && !evolving) ||
                 petted
               ? 'happy'
@@ -601,7 +606,7 @@ export function BuddyStage({
   const frame =
     evolving && tick % 2 === 0 ? buddyFrame(previousStage, 'idle') : buddyFrame(buddy.stage, pose);
 
-  const showHeart = petted || (eating && active?.phase === 'after');
+  const showHeart = petted || (eating && active?.phase === 'after') || active?.kind === 'together';
   const sparkling = active?.kind === 'cleaned';
   const bursting = active?.kind === 'evolved' && active.phase === 'after';
   const levelingUp = active?.kind === 'levelUp';
@@ -699,6 +704,12 @@ export function BuddyStage({
         </Text>
         {/* Ready to go its own way (in the buddy's details). */}
         {buddy.grown ? <Text style={styles.grown}>🎓</Text> : null}
+        {/* Both have talked today: the day's bonus is in. */}
+        {buddy.togetherToday ? (
+          <Text style={styles.grown} accessibilityLabel={t('buddy.together.badge')}>
+            🤝
+          </Text>
+        ) : null}
         <View style={styles.bar}>
           <ProgressBar progress={buddy.levelProgress} />
         </View>

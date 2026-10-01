@@ -1,5 +1,13 @@
 export type BuddyEvent =
-  'HUNGRY' | 'FED' | 'POOPED' | 'CLEANED' | 'LEVELED_UP' | 'EVOLVED' | 'MAX_LEVEL' | 'GRADUATED';
+  | 'HUNGRY'
+  | 'FED'
+  | 'POOPED'
+  | 'CLEANED'
+  | 'LEVELED_UP'
+  | 'EVOLVED'
+  | 'MAX_LEVEL'
+  | 'GRADUATED'
+  | 'TOGETHER';
 export type SystemEvent = 'MEMBER_LEFT';
 
 // As the server sends it (server/src/main/java/com/buddychat/chat/Message.java).
@@ -38,7 +46,7 @@ export type BuddyEventMessage = MessageBase & {
   event: BuddyEvent;
   // Member who triggered the event (FED, CLEANED); absent for events the buddy causes itself.
   actorId?: string;
-  // LEVELED_UP, MAX_LEVEL: the level reached (the server sends it as text).
+  // LEVELED_UP, MAX_LEVEL: the level reached; TOGETHER: the bonus EXP (the server sends it as text).
   level?: number;
   // GRADUATED: the name of the buddy that went its own way.
   detail?: string;
