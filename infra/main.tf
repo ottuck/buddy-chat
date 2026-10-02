@@ -1,4 +1,4 @@
-# puny-chat's infrastructure (repository: buddy-chat) (docs/server-design.md, 인프라): the server on Railway, MongoDB on
+# puny-chat's infrastructure (docs/server-design.md, 인프라): the server on Railway, MongoDB on
 # Atlas, DNS on Cloudflare. The web app is a Cloudflare Worker deployed by CI with wrangler; its
 # custom domain comes with that deploy (app/wrangler.jsonc).
 

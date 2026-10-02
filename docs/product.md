@@ -6,7 +6,7 @@ puny-chat이 무엇이고 무엇을 만들지 않는지. 기능·범위를 바�
 > Chat with someone you like, and raise a tiny buddy together. — **Chat first. Buddy makes it fun.**
 
 서비스 이름은 **puny-chat**(소문자, 도메인 puny-chat.com, 2026-09-30). "작은 채팅"이라는 뜻처럼 두 사람만의 작은 대화방이다.
-저장소·코드 패키지 이름은 개발 때의 buddy-chat 그대로 둔다. Pokémon·Tamagotchi를 떠올리게 하는 이름(PokeChat, Tama-, -gotchi 등)은 쓰지 않는다.
+GitHub 저장소는 puny-chat(2026-10-02에 바꿈), 코드 패키지·로컬 폴더 이름은 개발 때의 buddy-chat 그대로 둔다. Pokémon·Tamagotchi를 떠올리게 하는 이름(PokeChat, Tama-, -gotchi 등)은 쓰지 않는다.
 
 ## 원칙
 
