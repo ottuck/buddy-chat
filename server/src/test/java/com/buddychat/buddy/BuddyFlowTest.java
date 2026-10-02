@@ -27,6 +27,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.DefaultApplicationArguments;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
@@ -62,6 +63,9 @@ class BuddyFlowTest {
 
     @Autowired
     UserService userService;
+
+    @Autowired
+    BuddyExpScale expScale;
 
     private WebTestClient http;
     private final List<TestSocket> sockets = new ArrayList<>();
@@ -224,37 +228,134 @@ class BuddyFlowTest {
     }
 
     @Test
-    void hatchesWhenReachingLevelTwo() {
+    void hatchesWhenReachingTheBabyStage() {
         String roomId = createRoom("henry").id();
+        setExp(roomId, BuddyRules.minExp(BuddyRules.BABY_AT) - 1);
+        assertThat(room("henry").buddy().stage()).isEqualTo(BuddyRules.Stage.EGG);
 
-        for (int i = 0; i < BuddyRules.expPerLevel(); i++)
-            buddyService.onMessageSent(roomId).block();
+        buddyService.onMessageSent(roomId).block();
 
         BuddyView buddy = room("henry").buddy();
-        assertThat(buddy.level()).isEqualTo(2);
+        assertThat(buddy.level()).isEqualTo(BuddyRules.BABY_AT);
         assertThat(buddy.stage()).isEqualTo(BuddyRules.Stage.BABY);
         assertThat(timeline("henry")).containsExactly("EVOLVED");
+    }
+
+    @Test
+    void stagesComeAtTheirLevels() {
+        assertThat(BuddyRules.stage(BuddyRules.BABY_AT - 1)).isEqualTo(BuddyRules.Stage.EGG);
+        assertThat(BuddyRules.stage(BuddyRules.CHILD_AT - 1)).isEqualTo(BuddyRules.Stage.BABY);
+        assertThat(BuddyRules.stage(BuddyRules.CHILD_AT)).isEqualTo(BuddyRules.Stage.CHILD);
+        assertThat(BuddyRules.stage(BuddyRules.ADULT_AT - 1)).isEqualTo(BuddyRules.Stage.CHILD);
+        assertThat(BuddyRules.stage(BuddyRules.ADULT_AT)).isEqualTo(BuddyRules.Stage.ADULT);
     }
 
     @Test
     void aNewLevelIsInTheTimelineButAnEvolutionIsOneLine() {
         String roomId = createRoom("henry").id();
 
-        // Level 2 (hatching, an evolution), then level 3 in the same stage.
+        // Level 2 (still an egg), then level 3 (hatching, an evolution).
         for (int i = 0; i < 2 * BuddyRules.expPerLevel(); i++)
             buddyService.onMessageSent(roomId).block();
 
-        assertThat(timeline("henry")).containsExactly("EVOLVED", "LEVELED_UP");
+        assertThat(timeline("henry")).containsExactly("LEVELED_UP", "EVOLVED");
         JsonNode levelUp = http.get()
-                .uri("/api/rooms/me/messages?limit=1")
+                .uri("/api/rooms/me/messages?limit=2")
                 .header("Authorization", "Bearer " + token("henry"))
                 .exchange()
                 .expectBody(JsonNode.class)
                 .returnResult()
                 .getResponseBody()
                 .get("messages")
-                .get(0);
-        assertThat(levelUp.get("text").asString()).isEqualTo("3");
+                .get(1);
+        assertThat(levelUp.get("text").asString()).isEqualTo("2");
+    }
+
+    @Test
+    void bothTalkingOnTheSameDayGivesTheBonusOnceADay() {
+        duoRoom("henry", "yuki");
+        RoomView room = room("henry");
+        String henry = room.members().get(0).id();
+        String yuki = room.members().get(1).id();
+
+        buddyService.talked(room.id(), henry).block();
+        buddyService.talked(room.id(), henry).block();
+        BuddyView alone = room("yuki").buddy();
+        assertThat(alone.talkedToday()).containsExactly(henry);
+        assertThat(alone.togetherToday()).isFalse();
+        assertThat(alone.exp()).isZero();
+
+        buddyService.talked(room.id(), yuki).block();
+        buddyService.talked(room.id(), yuki).block();
+        BuddyView both = room("henry").buddy();
+        assertThat(both.talkedToday()).containsExactlyInAnyOrder(henry, yuki);
+        assertThat(both.togetherToday()).isTrue();
+        assertThat(both.exp()).isEqualTo(BuddyRules.TOGETHER_EXP);
+        assertThat(timeline("henry")).containsOnlyOnce("TOGETHER");
+
+        // A new day starts over.
+        clock.advance(Duration.ofDays(1));
+        BuddyView nextDay = room("henry").buddy();
+        assertThat(nextDay.talkedToday()).isEmpty();
+        assertThat(nextDay.togetherToday()).isFalse();
+        buddyService.talked(room.id(), yuki).block();
+        buddyService.talked(room.id(), henry).block();
+        assertThat(room("henry").buddy().exp()).isEqualTo(2 * BuddyRules.TOGETHER_EXP);
+        assertThat(timeline("henry")).filteredOn("TOGETHER"::equals).hasSize(2);
+    }
+
+    @Test
+    void bothFirstMessagesAtOnceGiveTheBonusOnce() {
+        duoRoom("henry", "yuki");
+        RoomView room = room("henry");
+        List<String> members = room.members().stream().map(RoomView.Member::id).toList();
+
+        // Day after day, both first messages at once: each day's bonus comes once. Several days, as
+        // one day's race does not always end with both in the list before either checks it.
+        int days = 15;
+        for (int day = 0; day < days; day++) {
+            race(
+                    6,
+                    i -> buddyService
+                            .talked(room.id(), members.get(i % 2))
+                            .thenReturn(true)
+                            .block());
+            clock.advance(Duration.ofDays(1));
+        }
+
+        assertThat(room("henry").buddy().exp()).isEqualTo(days * BuddyRules.TOGETHER_EXP);
+        assertThat(timeline("henry")).filteredOn("TOGETHER"::equals).hasSize(days);
+    }
+
+    @Test
+    void talkingAloneGivesNoBonus() {
+        String roomId = createRoom("henry").id();
+        String henry = room("henry").members().get(0).id();
+
+        buddyService.talked(roomId, henry).block();
+
+        BuddyView buddy = room("henry").buddy();
+        assertThat(buddy.talkedToday()).containsExactly(henry);
+        assertThat(buddy.togetherToday()).isFalse();
+        assertThat(buddy.exp()).isZero();
+    }
+
+    @Test
+    void changingTheExpPerLevelKeepsEveryLevel() {
+        String roomId = createRoom("henry").id();
+        // Earned under 3 EXP per level: level 10, two thirds of the way to 11.
+        int exp = 3 * 9 + 2;
+        setExp(roomId, exp);
+        mongo.save(new BuddyExpScale.Setting(BuddyExpScale.ID, 3), BuddyExpScale.SETTINGS)
+                .block();
+
+        expScale.run(new DefaultApplicationArguments());
+        expScale.run(new DefaultApplicationArguments()); // scaled once, not again
+
+        BuddyView buddy = room("henry").buddy();
+        assertThat(buddy.exp()).isEqualTo(exp * BuddyRules.expPerLevel() / 3);
+        assertThat(buddy.level()).isEqualTo(10);
+        assertThat(buddy.levelProgress()).isBetween(0.6, 0.7);
     }
 
     @Test
@@ -293,8 +394,7 @@ class BuddyFlowTest {
     @Test
     void goingItsOwnWayKeepsItInTheAlbumAndANewEggGrowsAgain() {
         String roomId = createRoom("henry").id();
-        for (int i = 0; i < BuddyRules.expPerLevel(); i++)
-            buddyService.onMessageSent(roomId).block(); // hatches: EVOLVED
+        hatch(roomId); // EVOLVED
         setExp(roomId, (BuddyRules.MAX_LEVEL - 1) * BuddyRules.expPerLevel());
         clock.advance(Duration.ofMinutes(1)); // the new egg is born later than the first
 
@@ -308,8 +408,7 @@ class BuddyFlowTest {
         assertThat(room.get("album")).hasSize(1);
         assertThat(room.get("album").get(0).get("name").asString()).isEqualTo("Mugi");
         // The new egg hatches with its own line, not blocked by the first one's.
-        for (int i = 0; i < BuddyRules.expPerLevel(); i++)
-            buddyService.onMessageSent(roomId).block();
+        hatch(roomId);
         assertThat(timeline("henry")).containsExactly("EVOLVED", "GRADUATED", "EVOLVED");
     }
 
@@ -400,6 +499,12 @@ class BuddyFlowTest {
     }
 
     // --- helpers ---
+
+    // One message short of hatching, then the message.
+    private void hatch(String roomId) {
+        setExp(roomId, BuddyRules.minExp(BuddyRules.BABY_AT) - 1);
+        buddyService.onMessageSent(roomId).block();
+    }
 
     private void setExp(String roomId, int exp) {
         mongo.updateFirst(

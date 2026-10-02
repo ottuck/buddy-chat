@@ -19,7 +19,7 @@ import { errorMessage } from '@/features/room/error-message';
 import { confirm } from '@/lib/confirm';
 import { MAX_CONTENT_WIDTH, useColors } from '@/theme';
 
-import type { BuddyView } from '../api';
+import { type BuddyView, TOGETHER_EXP } from '../api';
 import { BuddyAvatar } from './buddy-avatar';
 import { rewardIcon } from './buddy-guide';
 import { nextReward } from './stage-decor';
@@ -38,6 +38,8 @@ type Props = {
   album?: AlbumEntry[];
   // At the top level: the buddy goes into the album and a new egg with this name arrives.
   onGraduate?: (newName: string) => Promise<void>;
+  // With a partner in the room: today's together bonus, and who has talked.
+  together?: { myId: string; partnerId: string; partnerName: string };
 };
 
 const MAX_NAME_LENGTH = 12; // server: Buddy.MAX_NAME_LENGTH
@@ -53,6 +55,7 @@ export function BuddySheet({
   onClean,
   album,
   onGraduate,
+  together,
 }: Props) {
   const colors = useColors();
   const { t } = useTranslation();
@@ -132,6 +135,8 @@ export function BuddySheet({
               />
             </View>
 
+            {together ? <TogetherCard buddy={buddy} {...together} /> : null}
+
             <NextReward level={buddy.level} album={album ?? []} />
 
             <Text style={[styles.hint, { color: colors.textMuted }]}>{t('buddy.growthHint')}</Text>
@@ -141,6 +146,43 @@ export function BuddySheet({
         </View>
       </WebFrame>
     </Modal>
+  );
+}
+
+// The day's together bonus (docs/product.md, 둘이 함께): who has talked today, and what is left.
+function TogetherCard({
+  buddy,
+  myId,
+  partnerId,
+  partnerName,
+}: {
+  buddy: BuddyView;
+  myId: string;
+  partnerId: string;
+  partnerName: string;
+}) {
+  const colors = useColors();
+  const { t } = useTranslation();
+  const me = buddy.talkedToday.includes(myId);
+  const partner = buddy.talkedToday.includes(partnerId);
+  const state = buddy.togetherToday
+    ? 'done'
+    : me && !partner
+      ? 'waitPartner'
+      : partner && !me
+        ? 'waitMe'
+        : 'none';
+  const mark = (talked: boolean) => (talked || buddy.togetherToday ? '✅' : '⏳');
+  return (
+    <View style={[styles.card, { backgroundColor: colors.surface }]}>
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('buddy.together.title')}</Text>
+      <Text style={[styles.body, { color: colors.text }]}>
+        {t('buddy.together.me')} {mark(me)} · {partnerName} {mark(partner)}
+      </Text>
+      <Text lineBreakStrategyIOS="hangul-word" style={[styles.body, { color: colors.textMuted }]}>
+        {t(`buddy.together.${state}`, { name: partnerName, exp: TOGETHER_EXP })}
+      </Text>
+    </View>
   );
 }
 

@@ -21,7 +21,8 @@ export type Line =
   | 'evening'
   | 'ateYet'
   | 'whatsUp'
-  | 'howWasToday';
+  | 'howWasToday'
+  | 'together';
 
 const SAY_MS = 3000;
 const CHATTER_MIN_MS = 60_000;

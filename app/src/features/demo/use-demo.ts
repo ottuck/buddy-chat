@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import type { BuddyStage, BuddyView } from '@/features/buddy/api';
+import { type BuddyStage, type BuddyView, TOGETHER_EXP } from '@/features/buddy/api';
 import { STAGE_ORDER } from '@/features/buddy/pixel/sprites';
 import type { Cue } from '@/features/buddy/components/buddy-stage';
 import type { Reaction, ReactionKind } from '@/features/buddy/reactions';
@@ -12,13 +12,14 @@ import { DEMO_ME, DEMO_PARTNER, REPLIES, SCRIPT, type Step, type Who } from './s
 // timeline, the buddy, "typing…" and reactions. The buddy's changes here are scripted, not the
 // server's rules, and nothing is sent anywhere.
 
-const LEVEL_OF: Record<BuddyStage, number> = { EGG: 1, BABY: 2, CHILD: 5, ADULT: 10 };
+const LEVEL_OF: Record<BuddyStage, number> = { EGG: 1, BABY: 3, CHILD: 10, ADULT: 20 };
 const REACTION_OF: Partial<Record<BuddyEvent, ReactionKind>> = {
   FED: 'fed',
   CLEANED: 'cleaned',
   POOPED: 'pooped',
   LEVELED_UP: 'levelUp',
   EVOLVED: 'evolved',
+  TOGETHER: 'together',
 };
 const REPLY_AFTER_MS = 900;
 // A timeline entry before it gets its id and time (per kind of message).
@@ -42,6 +43,8 @@ function egg(name: string): BuddyView {
     canFeed: false,
     canClean: false,
     grown: false,
+    talkedToday: [],
+    togetherToday: false,
   };
 }
 
@@ -54,6 +57,15 @@ function afterEvent(buddy: BuddyView, event: BuddyEvent): BuddyView | null {
       if (!stage) return null;
       return { ...buddy, stage, level: LEVEL_OF[stage], levelProgress: 0.1 };
     }
+    case 'TOGETHER':
+      return buddy.togetherToday
+        ? null
+        : {
+            ...buddy,
+            talkedToday: [DEMO_ME, DEMO_PARTNER],
+            togetherToday: true,
+            levelProgress: Math.min(0.95, buddy.levelProgress + 0.4),
+          };
     case 'MAX_LEVEL':
     case 'GRADUATED':
       return null; // not in the script
@@ -134,9 +146,18 @@ export function useDemo({ buddyName, lineText, replyText }: Options) {
         later(800, () => setPartnerReadId(id));
       }
       const current = buddyRef.current;
-      if (current.stage !== 'EGG') {
-        changeBuddy({ ...current, levelProgress: Math.min(0.95, current.levelProgress + 0.1) });
-      }
+      // Who has talked today, for the together card in the buddy's details.
+      const talkedToday = current.talkedToday.includes(from)
+        ? current.talkedToday
+        : [...current.talkedToday, from];
+      changeBuddy({
+        ...current,
+        talkedToday,
+        levelProgress:
+          current.stage === 'EGG'
+            ? current.levelProgress
+            : Math.min(0.95, current.levelProgress + 0.1),
+      });
     },
     [add, changeBuddy, later],
   );
@@ -151,6 +172,7 @@ export function useDemo({ buddyName, lineText, replyText }: Options) {
         event: kind,
         actorId: actor,
         level: kind === 'LEVELED_UP' ? next.level : undefined,
+        detail: kind === 'TOGETHER' ? String(TOGETHER_EXP) : undefined,
       });
       const reactionKind = REACTION_OF[kind];
       if (reactionKind) setReaction({ id, kind: reactionKind });

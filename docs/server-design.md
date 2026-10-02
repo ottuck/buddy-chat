@@ -260,8 +260,10 @@ iPhone / Web ──HTTPS·WSS──▶ Railway (Spring WebFlux, Docker, 싱가�
 
 수치는 `server/.../buddy/BuddyRules.java` 한 곳에 있고 임시값이다(`docs/product.md`의 "아직 정하지 않은 것").
 
-- **저장하는 것**: `exp`, `bornAt`, `lastFedAt`, `lastCleanedAt`, 오늘 메시지 EXP 카운터. 배고픔·똥은 저장하지 않고
-  조회 시점에 계산한다. 앱은 서버가 계산한 `BuddyView`(level, stage, fullness, poops, canFeed, canClean)를 그대로 보여준다.
+- **저장하는 것**: `exp`, `bornAt`, `lastFedAt`, `lastCleanedAt`, 오늘 메시지 EXP 카운터, 오늘 메시지를 보낸 사람
+  (`talkDay`, `talkers`)과 둘이 함께 보너스를 받은 날(`togetherDay`). 배고픔·똥은 저장하지 않고 조회 시점에 계산한다.
+  앱은 서버가 계산한 `BuddyView`(level, stage, fullness, poops, canFeed, canClean, talkedToday, togetherToday)를 그대로
+  보여준다.
 - **배고픔**: 밥을 먹은 뒤 2시간 30분에 걸쳐 100 → 0. 80 미만이면(30분 뒤부터) 밥을 줄 수 있고, 30 이하면(1시간 45분 뒤)
   "배고파요". 2026-09-29에 12시간에서 줄였다: 잠깐 들르는 사람도 돌볼 거리가 있게.
 - **똥**: 바닥이 깨끗해진 뒤(`lastCleanedAt`) 1시간마다 하나(전에는 6시간), 최대 3개. **누를 때마다 하나씩** 치운다:
@@ -276,24 +278,38 @@ iPhone / Web ──HTTPS·WSS──▶ Railway (Spring WebFlux, Docker, 싱가�
 - **경험치**: 밥 +2, 💩 하나당 +2, 메시지 +1(room당 하루 50까지, 일본 시간 기준). **최고 레벨은 30**이고 그 뒤로도 EXP는
   쌓이지만 레벨과 바는 30·가득에서 멈춘다. 30이 되는 순간 `MAX_LEVEL` 이벤트(감사 카드) 하나를 남긴다. 레벨당 20
   (`buddychat.buddy.exp-per-level`). **포트폴리오로 보여주는 동안 운영 서버는 3**(Terraform `buddy_exp_per_level`,
-  2026-09-29에 테스트용 1에서 올림). 출시 전에 변수를 null로 돌린다. 레벨은 `exp / 레벨당 EXP + 1`로 매번 계산하므로 값을
-  바꾸면 이미 있는 Buddy의 레벨·단계도 바로 달라진다(작아질 수 있고, 진화 연출은 없다).
-  단계: 알(Lv1) → 아기(Lv2) → 어린이(Lv5) → 어른(Lv10). 죽지 않는다. 단계에 필요한 누적 EXP:
+  2026-09-29에 테스트용 1에서 올림). 출시 전에 변수를 null로 돌린다.
+- **레벨당 EXP를 바꿔도 레벨은 그대로**(`BuddyExpScale`): 레벨은 `exp / 레벨당 EXP + 1`로 매번 계산하므로 값만 바꾸면 이미
+  있는 Buddy의 레벨이 내려간다. 그래서 서버가 시작할 때 `settings` 컬렉션(`_id: "buddy"`)에 기록한 값과 지금 값을 비교해,
+  다르면 모든 Buddy의 EXP를 `exp × 새 값 ÷ 옛 값`(내림)으로 바꾼다. 레벨과 바 위치가 유지된다. 처음 시작할 때는 값만 기록한다.
+  새 값을 조건부 update로 먼저 기록하고 바꾸므로, 두 서버가 같이 떠도 한 번만 바꾸고 중간에 실패해도 두 번 바뀌지 않는다
+  (실패하면 레벨이 내려간 채 남는다). 트래픽 전 1회성 작업이라 blocking으로 한다.
+- **단계**: 알(Lv1) → 아기(Lv3) → 어린이(Lv10) → 어른(Lv20)(`BuddyRules`의 `BABY_AT`·`CHILD_AT`·`ADULT_AT`, 2026-10-01에
+  2·5·10에서 올림: 어른이 너무 빨랐다). 죽지 않는다. 단계에 필요한 누적 EXP:
 
   | 단계 | 레벨 | 레벨당 1 (테스트) | 레벨당 3 (지금 운영) | 레벨당 20 (기본값) |
   | --- | --- | --- | --- | --- |
-  | 아기 | 2 | 1 | 3 | 20 |
-  | 어린이 | 5 | 4 | 12 | 80 |
-  | 어른 | 10 | 9 | 27 | 180 |
+  | 아기 | 3 | 2 | 6 | 40 |
+  | 어린이 | 10 | 9 | 27 | 180 |
+  | 어른 | 20 | 19 | 57 | 380 |
+  | 최고 | 30 | 29 | 87 | 580 |
 
-  하루에 얻을 수 있는 EXP는 메시지 50 + 밥(30분마다 가능) + 청소(1시간마다 가능) 정도다.
-- **타임라인 이벤트**: `FED`, `CLEANED`(누가 했는지 포함, 바닥이 깨끗해질 때 한 줄), `LEVELED_UP`(`text`에 새 레벨,
+  하루에 얻을 수 있는 EXP는 메시지 50 + 둘이 함께 10 + 밥(30분마다 가능) + 청소(1시간마다 가능) 정도다.
+- **둘이 함께**: 같은 날(일본 시간) 두 사람이 모두 메시지를 보내면 하루 한 번 +10(`TOGETHER_EXP`, 메시지 상한과 별개).
+  메시지마다 `talked`가 보낸 사람을 그날 목록에 넣는다(같은 날이면 `$addToSet`, 아니면 새 날로 시작하는 조건부 update. 새 날을
+  두 메시지가 동시에 시작하면 진 쪽은 같은 날 쪽으로 다시). 그날 처음인 사람이면 둘 다 있고 `togetherDay`가 오늘이 아닐 때만
+  보너스를 주는 조건부 update를 한 번 해서, 첫 메시지가 동시에 와도 한 번만 준다. 주면 타임라인 `TOGETHER`(`text` = 받은 EXP,
+  키 `together:<날짜>`)와 레벨 업 처리, 아니면 `buddy` 이벤트만 보내서 상대 화면에 "누가 왔는지"가 바로 보인다. 그날 두 번째
+  메시지부터는 아무것도 하지 않는다. 독립으로 온 새 알은 그날 기록을 이어받아 보너스가 두 번 들어가지 않는다. 혼자인 방은 받지
+  않는다.
+- **타임라인 이벤트**: `FED`, `CLEANED`(누가 했는지 포함, 바닥이 깨끗해질 때 한 줄), `TOGETHER`(위), `LEVELED_UP`(`text`에 새 레벨,
   단계가 바뀌면 대신 `EVOLVED` 하나만, 30이면 대신 `MAX_LEVEL`), `EVOLVED`는 일어날 때, `HUNGRY`, `POOPED`는 누군가
   앱을 열거나(`GET /api/rooms/me`) 연결할 때 기록한다. 원인 시각으로 만든 키(`buddy:hungry:<lastFedAt>` 등)가
   메시지 unique 인덱스에 걸려서 여러 번 확인해도 한 번만 남는다. 스케줄러가 없다.
 - **동시성**: 밥주기는 `lastFedAt < 지금 - 30분` 조건부 update, 청소는 읽은 `lastCleanedAt`·`poopsCleaned`가 그대로일 때만
   바꾸는 compare-and-set. 둘이 동시에 눌러도
-  한 번만 적용되고, 진 쪽은 `changed: false`와 현재 상태를 받는다. 메시지 EXP 상한도 조건부 update 두 단계로 지킨다.
+  한 번만 적용되고, 진 쪽은 `changed: false`와 현재 상태를 받는다. 메시지 EXP 상한도 조건부 update 두 단계로 지킨다. 둘이 함께
+  보너스는 `togetherDay` 조건으로 하루 한 번(테스트는 여러 날 동안 두 첫 메시지를 동시에 보낸다).
 - **독립**(`POST /api/rooms/me/buddy/graduate` `{ buddyName }`): 30레벨(`BuddyView.grown`)일 때만. 지금 버디를 room의 `album`
   (`{ name, bornAt, graduatedAt }`)에 push하고 `buddy`를 새 알로 바꾸는 것을 한 번의 조건부 update로 한다(같은 `bornAt`이고 EXP가
   30레벨 이상일 때만: 새 알은 EXP 0이라 같은 순간에 태어나도 걸리지 않는다). 둘이 동시에 하면 한 명만 되고 다른 쪽은

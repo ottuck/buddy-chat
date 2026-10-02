@@ -1,4 +1,4 @@
-# buddy-chat (서비스 이름: puny-chat)
+# puny-chat (코드·폴더 이름: buddy-chat)
 
 1~2명이 작은 가상 생명체(Buddy)를 함께 키우며 쓰는 초경량 1:1 실시간 채팅 앱.
 **Chat first. Buddy makes it fun.** iOS가 기준 플랫폼이고 Web은 보조, Android는 나중.

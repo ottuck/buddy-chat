@@ -178,7 +178,7 @@ public class BuddyService {
                     .gte(BuddyRules.minExp(BuddyRules.MAX_LEVEL)));
             Update update = new Update()
                     .push("album", new AlbumEntry(buddy.name(), buddy.bornAt(), now))
-                    .set("buddy", Buddy.hatch(newName, now));
+                    .set("buddy", buddy.next(newName, now));
             return mongo.findAndModify(same, update, RETURN_NEW, RoomBuddy.class, ROOMS)
                     .switchIfEmpty(Mono.error(notGrown()))
                     .flatMap(updated -> chatService
@@ -210,7 +210,65 @@ public class BuddyService {
         Mono<?> care = CareCommand.of(text)
                 .map(command -> command == CareCommand.FEED ? feed(roomId, senderId) : cleanAll(roomId, senderId))
                 .orElse(Mono.empty());
-        return onMessageSent(roomId).then(care).then();
+        return onMessageSent(roomId).then(talked(roomId, senderId)).then(care).then();
+    }
+
+    /**
+     * Notes that the sender talked today (docs/product.md, 둘이 함께). The first time both members
+     * have, the buddy gets {@link BuddyRules#TOGETHER_EXP} once for the day and the timeline a
+     * TOGETHER entry. A member's first message of the day otherwise just updates everyone's view, so
+     * the other one sees they are awaited. Later messages that day change nothing.
+     */
+    public Mono<Void> talked(String roomId, String senderId) {
+        Instant now = Instant.now(clock);
+        String today = BuddyRules.day(now);
+        // Both return the buddy as it was, to tell whether the sender is new today.
+        Mono<RoomBuddy> sameDay = Mono.defer(() -> mongo.findAndModify(
+                query(where("_id").is(roomId).and("buddy.talkDay").is(today)),
+                new Update().addToSet("buddy.talkers", senderId),
+                RoomBuddy.class,
+                ROOMS));
+        // The day's first message starts the list. If another message won that race, join the day
+        // it just started.
+        Mono<RoomBuddy> newDay = Mono.defer(() -> mongo.findAndModify(
+                query(where("_id").is(roomId).and("buddy.talkDay").ne(today)),
+                new Update().set("buddy.talkDay", today).set("buddy.talkers", List.of(senderId)),
+                RoomBuddy.class,
+                ROOMS));
+        return sameDay.switchIfEmpty(newDay)
+                .switchIfEmpty(sameDay)
+                .filter(before -> !before.buddy().talkedOn(today).contains(senderId))
+                .flatMap(before -> together(roomId, today, now)
+                        .switchIfEmpty(Mono.defer(() -> load(roomId).map(buddy -> {
+                            BuddyView view = BuddyView.of(buddy, now);
+                            hub.publish(roomId, new ServerEvent.BuddyUpdated(view), null);
+                            return view;
+                        }))))
+                .then();
+    }
+
+    // Both have talked today and the bonus is not given yet: give it. One conditional update, so
+    // two first messages at once give it once.
+    private Mono<BuddyView> together(String roomId, String today, Instant now) {
+        Query bothTalked = query(where("_id")
+                .is(roomId)
+                .and("buddy.talkDay")
+                .is(today)
+                .and("buddy.talkers.1")
+                .exists(true)
+                .and("buddy.togetherDay")
+                .ne(today));
+        Update bonus = new Update().set("buddy.togetherDay", today).inc("buddy.exp", BuddyRules.TOGETHER_EXP);
+        return mongo.findAndModify(bothTalked, bonus, RETURN_NEW, RoomBuddy.class, ROOMS)
+                .flatMap(updated -> chatService
+                        .recordBuddyEvent(
+                                roomId,
+                                "TOGETHER",
+                                String.valueOf(BuddyRules.TOGETHER_EXP),
+                                null,
+                                eventKey(updated.buddy(), "together:" + today))
+                        .doOnNext(message -> hub.publish(roomId, new ServerEvent.NewMessage(message), null))
+                        .then(grown(roomId, updated.buddy(), BuddyRules.TOGETHER_EXP, now)));
     }
 
     /**

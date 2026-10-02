@@ -15,8 +15,9 @@ export function BuddyEventRow({ label }: { label: string }) {
   );
 }
 
-// The top level reached: a thank-you from us, and what comes next (docs/product.md, 최고 레벨).
-export function MaxLevelCard({
+// A timeline entry worth noticing, as a card: the top level reached (a thank-you from us, and what
+// comes next) or the day's together bonus (docs/product.md).
+export function EventCard({
   title,
   body,
   action,
@@ -48,7 +49,7 @@ export function MaxLevelCard({
               { backgroundColor: colors.accent, opacity: pressed ? 0.7 : 1 },
             ]}
           >
-            <Text style={[styles.actionLabel, { color: colors.onAccent }]}>🎓 {action}</Text>
+            <Text style={[styles.actionLabel, { color: colors.onAccent }]}>{action}</Text>
           </Pressable>
         ) : null}
       </View>
