@@ -110,8 +110,14 @@ settings     { _id: "buddy", expPerLevel }
 | POST | `/api/invitations/{code}/accept` | 초대 수락 → room 참가 |
 | POST | `/api/rooms/me/leave` | room 나가기 → 204(아래 Room 규칙) |
 | GET | `/api/rooms/me/messages?before=&after=&limit=` | 타임라인(최신순, limit ≤ 50). `before`: 이전 페이지, `after`: 재연결 후 놓친 메시지. 응답 `{ messages, hasMore }` |
+| POST | `/api/rooms/me/buddy/feed` | 밥주기 → `{ buddy, changed }`. 필요 없었거나 상대가 방금 했으면 `changed: false`(아래 Buddy 규칙) |
+| POST | `/api/rooms/me/buddy/clean` | 💩 청소 → `{ buddy, changed }` |
+| POST | `/api/rooms/me/buddy/graduate` | 다 자란 Buddy 독립 `{ buddyName }` → 새 알의 Buddy 상태. 지금 Buddy는 `album`으로 |
 | POST | `/api/me/push-tokens` | 이 기기의 Expo 푸시 토큰 등록 `{ token }` → 204. 다른 사용자가 갖고 있던 토큰이면 이쪽으로 옮긴다 |
 | DELETE | `/api/me/push-tokens/{token}` | 로그아웃하거나 앱 설정에서 알림을 끌 때 토큰 삭제(자기 것만) → 204 |
+| GET | `/api/me/web-push/key` | 브라우저가 구독할 때 쓰는 서버 공개 키(VAPID) `{ publicKey }` |
+| POST | `/api/me/web-push` | 이 브라우저의 Web Push 구독 등록 `{ endpoint, p256dh, auth }` → 204(아래 웹 푸시) |
+| DELETE | `/api/me/web-push?endpoint=` | 구독 삭제(자기 것만) → 204. endpoint가 URL이라 path가 아니라 query로 받는다 |
 
 ## WebSocket 프로토콜
 
