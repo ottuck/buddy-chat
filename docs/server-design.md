@@ -64,14 +64,19 @@ com.buddychat
 
 ```text
 users        { _id, firebaseUid (unique), displayName, roomId?, createdAt, guest?, lastSeenAt? }
-rooms        { _id, memberIds [1..2], memberCount, createdAt,
-               buddy { name, exp, bornAt, lastFedAt?, lastCleanedAt?, expDay?, messageExpToday? } }
+rooms        { _id, memberIds [1..2], memberCount, createdAt, album? [{ name, bornAt, graduatedAt }],
+               buddy { name, exp, bornAt, lastFedAt?, lastCleanedAt?, poopsCleaned?, expDay?, messageExpToday?,
+                       talkDay?, talkers?, togetherDay? } }
 messages     { _id, roomId, senderId?, type (TEXT | SYSTEM | BUDDY_EVENT), text?, buddyEvent?, systemEvent?, actorId?,
                clientMessageId, createdAt }
 invitations  { _id, roomId, code (unique), createdBy, createdAt, expiresAt, usedAt?, usedBy? }
 reads        { _id: "<roomId>:<userId>", roomId, userId, messageId, updatedAt }
-push_tokens  { _id: <Expo push token>, userId, updatedAt }
+push_tokens  { _id: <Expo push token | Web Push endpoint>, userId, updatedAt, p256dh?, auth? }
+settings     { _id: "buddy", expPerLevel }
 ```
+
+- `push_tokens`의 `p256dh`·`auth`는 Web Push 구독의 암호화 키다. Expo 토큰이면 없다.
+- `settings`는 서버가 마지막으로 쓴 레벨당 EXP를 기록한다(아래 Buddy 규칙).
 
 - **Buddy는 room에 embed한다.** room과 1:1로 생성·삭제되고 항상 같이 읽는다. 밥주기·청소를 room 문서
   하나의 atomic update로 처리할 수 있다.
